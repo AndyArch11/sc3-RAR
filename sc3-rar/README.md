@@ -56,6 +56,7 @@ change to the project directory
 In the project folder
 
 ### `npm install`
+### `npm install xlsx --save`
 
 ## Available Scripts
 
