@@ -733,7 +733,9 @@ const RARForm = () => {
     };
     
     const symbol = currencySymbols[currency] || "¤";
-    return `${symbol}${amount.toLocaleString("en-US")}`;
+    // Round to 2 decimal places for proper currency formatting
+    const roundedAmount = Math.round(amount * 100) / 100;
+    return `${symbol}${roundedAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   // Helper function to build distribution parameter objects
@@ -1422,6 +1424,18 @@ INTERPRETATION:
     setSelectedRiskIndex(null);
     setIsEditingRisk(false);
     setRarFieldsOpen(true);
+  };
+
+  const handleRefreshMonteCarloSimulation = () => {
+    // Clear the Monte Carlo cache to force re-calculation
+    setMonteCarloCache({});
+    
+    // Force a form update to trigger re-calculation
+    setForm(prevForm => ({
+      ...prevForm,
+      // Touch a field to trigger useEffect and force recalculation
+      monteCarloIterations: prevForm.monteCarloIterations
+    }));
   };
 
   const handleStartNew = () => {
@@ -2587,7 +2601,7 @@ INTERPRETATION:
                 onClick={() => setShowQualitativeGuidance(!showQualitativeGuidance)}
               >
                 <h3 style={{ color: SC3_PRIMARY, margin: 0 }}>
-                  Qualitative Assessment Options & Usage Guidelines
+                  Assessment Options & Usage Guidelines
                 </h3>
                 <span style={{ color: SC3_PRIMARY, fontSize: "1.5rem", fontWeight: "bold" }}>
                   {showQualitativeGuidance ? "−" : "+"}
@@ -3583,6 +3597,10 @@ INTERPRETATION:
                       <li><strong>Risk Appetite Threshold:</strong> Organizational tolerance level</li>
                       <li><strong>Time to Impact:</strong> How quickly risk could materialize</li>
                       <li><strong>Detection Probability:</strong> Likelihood of detecting before impact</li>
+                      <li><strong>Residual SLE:</strong> Single Loss Expectancy after controls implementation</li>
+                      <li><strong>Residual ARO:</strong> Annual Rate of Occurrence after controls</li>
+                      <li><strong>Residual ALE:</strong> Annual Loss Expectancy after risk treatment</li>
+                      <li><strong>Risk Reduction Value:</strong> Quantified benefit of implemented controls</li>
                     </ul>
                   </div>
                   
@@ -4550,12 +4568,41 @@ INTERPRETATION:
                             border: `1px solid ${SC3_SECONDARY}`,
                             marginBottom: "1rem"
                           }}>
-                            <h4 style={{ color: SC3_PRIMARY, marginTop: 0, marginBottom: "0.5rem" }}>
-                              Monte Carlo Simulation Parameters
-                            </h4>
-                            <p style={{ margin: 0, fontSize: "0.9rem", color: "#666" }}>
-                              Configure the parameters for Monte Carlo simulation to model risk uncertainty and generate probabilistic risk estimates.
-                            </p>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <div>
+                                <h4 style={{ color: SC3_PRIMARY, marginTop: 0, marginBottom: "0.5rem" }}>
+                                  Monte Carlo Simulation Parameters
+                                </h4>
+                                <p style={{ margin: 0, fontSize: "0.9rem", color: "#666" }}>
+                                  Configure the parameters for Monte Carlo simulation to model risk uncertainty and generate probabilistic risk estimates.
+                                </p>
+                              </div>
+                              <button
+                                onClick={handleRefreshMonteCarloSimulation}
+                                style={{
+                                  background: SC3_SECONDARY,
+                                  color: "#fff",
+                                  border: "none",
+                                  padding: "0.5rem 1rem",
+                                  borderRadius: SC3_BTN_RADIUS,
+                                  fontWeight: SC3_BTN_FONT_WEIGHT,
+                                  fontSize: "0.9rem",
+                                  cursor: "pointer",
+                                  boxShadow: SC3_BTN_BOX_SHADOW(SC3_SECONDARY),
+                                  transition: "all 0.3s ease",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  minWidth: "120px",
+                                  justifyContent: "center"
+                                }}
+                                onMouseOver={(e) => e.target.style.background = "#007bb5"}
+                                onMouseOut={(e) => e.target.style.background = SC3_SECONDARY}
+                                title="Re-run Monte Carlo simulation with current parameters"
+                              >
+                                🔄 Refresh
+                              </button>
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -7142,6 +7189,7 @@ INTERPRETATION:
                               onDragOver={(e) => handleDragOver(e, index)}
                               onDragLeave={handleDragLeave}
                               onDrop={(e) => handleDrop(e, index)}
+                              title={`Risk ID: ${risk.riskId || 'Not specified'} | Risk Title: ${risk.riskTitle || 'Not specified'}`}
                               style={{
                                 background: isDragOver
                                   ? "#e8f5e8"
