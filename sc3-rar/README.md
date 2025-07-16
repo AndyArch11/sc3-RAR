@@ -36,6 +36,8 @@ sc3-rar
 │   ├── App.css            # CSS styles for the application
 │   └── components
 │       └── RARForm.js     # RAR SPA form
+            distribution.js # logic for the different Monte Carlo distribution algorithms
+            montecarlo.js  # Monte Carlo simulations
 ├── package.json           # npm configuration file
 └── README.md              # Project documentation
 ```

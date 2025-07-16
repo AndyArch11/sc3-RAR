@@ -1,7 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import * as XLSX from 'xlsx';
+import { runMonteCarlo, sampleDistribution } from "./montecarlo";
 
-const VERSION = "v0.1.1"; // Update as needed
+const VERSION = "v0.1.2"; // Update as needed
+
+// TODO: Refactor to use a more modular approach with hooks and components
+// TODO: Add more unit tests for all components and functions
+// TODO: Implement error handling and validation for form inputs
+// TODO: Add tooltips and help texts for form fields
+// TODO: Implement accessibility features (ARIA labels, keyboard navigation, etc.)
+// TODO: Add localization support for different languages
+// TODO: Implement responsive design for mobile and tablet views
+// TODO: Externalise styles and constants
+
 
 // SC3.com.au theme colours
 const SC3_PRIMARY = "#003366"; // Deep blue
@@ -47,6 +58,7 @@ const initialForm = {
   assessor: "",
   assessedDate: getToday(),
   riskOwner: "",
+  approver: "",
   threatSource: "",
   vulnerability: "",
   currentControls: "",
@@ -62,6 +74,33 @@ const initialForm = {
   sle: "",
   sleCurrency: "dollar",
   aro: "",
+  // Monte Carlo Simulation fields
+  monteCarloIterations: "10000",
+  minLoss: "",
+  maxLoss: "",
+  mostLikelyLoss: "",
+  minFrequency: "",
+  maxFrequency: "",
+  mostLikelyFrequency: "",
+  confidenceLevel: "95",
+  lossDistribution: "triangular",
+  frequencyDistribution: "triangular",
+  // Distribution-specific parameters
+  // For Normal/LogNormal distributions
+  lossMean: "",
+  lossStdDev: "",
+  frequencyMean: "",
+  frequencyStdDev: "",
+  // For Beta distribution
+  lossAlpha: "",
+  lossBeta: "",
+  frequencyAlpha: "",
+  frequencyBeta: "",
+  // For Poisson distribution
+  frequencyLambda: "",
+  // For Exponential distribution
+  frequencyLambdaExp: "",
+  // Note: expectedLoss, valueAtRisk, and monteCarloResults are now calculated automatically
   status: "",
   manualRiskLevel: "",
   residualRisk: "",
@@ -75,6 +114,24 @@ const RARForm = () => {
   const [form, setForm] = useState(initialForm);
   // Risks management state
   const [risks, setRisks] = useState([]);
+  const [thresholdCurrency, setThresholdCurrency] = useState("dollar");
+  
+  // Threshold values state
+  const [thresholds, setThresholds] = useState({
+    quantitative: {
+      extreme: 1000000,
+      high: { min: 500000, max: 999999 },
+      medium: { min: 100000, max: 499999 },
+      low: 100000
+    },
+    advancedQuantitative: {
+      extreme: 2000000,
+      high: { min: 1000000, max: 1999999 },
+      medium: { min: 200000, max: 999999 },
+      low: 200000
+    }
+  });
+  
   const [selectedRiskIndex, setSelectedRiskIndex] = useState(null);
   const [isEditingRisk, setIsEditingRisk] = useState(false);
   const [rarFieldsOpen, setRarFieldsOpen] = useState(true);
@@ -84,6 +141,57 @@ const RARForm = () => {
   const [draggedRiskIndex, setDraggedRiskIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
 
+  // Sync threshold currency with form currency for quantitative assessments
+  useEffect(() => {
+    if (form.assessmentType === "quantitative" || form.assessmentType === "advancedQuantitative") {
+      setThresholdCurrency(form.sleCurrency);
+    }
+  }, [form.assessmentType, form.sleCurrency]);
+
+  // Auto-calculate manual risk level for quantitative assessments based on thresholds
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (form.assessmentType === "quantitative") {
+      const ale = calculateALE(form);
+      const calculatedLevel = getQuantitativeRiskLevel(ale);
+      if (calculatedLevel && calculatedLevel !== form.manualRiskLevel) {
+        setForm(prevForm => ({
+          ...prevForm,
+          manualRiskLevel: calculatedLevel
+        }));
+      }
+    } else if (form.assessmentType === "advancedQuantitative") {
+      const expectedLoss = getMonteCarloExpectedLossNumeric(form);
+      const calculatedLevel = getAdvancedQuantitativeRiskLevel(expectedLoss);
+      if (calculatedLevel && calculatedLevel !== form.manualRiskLevel) {
+        setForm(prevForm => ({
+          ...prevForm,
+          manualRiskLevel: calculatedLevel
+        }));
+      }
+    } else if (form.assessmentType === "qualitative") {
+      // Clear manual risk level for qualitative assessments to use matrix calculation
+      if (form.manualRiskLevel) {
+        setForm(prevForm => ({
+          ...prevForm,
+          manualRiskLevel: ""
+        }));
+      }
+    }
+  }, [
+    form.assessmentType,
+    form.sle,
+    form.aro,
+    form.minLoss,
+    form.mostLikelyLoss,
+    form.maxLoss,
+    form.minFrequency,
+    form.mostLikelyFrequency,
+    form.maxFrequency,
+    form.manualRiskLevel,
+    thresholds
+  ]);
+
   // Validation state for mandatory fields
   const [validationErrors, setValidationErrors] = useState({});
   const [showValidation, setShowValidation] = useState(false);
@@ -91,6 +199,9 @@ const RARForm = () => {
   // Analytics filter state
   const [includeClosedRisks, setIncludeClosedRisks] = useState(false);
   const [showAdditionalConsiderations, setShowAdditionalConsiderations] = useState(false);
+
+  // Guidance section state
+  const [showQualitativeGuidance, setShowQualitativeGuidance] = useState(false);
 
   // Helper function to get filtered risks count for analytics
   const getFilteredRisksCount = () => {
@@ -625,6 +736,330 @@ const RARForm = () => {
     return `${symbol}${amount.toLocaleString("en-US")}`;
   };
 
+  // Helper function to build distribution parameter objects
+  const buildDistributionParams = (distributionType, form, isLoss = true) => {
+    const prefix = isLoss ? 'loss' : 'frequency';
+    
+    switch (distributionType) {
+      case 'triangular':
+        const minVal = parseFloat(form[`min${isLoss ? 'Loss' : 'Frequency'}`]) || 0;
+        const modeVal = parseFloat(form[`mostLikely${isLoss ? 'Loss' : 'Frequency'}`]) || 0;
+        const maxVal = parseFloat(form[`max${isLoss ? 'Loss' : 'Frequency'}`]) || 0;
+        
+        // Ensure valid triangular distribution parameters
+        const validMin = Math.max(0, minVal);
+        const validMax = Math.max(validMin + 0.01, maxVal);
+        const validMode = Math.max(validMin, Math.min(validMax, modeVal || (validMin + validMax) / 2));
+        
+        return {
+          type: 'triangular',
+          min: validMin,
+          mode: validMode,
+          max: validMax
+        };
+      case 'normal':
+        const meanVal = parseFloat(form[`${prefix}Mean`]) || 1;
+        const stdDevVal = parseFloat(form[`${prefix}StdDev`]) || 0.1;
+        return {
+          type: 'normal',
+          mean: meanVal,
+          stdDev: Math.max(0.001, stdDevVal) // Ensure positive standard deviation
+        };
+      case 'lognormal':
+        const lnMeanVal = parseFloat(form[`${prefix}Mean`]) || 1;
+        const lnStdDevVal = parseFloat(form[`${prefix}StdDev`]) || 0.1;
+        return {
+          type: 'logNormal',
+          mean: lnMeanVal,
+          stdDev: Math.max(0.001, lnStdDevVal) // Ensure positive standard deviation
+        };
+      case 'uniform':
+        const uMinVal = parseFloat(form[`min${isLoss ? 'Loss' : 'Frequency'}`]) || 0;
+        const uMaxVal = parseFloat(form[`max${isLoss ? 'Loss' : 'Frequency'}`]) || 1;
+        
+        // Ensure valid uniform distribution parameters
+        const validUMin = Math.max(0, uMinVal);
+        const validUMax = Math.max(validUMin + 0.01, uMaxVal);
+        
+        return {
+          type: 'uniform',
+          min: validUMin,
+          max: validUMax
+        };
+      case 'beta':
+        const bMinVal = parseFloat(form[`min${isLoss ? 'Loss' : 'Frequency'}`]) || 0;
+        const bMaxVal = parseFloat(form[`max${isLoss ? 'Loss' : 'Frequency'}`]) || 1;
+        const alphaVal = parseFloat(form[`${prefix}Alpha`]) || 2;
+        const betaVal = parseFloat(form[`${prefix}Beta`]) || 2;
+        
+        // Ensure valid beta distribution parameters
+        const validBMin = Math.max(0, bMinVal);
+        const validBMax = Math.max(validBMin + 0.01, bMaxVal);
+        
+        return {
+          type: 'beta',
+          min: validBMin,
+          max: validBMax,
+          alpha: Math.max(0.1, alphaVal),
+          beta: Math.max(0.1, betaVal)
+        };
+      case 'poisson':
+        const lambdaVal = parseFloat(form[`${prefix}Lambda`]) || 1;
+        return {
+          type: 'poisson',
+          lambda: Math.max(0.001, lambdaVal) // Ensure positive lambda
+        };
+      case 'exponential':
+        const expLambdaVal = parseFloat(form[`${prefix}LambdaExp`]) || 1;
+        return {
+          type: 'exponential',
+          lambda: Math.max(0.001, expLambdaVal) // Ensure positive lambda
+        };
+      default:
+        // Default to triangular with sensible defaults
+        return {
+          type: 'triangular',
+          min: isLoss ? 1000 : 0.1,
+          mode: isLoss ? 10000 : 0.5,
+          max: isLoss ? 100000 : 2.0
+        };
+    }
+  };
+
+  // Helper function to run Monte Carlo simulation
+  const runMonteCarloSimulation = (form) => {
+    const iterations = parseInt(form.monteCarloIterations) || 10000;
+    const confidenceLevel = parseFloat(form.confidenceLevel) / 100 || 0.95;
+    
+    // Build severity (loss) distribution parameters
+    const severityParams = buildDistributionParams(form.lossDistribution, form, true);
+    
+    // Build frequency distribution parameters
+    const frequencyParams = buildDistributionParams(form.frequencyDistribution, form, false);
+    
+    // Debug logging
+    console.log('Monte Carlo Simulation Parameters:');
+    console.log('Form data:', form);
+    console.log('Iterations:', iterations);
+    console.log('Confidence Level:', confidenceLevel);
+    console.log('Severity Params:', severityParams);
+    console.log('Frequency Params:', frequencyParams);
+    
+    // Validate parameters
+    if (!severityParams || !frequencyParams) {
+      console.error('Invalid distribution parameters');
+      return { expectedAnnualLoss: 0, valueAtRisk: 0, annualLosses: [] };
+    }
+    
+    // Check if runMonteCarlo is available
+    if (typeof runMonteCarlo !== 'function') {
+      console.error('runMonteCarlo function not available');
+      return { expectedAnnualLoss: 0, valueAtRisk: 0, annualLosses: [] };
+    }
+    
+    // Create event structure for Monte Carlo simulation
+    const events = [{
+      severity: severityParams,
+      frequency: frequencyParams
+    }];
+    
+    console.log('Events for simulation:', events);
+    
+    try {
+      // Run Monte Carlo simulation
+      const results = runMonteCarlo(events, iterations, confidenceLevel);
+      console.log('Monte Carlo Results:', results);
+      
+      // Validate results
+      if (!results || typeof results.expectedAnnualLoss !== 'number' || typeof results.valueAtRisk !== 'number') {
+        console.error('Invalid Monte Carlo results:', results);
+        return { expectedAnnualLoss: 0, valueAtRisk: 0, annualLosses: [] };
+      }
+      
+      return results;
+    } catch (error) {
+      console.error('Monte Carlo simulation error:', error);
+      return {
+        expectedAnnualLoss: 0,
+        valueAtRisk: 0,
+        annualLosses: []
+      };
+    }
+  };
+
+  // Monte Carlo results cache to avoid multiple simulations
+  const [monteCarloCache, setMonteCarloCache] = useState({});
+
+  // Helper function to get or compute Monte Carlo results with caching
+  const getMonteCarloResults = (form) => {
+    // Create a cache key based on form parameters that affect Monte Carlo simulation
+    const cacheKey = JSON.stringify({
+      assessmentType: form.assessmentType,
+      lossDistribution: form.lossDistribution,
+      frequencyDistribution: form.frequencyDistribution,
+      minLoss: form.minLoss,
+      mostLikelyLoss: form.mostLikelyLoss,
+      maxLoss: form.maxLoss,
+      minFrequency: form.minFrequency,
+      mostLikelyFrequency: form.mostLikelyFrequency,
+      maxFrequency: form.maxFrequency,
+      monteCarloIterations: form.monteCarloIterations,
+      confidenceLevel: form.confidenceLevel,
+      sleCurrency: form.sleCurrency,
+      // Distribution-specific parameters
+      lossMean: form.lossMean,
+      lossStdDev: form.lossStdDev,
+      frequencyMean: form.frequencyMean,
+      frequencyStdDev: form.frequencyStdDev,
+      lossAlpha: form.lossAlpha,
+      lossBeta: form.lossBeta,
+      frequencyAlpha: form.frequencyAlpha,
+      frequencyBeta: form.frequencyBeta,
+      frequencyLambda: form.frequencyLambda,
+      frequencyLambdaExp: form.frequencyLambdaExp
+    });
+
+    // Check if we have cached results for these parameters
+    if (monteCarloCache[cacheKey]) {
+      console.log('Using cached Monte Carlo results');
+      return monteCarloCache[cacheKey];
+    }
+
+    // Run new simulation and cache results
+    console.log('Running new Monte Carlo simulation');
+    const results = runMonteCarloSimulation(form);
+    
+    // Cache the results
+    setMonteCarloCache(prev => ({
+      ...prev,
+      [cacheKey]: results
+    }));
+
+    return results;
+  };
+
+  // Monte Carlo calculation functions
+  const calculateMonteCarloExpectedLoss = (form) => {
+    const results = getMonteCarloResults(form);
+    console.log('Expected Loss Results:', results);
+    
+    if (results.expectedAnnualLoss && results.expectedAnnualLoss > 0) {
+      return formatCurrency(results.expectedAnnualLoss, form.sleCurrency);
+    }
+    
+    return "";
+  };
+
+  // Helper function to get numeric value for risk level calculation
+  const getMonteCarloExpectedLossNumeric = (form) => {
+    const results = getMonteCarloResults(form);
+    return results.expectedAnnualLoss || 0;
+  };
+
+  // Helper function to get numeric VaR value for total calculation
+  const getMonteCarloVaRNumeric = (form) => {
+    const results = getMonteCarloResults(form);
+    return results.valueAtRisk || 0;
+  };
+
+  const calculateMonteCarloVaR = (form) => {
+    const results = getMonteCarloResults(form);
+    console.log('VaR Results:', results);
+    
+    if (results.valueAtRisk && results.valueAtRisk > 0) {
+      return formatCurrency(results.valueAtRisk, form.sleCurrency);
+    }
+    
+    return "";
+  };
+
+  const calculateMonteCarloResults = (form) => {
+    const results = getMonteCarloResults(form);
+    const iterations = parseInt(form.monteCarloIterations) || 10000;
+    const confidenceLevel = parseFloat(form.confidenceLevel) || 95;
+    
+    if (!results.expectedAnnualLoss && !results.valueAtRisk) {
+      return "";
+    }
+
+    // Calculate distribution statistics
+    const annualLosses = results.annualLosses || [];
+    const sortedLosses = [...annualLosses].sort((a, b) => a - b);
+    
+    // Calculate percentiles
+    const median = sortedLosses[Math.floor(sortedLosses.length * 0.5)] || 0;
+    const p25 = sortedLosses[Math.floor(sortedLosses.length * 0.25)] || 0;
+    const p75 = sortedLosses[Math.floor(sortedLosses.length * 0.75)] || 0;
+    const p90 = sortedLosses[Math.floor(sortedLosses.length * 0.9)] || 0;
+    const p99 = sortedLosses[Math.floor(sortedLosses.length * 0.99)] || 0;
+    
+    // Calculate standard deviation
+    const mean = results.expectedAnnualLoss;
+    const variance = annualLosses.reduce((sum, loss) => sum + Math.pow(loss - mean, 2), 0) / annualLosses.length;
+    const stdDev = Math.sqrt(variance);
+    
+    // Get distribution parameters for display
+    const severityParams = buildDistributionParams(form.lossDistribution, form, true);
+    const frequencyParams = buildDistributionParams(form.frequencyDistribution, form, false);
+    
+    // Generate summary text
+    return `Monte Carlo Simulation Results (${iterations.toLocaleString()} iterations):
+
+LOSS DISTRIBUTION (${form.lossDistribution}):
+${form.lossDistribution === 'triangular' ? 
+  `• Minimum: ${formatCurrency(severityParams.min, form.sleCurrency)}
+• Mode: ${formatCurrency(severityParams.mode, form.sleCurrency)}
+• Maximum: ${formatCurrency(severityParams.max, form.sleCurrency)}` :
+  form.lossDistribution === 'normal' || form.lossDistribution === 'lognormal' ?
+  `• Mean: ${formatCurrency(severityParams.mean, form.sleCurrency)}
+• Standard Deviation: ${formatCurrency(severityParams.stdDev, form.sleCurrency)}` :
+  form.lossDistribution === 'uniform' ?
+  `• Minimum: ${formatCurrency(severityParams.min, form.sleCurrency)}
+• Maximum: ${formatCurrency(severityParams.max, form.sleCurrency)}` :
+  form.lossDistribution === 'beta' ?
+  `• Minimum: ${formatCurrency(severityParams.min, form.sleCurrency)}
+• Maximum: ${formatCurrency(severityParams.max, form.sleCurrency)}
+• Alpha: ${severityParams.alpha}
+• Beta: ${severityParams.beta}` : ''
+}
+
+FREQUENCY DISTRIBUTION (${form.frequencyDistribution}):
+${form.frequencyDistribution === 'triangular' ? 
+  `• Minimum: ${frequencyParams.min.toFixed(2)} events/year
+• Mode: ${frequencyParams.mode.toFixed(2)} events/year
+• Maximum: ${frequencyParams.max.toFixed(2)} events/year` :
+  form.frequencyDistribution === 'normal' ?
+  `• Mean: ${frequencyParams.mean.toFixed(2)} events/year
+• Standard Deviation: ${frequencyParams.stdDev.toFixed(2)} events/year` :
+  form.frequencyDistribution === 'uniform' ?
+  `• Minimum: ${frequencyParams.min.toFixed(2)} events/year
+• Maximum: ${frequencyParams.max.toFixed(2)} events/year` :
+  form.frequencyDistribution === 'poisson' ?
+  `• Lambda (Rate): ${frequencyParams.lambda.toFixed(2)} events/year` :
+  form.frequencyDistribution === 'exponential' ?
+  `• Lambda (Rate): ${frequencyParams.lambda.toFixed(2)}` : ''
+}
+
+SIMULATION RESULTS:
+• Expected Annual Loss: ${formatCurrency(results.expectedAnnualLoss, form.sleCurrency)}
+• ${confidenceLevel}% Value at Risk: ${formatCurrency(results.valueAtRisk, form.sleCurrency)}
+• Standard Deviation: ${formatCurrency(stdDev, form.sleCurrency)}
+• Median (50th percentile): ${formatCurrency(median, form.sleCurrency)}
+
+PERCENTILE ANALYSIS:
+• 25th Percentile: ${formatCurrency(p25, form.sleCurrency)}
+• 75th Percentile: ${formatCurrency(p75, form.sleCurrency)}
+• 90th Percentile: ${formatCurrency(p90, form.sleCurrency)}
+• 99th Percentile: ${formatCurrency(p99, form.sleCurrency)}
+
+INTERPRETATION:
+• Results based on ${iterations.toLocaleString()} Monte Carlo iterations
+• ${confidenceLevel}% confidence that annual loss will not exceed VaR
+• Expected loss represents long-term average annual impact
+• Consider risk tolerance and mitigation strategies
+• Regular model validation and parameter updates recommended`;
+  };
+
   const calculateOverallRiskScore = (form) => {
     const likelihoodValue = parseInt(form.likelihood) || 0;
     const impactValue = parseInt(form.impact) || 0;
@@ -648,6 +1083,21 @@ const RARForm = () => {
     const { name, value } = e.target;
     let updatedForm = { ...form, [name]: value };
     setForm(updatedForm);
+    
+    // Clear Monte Carlo cache when parameters that affect simulation change
+    const monteCarloParams = [
+      'assessmentType', 'lossDistribution', 'frequencyDistribution',
+      'minLoss', 'mostLikelyLoss', 'maxLoss', 'minFrequency', 'mostLikelyFrequency', 'maxFrequency',
+      'monteCarloIterations', 'confidenceLevel', 'sleCurrency',
+      'lossMean', 'lossStdDev', 'frequencyMean', 'frequencyStdDev',
+      'lossAlpha', 'lossBeta', 'frequencyAlpha', 'frequencyBeta',
+      'frequencyLambda', 'frequencyLambdaExp'
+    ];
+    
+    if (monteCarloParams.includes(name)) {
+      console.log(`Clearing Monte Carlo cache due to change in ${name}`);
+      setMonteCarloCache({});
+    }
     
     // Clear validation errors for mandatory fields when user starts typing
     if (showValidation && (name === 'riskId' || name === 'riskTitle')) {
@@ -679,9 +1129,84 @@ const RARForm = () => {
     form.residualImpact,
   );
 
+  // Function to determine risk level based on ALE value and threshold currency
+  const getQuantitativeRiskLevel = (aleValue) => {
+    if (aleValue >= thresholds.quantitative.extreme) {
+      return "extreme";
+    } else if (aleValue >= thresholds.quantitative.high.min) {
+      return "high";
+    } else if (aleValue >= thresholds.quantitative.medium.min) {
+      return "medium";
+    } else {
+      return "low";
+    }
+  };
+
+  // Function to determine risk level based on Advanced Quantitative Expected Loss
+  const getAdvancedQuantitativeRiskLevel = (expectedLoss) => {
+    const numericValue = typeof expectedLoss === 'number' ? expectedLoss : parseFloat(expectedLoss) || 0;
+    if (numericValue >= thresholds.advancedQuantitative.extreme) {
+      return "extreme";
+    } else if (numericValue >= thresholds.advancedQuantitative.high.min) {
+      return "high";
+    } else if (numericValue >= thresholds.advancedQuantitative.medium.min) {
+      return "medium";
+    } else {
+      return "low";
+    }
+  };
+
+  // Function to restore default threshold values
+  const restoreDefaultThresholds = () => {
+    setThresholds({
+      quantitative: {
+        extreme: 1000000,
+        high: { min: 500000, max: 999999 },
+        medium: { min: 100000, max: 499999 },
+        low: 100000
+      },
+      advancedQuantitative: {
+        extreme: 2000000,
+        high: { min: 1000000, max: 1999999 },
+        medium: { min: 200000, max: 999999 },
+        low: 200000
+      }
+    });
+  };
+
+  // Function to update threshold values
+  const updateThreshold = (type, level, field, value) => {
+    const numericValue = parseFloat(value) || 0;
+    setThresholds(prev => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        [level]: typeof prev[type][level] === 'object' 
+          ? { ...prev[type][level], [field]: numericValue }
+          : numericValue
+      }
+    }));
+  };
+
+  const getApproverPlaceholder = (riskLevel) => {
+    switch (riskLevel?.toLowerCase()) {
+      case "extreme":
+        return "CEO, Board of Directors, Chief Risk Officer (CRO), Chief Executive Officer";
+      case "high":
+        return "Chief Risk Officer (CRO), Chief Financial Officer (CFO), Chief Operating Officer (COO), Executive Management Team";
+      case "medium":
+        return "Senior Management, Division/Department Heads, Risk Management Committee, General Manager";
+      case "low":
+        return "Line Managers, Team Leaders, Risk Coordinators, Operational Management";
+      default:
+        return "Enter approver name based on risk level";
+    }
+  };
+
   // Helper functions for risk management
   const clearRarFields = () => {
     setForm(initialForm);
+    setMonteCarloCache({}); // Clear Monte Carlo cache when resetting form
   };
 
   const getCurrentRiskData = () => ({
@@ -692,7 +1217,10 @@ const RARForm = () => {
       form.assessmentType === "qualitative"
         ? calculatedResidualRiskLevel
         : form.residualRisk,
-    ale: calculateALE(form),
+    ale: form.assessmentType === "quantitative" ? calculateALE(form) : 0,
+    expectedLoss: form.assessmentType === "advancedQuantitative" ? calculateMonteCarloExpectedLoss(form) : "",
+    valueAtRisk: form.assessmentType === "advancedQuantitative" ? calculateMonteCarloVaR(form) : "",
+    monteCarloResults: form.assessmentType === "advancedQuantitative" ? calculateMonteCarloResults(form) : "",
   });
 
   const loadRiskData = (risk) => {
@@ -700,6 +1228,7 @@ const RARForm = () => {
       ...initialForm,
       ...risk,
     });
+    setMonteCarloCache({}); // Clear Monte Carlo cache when loading new risk data
   };
 
   // Validation function for mandatory fields
@@ -992,9 +1521,12 @@ const RARForm = () => {
       // Get Current Risk Assessment table data
       const riskTableHeaders = [
         'Risk ID', 'Risk Title', 'Framework', 'Category', 'Description', 'Assessor', 
-        'Assessed Date', 'Risk Owner', 'Threat Source', 'Vulnerability', 'Current Controls',
+        'Assessed Date', 'Risk Owner', 'Approver', 'Threat Source', 'Vulnerability', 'Current Controls',
         'Control Effectiveness', 'Assessment Type', 'Likelihood', 'Impact', 'Risk Level',
-        'SLE', 'ARO', 'ALE', 'Treatment Strategy', 'Recommended Actions', 'Action Owner',
+        'SLE', 'ARO', 'ALE', 'Monte Carlo Iterations', 'Loss Distribution', 'Min Loss',
+        'Most Likely Loss', 'Max Loss', 'Frequency Distribution', 'Min Frequency',
+        'Most Likely Frequency', 'Max Frequency', 'Confidence Level', 'Expected Loss',
+        'Value at Risk', 'Monte Carlo Results', 'Treatment Strategy', 'Recommended Actions', 'Action Owner',
         'Target Date', 'Review Date', 'Status', 'Residual Likelihood', 'Residual Impact',
         'Residual Risk Level', 'Closed Date', 'Closed By'
       ];
@@ -1011,6 +1543,7 @@ const RARForm = () => {
           risk.assessor || '',
           risk.assessedDate || '',
           risk.riskOwner || '',
+          risk.approver || '',
           risk.threatSource || '',
           risk.vulnerability || '',
           risk.currentControls || '',
@@ -1022,6 +1555,19 @@ const RARForm = () => {
           risk.sle || '',
           risk.aro || '',
           risk.ale || '',
+          risk.monteCarloIterations || '',
+          risk.lossDistribution || '',
+          risk.minLoss || '',
+          risk.mostLikelyLoss || '',
+          risk.maxLoss || '',
+          risk.frequencyDistribution || '',
+          risk.minFrequency || '',
+          risk.mostLikelyFrequency || '',
+          risk.maxFrequency || '',
+          risk.confidenceLevel || '',
+          risk.expectedLoss || '',
+          risk.valueAtRisk || '',
+          risk.monteCarloResults || '',
           risk.treatmentStrategy || '',
           risk.recommendedActions || '',
           risk.actionOwner || '',
@@ -1526,6 +2072,849 @@ const RARForm = () => {
               Modify the Risk Assessment Matrix to reflect the organisation's
               risk appetite.
             </p>
+            {/* Severity Level Sign-off Table */}
+            <div style={{ marginTop: "2rem", marginBottom: "2rem" }}>
+              <h3 style={{ color: SC3_PRIMARY, marginBottom: "1rem" }}>
+                Severity Risk Level Sign-off Authority
+              </h3>
+              <div style={{ marginBottom: "1rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <label style={{ color: SC3_PRIMARY, fontWeight: "bold" }}>
+                    Threshold Currency:
+                  </label>
+                  <select
+                    value={thresholdCurrency}
+                    onChange={(e) => setThresholdCurrency(e.target.value)}
+                    disabled={form.assessmentType === "quantitative" || form.assessmentType === "advancedQuantitative"}
+                    style={{
+                      width: "150px",
+                      padding: SC3_INPUT_PADDING,
+                      borderRadius: SC3_INPUT_BORDER_RADIUS,
+                      border: `1px solid ${SC3_SECONDARY}`,
+                      fontSize: "1rem",
+                      backgroundColor: (form.assessmentType === "quantitative" || form.assessmentType === "advancedQuantitative") ? "#f5f5f5" : "white",
+                      color: (form.assessmentType === "quantitative" || form.assessmentType === "advancedQuantitative") ? "#666" : "#333",
+                    }}
+                  >
+                    <option value="dollar">$ (dollar)</option>
+                    <option value="euro">€ (euro)</option>
+                    <option value="pound">£ (pound)</option>
+                    <option value="yen">¥ (yen)</option>
+                    <option value="rupee">₹ (rupee)</option>
+                    <option value="peso">₱ (peso)</option>
+                    <option value="won">₩ (won)</option>
+                    <option value="lira">₺ (lira)</option>
+                    <option value="franc">₣ (franc)</option>
+                    <option value="shekel">₪ (shekel)</option>
+                    <option value="other">¤ (other)</option>
+                  </select>
+                  {(form.assessmentType === "quantitative" || form.assessmentType === "advancedQuantitative") && (
+                    <small style={{ color: "#666", fontStyle: "italic" }}>
+                      Uses currency from {form.assessmentType} assessment fields
+                    </small>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={restoreDefaultThresholds}
+                  style={{
+                    padding: "8px 16px",
+                    backgroundColor: SC3_SECONDARY,
+                    color: "white",
+                    border: "none",
+                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                    fontSize: "0.9rem",
+                    cursor: "pointer",
+                    transition: "background-color 0.2s",
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = SC3_PRIMARY}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = SC3_SECONDARY}
+                >
+                  Restore Default Thresholds
+                </button>
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    background: SC3_TABLE_BG,
+                    borderRadius: SC3_TABLE_BORDER_RADIUS,
+                    overflow: "hidden",
+                    border: `2px solid ${SC3_PRIMARY}`,
+                  }}
+                >
+                  <thead>
+                    <tr>
+                      <th
+                        style={{
+                          background: SC3_TABLE_HEADER_BG,
+                          color: SC3_PRIMARY,
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          fontWeight: SC3_TABLE_HEADER_FONT_WEIGHT,
+                          fontSize: SC3_TABLE_HEADER_FONT_SIZE,
+                          textAlign: "center",
+                          minWidth: "120px",
+                        }}
+                      >
+                        Severity Risk Level
+                      </th>
+                      <th
+                        style={{
+                          background: SC3_TABLE_HEADER_BG,
+                          color: SC3_PRIMARY,
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          fontWeight: SC3_TABLE_HEADER_FONT_WEIGHT,
+                          fontSize: SC3_TABLE_HEADER_FONT_SIZE,
+                          textAlign: "center",
+                          minWidth: "140px",
+                        }}
+                      >
+                        Quantitative ALE Threshold
+                      </th>
+                      <th
+                        style={{
+                          background: SC3_TABLE_HEADER_BG,
+                          color: SC3_PRIMARY,
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          fontWeight: SC3_TABLE_HEADER_FONT_WEIGHT,
+                          fontSize: SC3_TABLE_HEADER_FONT_SIZE,
+                          textAlign: "center",
+                          minWidth: "160px",
+                        }}
+                      >
+                        Advanced Quantitative Expected Loss Threshold
+                      </th>
+                      <th
+                        style={{
+                          background: SC3_TABLE_HEADER_BG,
+                          color: SC3_PRIMARY,
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          fontWeight: SC3_TABLE_HEADER_FONT_WEIGHT,
+                          fontSize: SC3_TABLE_HEADER_FONT_SIZE,
+                          textAlign: "center",
+                        }}
+                      >
+                        Typical Corporate Roles Required for Sign-off
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style={{ transition: SC3_TABLE_TRANSITION }}>
+                      <td
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          fontWeight: "bold",
+                          textAlign: "center",
+                          background: getRiskColor("Extreme"),
+                          color: "#fff",
+                        }}
+                      >
+                        Extreme
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          textAlign: "center",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        ≥ <input
+                          type="number"
+                          value={thresholds.quantitative.extreme}
+                          onChange={(e) => updateThreshold('quantitative', 'extreme', null, e.target.value)}
+                          style={{
+                            width: "80px",
+                            padding: "4px",
+                            border: "1px solid #ccc",
+                            borderRadius: "4px",
+                            textAlign: "center",
+                            fontSize: "0.9rem"
+                          }}
+                        />
+                        <div style={{ fontSize: "0.8rem", color: "#666" }}>
+                          {formatCurrency(thresholds.quantitative.extreme, thresholdCurrency)}
+                        </div>
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          textAlign: "center",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        ≥ <input
+                          type="number"
+                          value={thresholds.advancedQuantitative.extreme}
+                          onChange={(e) => updateThreshold('advancedQuantitative', 'extreme', null, e.target.value)}
+                          style={{
+                            width: "80px",
+                            padding: "4px",
+                            border: "1px solid #ccc",
+                            borderRadius: "4px",
+                            textAlign: "center",
+                            fontSize: "0.9rem"
+                          }}
+                        />
+                        <div style={{ fontSize: "0.8rem", color: "#666" }}>
+                          {formatCurrency(thresholds.advancedQuantitative.extreme, thresholdCurrency)}
+                        </div>
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          textAlign: "left",
+                        }}
+                      >
+                        CEO, Board of Directors, Chief Risk Officer (CRO), Chief Executive Officer
+                      </td>
+                    </tr>
+                    <tr style={{ transition: SC3_TABLE_TRANSITION }}>
+                      <td
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          fontWeight: "bold",
+                          textAlign: "center",
+                          background: getRiskColor("High"),
+                          color: "#fff",
+                        }}
+                      >
+                        High
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          textAlign: "center",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        <input
+                          type="number"
+                          value={thresholds.quantitative.high.min}
+                          onChange={(e) => updateThreshold('quantitative', 'high', 'min', e.target.value)}
+                          style={{
+                            width: "70px",
+                            padding: "4px",
+                            border: "1px solid #ccc",
+                            borderRadius: "4px",
+                            textAlign: "center",
+                            fontSize: "0.9rem"
+                          }}
+                        />
+                        {" - "}
+                        <input
+                          type="number"
+                          value={thresholds.quantitative.high.max}
+                          onChange={(e) => updateThreshold('quantitative', 'high', 'max', e.target.value)}
+                          style={{
+                            width: "70px",
+                            padding: "4px",
+                            border: "1px solid #ccc",
+                            borderRadius: "4px",
+                            textAlign: "center",
+                            fontSize: "0.9rem"
+                          }}
+                        />
+                        <div style={{ fontSize: "0.8rem", color: "#666" }}>
+                          {formatCurrency(thresholds.quantitative.high.min, thresholdCurrency)} - {formatCurrency(thresholds.quantitative.high.max, thresholdCurrency)}
+                        </div>
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          textAlign: "center",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        <input
+                          type="number"
+                          value={thresholds.advancedQuantitative.high.min}
+                          onChange={(e) => updateThreshold('advancedQuantitative', 'high', 'min', e.target.value)}
+                          style={{
+                            width: "70px",
+                            padding: "4px",
+                            border: "1px solid #ccc",
+                            borderRadius: "4px",
+                            textAlign: "center",
+                            fontSize: "0.9rem"
+                          }}
+                        />
+                        {" - "}
+                        <input
+                          type="number"
+                          value={thresholds.advancedQuantitative.high.max}
+                          onChange={(e) => updateThreshold('advancedQuantitative', 'high', 'max', e.target.value)}
+                          style={{
+                            width: "70px",
+                            padding: "4px",
+                            border: "1px solid #ccc",
+                            borderRadius: "4px",
+                            textAlign: "center",
+                            fontSize: "0.9rem"
+                          }}
+                        />
+                        <div style={{ fontSize: "0.8rem", color: "#666" }}>
+                          {formatCurrency(thresholds.advancedQuantitative.high.min, thresholdCurrency)} - {formatCurrency(thresholds.advancedQuantitative.high.max, thresholdCurrency)}
+                        </div>
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          textAlign: "left",
+                        }}
+                      >
+                        Chief Risk Officer (CRO), Chief Financial Officer (CFO), Chief Operating Officer (COO), Executive Management Team
+                      </td>
+                    </tr>
+                    <tr style={{ transition: SC3_TABLE_TRANSITION }}>
+                      <td
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          fontWeight: "bold",
+                          textAlign: "center",
+                          background: getRiskColor("Medium"),
+                          color: "#000",
+                        }}
+                      >
+                        Medium
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          textAlign: "center",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        <input
+                          type="number"
+                          value={thresholds.quantitative.medium.min}
+                          onChange={(e) => updateThreshold('quantitative', 'medium', 'min', e.target.value)}
+                          style={{
+                            width: "70px",
+                            padding: "4px",
+                            border: "1px solid #ccc",
+                            borderRadius: "4px",
+                            textAlign: "center",
+                            fontSize: "0.9rem"
+                          }}
+                        />
+                        {" - "}
+                        <input
+                          type="number"
+                          value={thresholds.quantitative.medium.max}
+                          onChange={(e) => updateThreshold('quantitative', 'medium', 'max', e.target.value)}
+                          style={{
+                            width: "70px",
+                            padding: "4px",
+                            border: "1px solid #ccc",
+                            borderRadius: "4px",
+                            textAlign: "center",
+                            fontSize: "0.9rem"
+                          }}
+                        />
+                        <div style={{ fontSize: "0.8rem", color: "#666" }}>
+                          {formatCurrency(thresholds.quantitative.medium.min, thresholdCurrency)} - {formatCurrency(thresholds.quantitative.medium.max, thresholdCurrency)}
+                        </div>
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          textAlign: "center",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        <input
+                          type="number"
+                          value={thresholds.advancedQuantitative.medium.min}
+                          onChange={(e) => updateThreshold('advancedQuantitative', 'medium', 'min', e.target.value)}
+                          style={{
+                            width: "70px",
+                            padding: "4px",
+                            border: "1px solid #ccc",
+                            borderRadius: "4px",
+                            textAlign: "center",
+                            fontSize: "0.9rem"
+                          }}
+                        />
+                        {" - "}
+                        <input
+                          type="number"
+                          value={thresholds.advancedQuantitative.medium.max}
+                          onChange={(e) => updateThreshold('advancedQuantitative', 'medium', 'max', e.target.value)}
+                          style={{
+                            width: "70px",
+                            padding: "4px",
+                            border: "1px solid #ccc",
+                            borderRadius: "4px",
+                            textAlign: "center",
+                            fontSize: "0.9rem"
+                          }}
+                        />
+                        <div style={{ fontSize: "0.8rem", color: "#666" }}>
+                          {formatCurrency(thresholds.advancedQuantitative.medium.min, thresholdCurrency)} - {formatCurrency(thresholds.advancedQuantitative.medium.max, thresholdCurrency)}
+                        </div>
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          textAlign: "left",
+                        }}
+                      >
+                        Senior Management, Division/Department Heads, Risk Management Committee, General Manager
+                      </td>
+                    </tr>
+                    <tr style={{ transition: SC3_TABLE_TRANSITION }}>
+                      <td
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          fontWeight: "bold",
+                          textAlign: "center",
+                          background: getRiskColor("Low"),
+                          color: "#fff",
+                        }}
+                      >
+                        Low
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          textAlign: "center",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        &lt; <input
+                          type="number"
+                          value={thresholds.quantitative.low}
+                          onChange={(e) => updateThreshold('quantitative', 'low', null, e.target.value)}
+                          style={{
+                            width: "80px",
+                            padding: "4px",
+                            border: "1px solid #ccc",
+                            borderRadius: "4px",
+                            textAlign: "center",
+                            fontSize: "0.9rem"
+                          }}
+                        />
+                        <div style={{ fontSize: "0.8rem", color: "#666" }}>
+                          &lt; {formatCurrency(thresholds.quantitative.low, thresholdCurrency)}
+                        </div>
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          textAlign: "center",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        &lt; <input
+                          type="number"
+                          value={thresholds.advancedQuantitative.low}
+                          onChange={(e) => updateThreshold('advancedQuantitative', 'low', null, e.target.value)}
+                          style={{
+                            width: "80px",
+                            padding: "4px",
+                            border: "1px solid #ccc",
+                            borderRadius: "4px",
+                            textAlign: "center",
+                            fontSize: "0.9rem"
+                          }}
+                        />
+                        <div style={{ fontSize: "0.8rem", color: "#666" }}>
+                          &lt; {formatCurrency(thresholds.advancedQuantitative.low, thresholdCurrency)}
+                        </div>
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px",
+                          border: `1px solid ${SC3_PRIMARY}`,
+                          textAlign: "left",
+                        }}
+                      >
+                        Line Managers, Team Leaders, Risk Coordinators, Operational Management
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p style={{ marginTop: "1rem", fontSize: "0.9em", color: "#666" }}>
+                <strong>Note:</strong> Sign-off requirements may vary based on organisational structure and risk appetite. 
+                Adjust these roles to reflect your organisation's governance framework and delegation authorities.
+                <br /><br />
+                <strong>Threshold Guidance:</strong>
+                <br />• <strong>Quantitative ALE Threshold:</strong> Annual Loss Expectancy calculated as SLE × ARO
+                <br />• <strong>Advanced Quantitative Expected Loss Threshold:</strong> Expected Loss from Monte Carlo simulation
+                <br />• These thresholds can be adjusted based on your organisation's risk appetite and financial capacity
+                <br /><br />
+                <strong>Monte Carlo Assessments:</strong> Monte Carlo based assessments will also often have action thresholds against 
+                Value at Risk (VaR) and Single Loss Exposure values. These additional thresholds help organisations set decision 
+                criteria for risk treatment based on statistical risk measures and maximum potential losses from individual events.
+              </p>
+            </div>
+            
+            {/* Qualitative Assessment Options Section */}
+            <div style={{ marginTop: "2rem", marginBottom: "2rem" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  cursor: "pointer",
+                  padding: "1rem",
+                  backgroundColor: "#f8f9fa",
+                  borderRadius: "8px",
+                  border: `1px solid ${SC3_SECONDARY}`,
+                  marginBottom: "1rem",
+                }}
+                onClick={() => setShowQualitativeGuidance(!showQualitativeGuidance)}
+              >
+                <h3 style={{ color: SC3_PRIMARY, margin: 0 }}>
+                  Qualitative Assessment Options & Usage Guidelines
+                </h3>
+                <span style={{ color: SC3_PRIMARY, fontSize: "1.5rem", fontWeight: "bold" }}>
+                  {showQualitativeGuidance ? "−" : "+"}
+                </span>
+              </div>
+              
+              {showQualitativeGuidance && (
+                <div style={{
+                  padding: "1.5rem",
+                  backgroundColor: "#fff",
+                  borderRadius: "8px",
+                  border: `1px solid ${SC3_SECONDARY}`,
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+                }}>
+                  <div style={{ marginBottom: "2rem" }}>
+                    <h4 style={{ color: SC3_PRIMARY, marginBottom: "1rem" }}>
+                      Assessment Types Overview
+                    </h4>
+                    <div style={{ display: "grid", gap: "1.5rem" }}>
+                      
+                      {/* Qualitative Assessment */}
+                      <div style={{
+                        padding: "1rem",
+                        backgroundColor: "#f8f9fa",
+                        borderRadius: "6px",
+                        border: "1px solid #e9ecef"
+                      }}>
+                        <h5 style={{ color: "#28a745", marginBottom: "0.5rem", fontSize: "1.1rem" }}>
+                          📊 Qualitative Assessment
+                        </h5>
+                        <p style={{ marginBottom: "0.5rem", fontSize: "0.9rem", lineHeight: "1.4" }}>
+                          <strong>Best for:</strong> Initial risk assessments, routine operational risks, or when quantitative data is limited
+                        </p>
+                        <p style={{ marginBottom: "0.5rem", fontSize: "0.9rem", lineHeight: "1.4" }}>
+                          <strong>Method:</strong> Uses likelihood and impact scales (1-5) with predefined risk matrix
+                        </p>
+                        <p style={{ marginBottom: "0.5rem", fontSize: "0.9rem", lineHeight: "1.4" }}>
+                          <strong>Common Use Cases:</strong>
+                        </p>
+                        <ul style={{ marginLeft: "1rem", fontSize: "0.85rem", lineHeight: "1.3" }}>
+                          <li>Operational risk assessments</li>
+                          <li>Compliance and regulatory risks</li>
+                          <li>Human resource risks</li>
+                          <li>Reputational risks</li>
+                          <li>Strategic planning risks</li>
+                        </ul>
+                      </div>
+                      
+                      {/* Quantitative Assessment */}
+                      <div style={{
+                        padding: "1rem",
+                        backgroundColor: "#fff3cd",
+                        borderRadius: "6px",
+                        border: "1px solid #ffeaa7"
+                      }}>
+                        <h5 style={{ color: "#f39c12", marginBottom: "0.5rem", fontSize: "1.1rem" }}>
+                          💰 Quantitative Assessment
+                        </h5>
+                        <p style={{ marginBottom: "0.5rem", fontSize: "0.9rem", lineHeight: "1.4" }}>
+                          <strong>Best for:</strong> Financial risks where loss values can be estimated with reasonable accuracy
+                        </p>
+                        <p style={{ marginBottom: "0.5rem", fontSize: "0.9rem", lineHeight: "1.4" }}>
+                          <strong>Method:</strong> Uses Single Loss Expectancy (SLE) and Annual Rate of Occurrence (ARO) to calculate Annual Loss Expectancy (ALE)
+                        </p>
+                        <p style={{ marginBottom: "0.5rem", fontSize: "0.9rem", lineHeight: "1.4" }}>
+                          <strong>Common Use Cases:</strong>
+                        </p>
+                        <ul style={{ marginLeft: "1rem", fontSize: "0.85rem", lineHeight: "1.3" }}>
+                          <li>IT security incidents with measurable business impact</li>
+                          <li>Equipment failure risks</li>
+                          <li>Business interruption scenarios</li>
+                          <li>Fraud and financial crime risks</li>
+                          <li>Supply chain disruption risks</li>
+                        </ul>
+                      </div>
+                      
+                      {/* Advanced Quantitative Assessment */}
+                      <div style={{
+                        padding: "1rem",
+                        backgroundColor: "#e8f4fd",
+                        borderRadius: "6px",
+                        border: "1px solid #74b9ff"
+                      }}>
+                        <h5 style={{ color: "#0984e3", marginBottom: "0.5rem", fontSize: "1.1rem" }}>
+                          🎯 Advanced Quantitative Assessment (Monte Carlo)
+                        </h5>
+                        <p style={{ marginBottom: "0.5rem", fontSize: "0.9rem", lineHeight: "1.4" }}>
+                          <strong>Best for:</strong> Complex risks requiring statistical modeling and uncertainty analysis
+                        </p>
+                        <p style={{ marginBottom: "0.5rem", fontSize: "0.9rem", lineHeight: "1.4" }}>
+                          <strong>Method:</strong> Uses Monte Carlo simulation with probability distributions for loss severity and frequency
+                        </p>
+                        <p style={{ marginBottom: "0.5rem", fontSize: "0.9rem", lineHeight: "1.4" }}>
+                          <strong>Common Use Cases:</strong>
+                        </p>
+                        <ul style={{ marginLeft: "1rem", fontSize: "0.85rem", lineHeight: "1.3" }}>
+                          <li>High-value cyber security risks</li>
+                          <li>Market and credit risk modeling</li>
+                          <li>Natural disaster and catastrophic risks</li>
+                          <li>Complex operational risks with variable impacts</li>
+                          <li>Regulatory capital calculations</li>
+                          <li>Investment and project risk analysis</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginBottom: "2rem" }}>
+                    <h4 style={{ color: SC3_PRIMARY, marginBottom: "1rem" }}>
+                      Selection Guidelines
+                    </h4>
+                    <div style={{
+                      padding: "1rem",
+                      backgroundColor: "#f8f9fa",
+                      borderRadius: "6px",
+                      border: "1px solid #e9ecef"
+                    }}>
+                      <div style={{ marginBottom: "1rem" }}>
+                        <strong style={{ color: "#28a745" }}>Start with Qualitative</strong> for:
+                        <ul style={{ marginLeft: "1rem", fontSize: "0.9rem", marginTop: "0.5rem" }}>
+                          <li>New risk identification exercises</li>
+                          <li>Risks where financial impact is difficult to quantify</li>
+                          <li>Regulatory or compliance-focused assessments</li>
+                          <li>Quick initial risk screening</li>
+                        </ul>
+                      </div>
+                      
+                      <div style={{ marginBottom: "1rem" }}>
+                        <strong style={{ color: "#f39c12" }}>Progress to Quantitative</strong> when:
+                        <ul style={{ marginLeft: "1rem", fontSize: "0.9rem", marginTop: "0.5rem" }}>
+                          <li>Financial impact can be reasonably estimated</li>
+                          <li>Historical data is available for loss calculations</li>
+                          <li>Business case development requires cost-benefit analysis</li>
+                          <li>Risk appetite is defined in financial terms</li>
+                        </ul>
+                      </div>
+                      
+                      <div>
+                        <strong style={{ color: "#0984e3" }}>Use Advanced Quantitative</strong> for:
+                        <ul style={{ marginLeft: "1rem", fontSize: "0.9rem", marginTop: "0.5rem" }}>
+                          <li>High-impact, low-probability events</li>
+                          <li>Risks with significant uncertainty in impact or frequency</li>
+                          <li>Regulatory reporting requiring statistical measures</li>
+                          <li>Complex scenarios requiring confidence intervals</li>
+                          <li>Portfolio-level risk aggregation</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginBottom: "2rem" }}>
+                    <h4 style={{ color: SC3_PRIMARY, marginBottom: "1rem" }}>
+                      Distribution Types for Advanced Quantitative Assessments
+                    </h4>
+                    <p style={{ fontSize: "0.9rem", marginBottom: "1rem", lineHeight: "1.4", color: "#555" }}>
+                      When using Advanced Quantitative assessments, you'll need to select probability distributions 
+                      for both loss severity and frequency. Each distribution type is suited for different scenarios:
+                    </p>
+                    
+                    <div style={{ display: "grid", gap: "1rem", marginBottom: "1.5rem" }}>
+                      <div style={{
+                        padding: "1rem",
+                        backgroundColor: "#f8f9fa",
+                        borderRadius: "6px",
+                        border: "1px solid #e9ecef"
+                      }}>
+                        <h5 style={{ color: "#0984e3", marginBottom: "1rem", fontSize: "1.1rem" }}>
+                          📊 Loss Severity Distributions
+                        </h5>
+                        
+                        <div style={{ display: "grid", gap: "0.8rem" }}>
+                          <div style={{ paddingLeft: "1rem" }}>
+                            <strong style={{ color: "#28a745" }}>Triangular Distribution</strong>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Best for:</strong> When you have minimum, most likely, and maximum loss estimates
+                            </p>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Use when:</strong> Expert judgment provides three-point estimates, common in business impact assessments
+                            </p>
+                          </div>
+                          
+                          <div style={{ paddingLeft: "1rem" }}>
+                            <strong style={{ color: "#f39c12" }}>Normal Distribution</strong>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Best for:</strong> Symmetric losses around a mean with known standard deviation
+                            </p>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Use when:</strong> Historical data shows symmetric loss patterns, operational losses
+                            </p>
+                          </div>
+                          
+                          <div style={{ paddingLeft: "1rem" }}>
+                            <strong style={{ color: "#e74c3c" }}>Lognormal Distribution</strong>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Best for:</strong> Right-skewed losses with potential for extreme values
+                            </p>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Use when:</strong> Financial losses, cyber incidents, natural disasters
+                            </p>
+                          </div>
+                          
+                          <div style={{ paddingLeft: "1rem" }}>
+                            <strong style={{ color: "#9b59b6" }}>Uniform Distribution</strong>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Best for:</strong> Equal probability across a range of loss values
+                            </p>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Use when:</strong> Limited information, worst-case scenario analysis
+                            </p>
+                          </div>
+                          
+                          <div style={{ paddingLeft: "1rem" }}>
+                            <strong style={{ color: "#1abc9c" }}>Beta Distribution</strong>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Best for:</strong> Bounded losses with flexible shape parameters
+                            </p>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Use when:</strong> Project risks, performance metrics, bounded scenarios
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div style={{
+                        padding: "1rem",
+                        backgroundColor: "#e8f4fd",
+                        borderRadius: "6px",
+                        border: "1px solid #74b9ff"
+                      }}>
+                        <h5 style={{ color: "#0984e3", marginBottom: "1rem", fontSize: "1.1rem" }}>
+                          📈 Frequency Distributions
+                        </h5>
+                        
+                        <div style={{ display: "grid", gap: "0.8rem" }}>
+                          <div style={{ paddingLeft: "1rem" }}>
+                            <strong style={{ color: "#28a745" }}>Triangular Distribution</strong>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Best for:</strong> Three-point estimates of event frequency per year
+                            </p>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Use when:</strong> Expert estimates of minimum, most likely, and maximum frequency
+                            </p>
+                          </div>
+                          
+                          <div style={{ paddingLeft: "1rem" }}>
+                            <strong style={{ color: "#f39c12" }}>Normal Distribution</strong>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Best for:</strong> Symmetric frequency patterns with known variability
+                            </p>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Use when:</strong> Historical data shows normal distribution, operational events
+                            </p>
+                          </div>
+                          
+                          <div style={{ paddingLeft: "1rem" }}>
+                            <strong style={{ color: "#9b59b6" }}>Uniform Distribution</strong>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Best for:</strong> Equal probability across a frequency range
+                            </p>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Use when:</strong> Limited frequency data, conservative assumptions
+                            </p>
+                          </div>
+                          
+                          <div style={{ paddingLeft: "1rem" }}>
+                            <strong style={{ color: "#e74c3c" }}>Poisson Distribution</strong>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Best for:</strong> Rare events with known average rate
+                            </p>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Use when:</strong> Security incidents, equipment failures, system outages
+                            </p>
+                          </div>
+                          
+                          <div style={{ paddingLeft: "1rem" }}>
+                            <strong style={{ color: "#1abc9c" }}>Exponential Distribution</strong>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Best for:</strong> Time between events, failure rates
+                            </p>
+                            <p style={{ fontSize: "0.85rem", margin: "0.3rem 0", lineHeight: "1.3" }}>
+                              <strong>Use when:</strong> Modeling time to failure, service intervals
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div style={{
+                      padding: "1rem",
+                      backgroundColor: "#f0f8ff",
+                      borderRadius: "6px",
+                      border: "1px solid #b3d9ff"
+                    }}>
+                      <h5 style={{ color: "#0984e3", marginBottom: "0.5rem", fontSize: "1rem" }}>
+                        🎯 Distribution Selection Guidelines
+                      </h5>
+                      <ul style={{ fontSize: "0.9rem", margin: "0.5rem 0", paddingLeft: "1.5rem", lineHeight: "1.4" }}>
+                        <li><strong>Start with Triangular</strong> - Most intuitive for business users, requires min/mode/max estimates</li>
+                        <li><strong>Use Normal</strong> - When you have historical mean and standard deviation data</li>
+                        <li><strong>Choose Lognormal</strong> - For financial losses or when extreme values are possible</li>
+                        <li><strong>Select Poisson</strong> - For rare events with known average occurrence rates</li>
+                        <li><strong>Apply Beta</strong> - For bounded scenarios requiring flexible shape control</li>
+                        <li><strong>Consider Uniform</strong> - When making conservative assumptions with limited data</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div style={{
+                    padding: "1rem",
+                    backgroundColor: "#fff3cd",
+                    borderRadius: "6px",
+                    border: "1px solid #ffeaa7"
+                  }}>
+                    <h4 style={{ color: "#f39c12", marginBottom: "0.5rem", fontSize: "1rem" }}>
+                      💡 Pro Tip
+                    </h4>
+                    <p style={{ fontSize: "0.9rem", margin: 0, lineHeight: "1.4" }}>
+                      Many organizations use a <strong>graduated approach</strong>: Start with qualitative assessments 
+                      for risk identification, then advance to quantitative methods for high-priority risks requiring 
+                      detailed analysis or business case development. Advanced quantitative methods are typically 
+                      reserved for critical risks, regulatory requirements, or strategic decision-making.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            
             {/* Severity Guidance Table */}
             <div style={{ marginTop: "2rem", marginBottom: "2rem" }}>
               <h3 style={{ color: SC3_PRIMARY, marginBottom: "1rem" }}>
@@ -2835,7 +4224,7 @@ const RARForm = () => {
                       </label>
                     </td>
                     <td style={{ paddingBottom: "0.5rem" }}>
-                      <div style={{ display: "flex", gap: "1rem" }}>
+                      <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
                         <label
                           style={{
                             display: "flex",
@@ -2871,6 +4260,24 @@ const RARForm = () => {
                             style={{ marginRight: "0.25rem" }}
                           />
                           <span>Quantitative</span>
+                        </label>
+                        <label
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.5rem",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            name="assessmentType"
+                            value="advancedQuantitative"
+                            checked={form.assessmentType === "advancedQuantitative"}
+                            onChange={handleChange}
+                            style={{ marginRight: "0.25rem" }}
+                          />
+                          <span>Advanced Quantitative (Monte Carlo)</span>
                         </label>
                       </div>
                     </td>
@@ -3132,6 +4539,965 @@ const RARForm = () => {
                     </>
                   )}
 
+                  {form.assessmentType === "advancedQuantitative" && (
+                    <>
+                      <tr>
+                        <td colSpan="2" style={{ paddingBottom: "1rem" }}>
+                          <div style={{ 
+                            backgroundColor: SC3_BG, 
+                            padding: "1rem", 
+                            borderRadius: SC3_BORDER_RADIUS,
+                            border: `1px solid ${SC3_SECONDARY}`,
+                            marginBottom: "1rem"
+                          }}>
+                            <h4 style={{ color: SC3_PRIMARY, marginTop: 0, marginBottom: "0.5rem" }}>
+                              Monte Carlo Simulation Parameters
+                            </h4>
+                            <p style={{ margin: 0, fontSize: "0.9rem", color: "#666" }}>
+                              Configure the parameters for Monte Carlo simulation to model risk uncertainty and generate probabilistic risk estimates.
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+
+                      <tr title="Number of simulation iterations (typically 10,000 or more)">
+                        <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                          <label style={{ color: SC3_PRIMARY }}>Simulation Iterations:</label>
+                        </td>
+                        <td style={{ paddingBottom: "0.5rem" }}>
+                          <input
+                            type="number"
+                            placeholder="Number of iterations (e.g., 10000)"
+                            name="monteCarloIterations"
+                            value={form.monteCarloIterations}
+                            onChange={handleChange}
+                            min="1000"
+                            max="100000"
+                            style={{
+                              width: "100%",
+                              boxSizing: "border-box",
+                              padding: SC3_INPUT_PADDING,
+                              borderRadius: SC3_INPUT_BORDER_RADIUS,
+                              border: `1px solid ${SC3_SECONDARY}`,
+                              fontSize: "1rem",
+                            }}
+                          />
+                        </td>
+                      </tr>
+
+                      <tr title="Loss distribution type for Monte Carlo simulation">
+                        <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                          <label style={{ color: SC3_PRIMARY }}>Loss Distribution:</label>
+                        </td>
+                        <td style={{ paddingBottom: "0.5rem" }}>
+                          <select
+                            name="lossDistribution"
+                            value={form.lossDistribution}
+                            onChange={handleChange}
+                            style={{
+                              width: "100%",
+                              boxSizing: "border-box",
+                              padding: SC3_INPUT_PADDING,
+                              borderRadius: SC3_INPUT_BORDER_RADIUS,
+                              border: `1px solid ${SC3_SECONDARY}`,
+                              fontSize: "1rem",
+                            }}
+                          >
+                            <option value="triangular">Triangular</option>
+                            <option value="normal">Normal</option>
+                            <option value="lognormal">Log-Normal</option>
+                            <option value="uniform">Uniform</option>
+                            <option value="beta">Beta</option>
+                          </select>
+                        </td>
+                      </tr>
+
+                      {/* Distribution-specific Loss Parameters */}
+                      {(form.lossDistribution === "triangular") && (
+                        <>
+                          <tr title="Minimum loss value for the distribution">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Minimum Loss:</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                                <select
+                                  name="sleCurrency"
+                                  value={form.sleCurrency}
+                                  onChange={handleChange}
+                                  style={{
+                                    width: "120px",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                    backgroundColor: "white",
+                                  }}
+                                >
+                                  <option value="dollar">$ (dollar)</option>
+                                  <option value="euro">€ (euro)</option>
+                                  <option value="pound">£ (pound)</option>
+                                  <option value="yen">¥ (yen)</option>
+                                  <option value="rupee">₹ (rupee)</option>
+                                  <option value="peso">₱ (peso)</option>
+                                  <option value="won">₩ (won)</option>
+                                  <option value="lira">₺ (lira)</option>
+                                  <option value="franc">₣ (franc)</option>
+                                  <option value="shekel">₪ (shekel)</option>
+                                  <option value="other">¤ (other)</option>
+                                </select>
+                                <input
+                                  type="number"
+                                  placeholder="Minimum loss value"
+                                  name="minLoss"
+                                  value={form.minLoss}
+                                  onChange={handleChange}
+                                  style={{
+                                    flex: 1,
+                                    boxSizing: "border-box",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                  }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+
+                          <tr title="Most likely loss value for the distribution">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Most Likely Loss (mode):</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                                <select
+                                  name="sleCurrency"
+                                  value={form.sleCurrency}
+                                  onChange={handleChange}
+                                  style={{
+                                    width: "120px",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                    backgroundColor: "white",
+                                  }}
+                                >
+                                  <option value="dollar">$ (dollar)</option>
+                                  <option value="euro">€ (euro)</option>
+                                  <option value="pound">£ (pound)</option>
+                                  <option value="yen">¥ (yen)</option>
+                                  <option value="rupee">₹ (rupee)</option>
+                                  <option value="peso">₱ (peso)</option>
+                                  <option value="won">₩ (won)</option>
+                                  <option value="lira">₺ (lira)</option>
+                                  <option value="franc">₣ (franc)</option>
+                                  <option value="shekel">₪ (shekel)</option>
+                                  <option value="other">¤ (other)</option>
+                                </select>
+                                <input
+                                  type="number"
+                                  placeholder="Most likely loss value"
+                                  name="mostLikelyLoss"
+                                  value={form.mostLikelyLoss}
+                                  onChange={handleChange}
+                                  style={{
+                                    flex: 1,
+                                    boxSizing: "border-box",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                  }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+
+                          <tr title="Maximum loss value for the distribution">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Maximum Loss:</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                                <select
+                                  name="sleCurrency"
+                                  value={form.sleCurrency}
+                                  onChange={handleChange}
+                                  style={{
+                                    width: "120px",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                    backgroundColor: "white",
+                                  }}
+                                >
+                                  <option value="dollar">$ (dollar)</option>
+                                  <option value="euro">€ (euro)</option>
+                                  <option value="pound">£ (pound)</option>
+                                  <option value="yen">¥ (yen)</option>
+                                  <option value="rupee">₹ (rupee)</option>
+                                  <option value="peso">₱ (peso)</option>
+                                  <option value="won">₩ (won)</option>
+                                  <option value="lira">₺ (lira)</option>
+                                  <option value="franc">₣ (franc)</option>
+                                  <option value="shekel">₪ (shekel)</option>
+                                  <option value="other">¤ (other)</option>
+                                </select>
+                                <input
+                                  type="number"
+                                  placeholder="Maximum loss value"
+                                  name="maxLoss"
+                                  value={form.maxLoss}
+                                  onChange={handleChange}
+                                  style={{
+                                    flex: 1,
+                                    boxSizing: "border-box",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                  }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {(form.lossDistribution === "normal" || form.lossDistribution === "lognormal") && (
+                        <>
+                          <tr title="Mean (average) loss value for the distribution">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Mean Loss:</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                                <select
+                                  name="sleCurrency"
+                                  value={form.sleCurrency}
+                                  onChange={handleChange}
+                                  style={{
+                                    width: "120px",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                    backgroundColor: "white",
+                                  }}
+                                >
+                                  <option value="dollar">$ (dollar)</option>
+                                  <option value="euro">€ (euro)</option>
+                                  <option value="pound">£ (pound)</option>
+                                  <option value="yen">¥ (yen)</option>
+                                  <option value="rupee">₹ (rupee)</option>
+                                  <option value="peso">₱ (peso)</option>
+                                  <option value="won">₩ (won)</option>
+                                  <option value="lira">₺ (lira)</option>
+                                  <option value="franc">₣ (franc)</option>
+                                  <option value="shekel">₪ (shekel)</option>
+                                  <option value="other">¤ (other)</option>
+                                </select>
+                                <input
+                                  type="number"
+                                  placeholder="Mean loss value"
+                                  name="lossMean"
+                                  value={form.lossMean}
+                                  onChange={handleChange}
+                                  style={{
+                                    flex: 1,
+                                    boxSizing: "border-box",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                  }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+
+                          <tr title="Standard deviation of loss values">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Loss Standard Deviation:</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                                <select
+                                  name="sleCurrency"
+                                  value={form.sleCurrency}
+                                  onChange={handleChange}
+                                  style={{
+                                    width: "120px",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                    backgroundColor: "white",
+                                  }}
+                                >
+                                  <option value="dollar">$ (dollar)</option>
+                                  <option value="euro">€ (euro)</option>
+                                  <option value="pound">£ (pound)</option>
+                                  <option value="yen">¥ (yen)</option>
+                                  <option value="rupee">₹ (rupee)</option>
+                                  <option value="peso">₱ (peso)</option>
+                                  <option value="won">₩ (won)</option>
+                                  <option value="lira">₺ (lira)</option>
+                                  <option value="franc">₣ (franc)</option>
+                                  <option value="shekel">₪ (shekel)</option>
+                                  <option value="other">¤ (other)</option>
+                                </select>
+                                <input
+                                  type="number"
+                                  placeholder="Standard deviation"
+                                  name="lossStdDev"
+                                  value={form.lossStdDev}
+                                  onChange={handleChange}
+                                  style={{
+                                    flex: 1,
+                                    boxSizing: "border-box",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                  }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {form.lossDistribution === "uniform" && (
+                        <>
+                          <tr title="Minimum loss value for uniform distribution">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Minimum Loss:</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                                <select
+                                  name="sleCurrency"
+                                  value={form.sleCurrency}
+                                  onChange={handleChange}
+                                  style={{
+                                    width: "120px",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                    backgroundColor: "white",
+                                  }}
+                                >
+                                  <option value="dollar">$ (dollar)</option>
+                                  <option value="euro">€ (euro)</option>
+                                  <option value="pound">£ (pound)</option>
+                                  <option value="yen">¥ (yen)</option>
+                                  <option value="rupee">₹ (rupee)</option>
+                                  <option value="peso">₱ (peso)</option>
+                                  <option value="won">₩ (won)</option>
+                                  <option value="lira">₺ (lira)</option>
+                                  <option value="franc">₣ (franc)</option>
+                                  <option value="shekel">₪ (shekel)</option>
+                                  <option value="other">¤ (other)</option>
+                                </select>
+                                <input
+                                  type="number"
+                                  placeholder="Minimum loss value"
+                                  name="minLoss"
+                                  value={form.minLoss}
+                                  onChange={handleChange}
+                                  style={{
+                                    flex: 1,
+                                    boxSizing: "border-box",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                  }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+
+                          <tr title="Maximum loss value for uniform distribution">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Maximum Loss:</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                                <select
+                                  name="sleCurrency"
+                                  value={form.sleCurrency}
+                                  onChange={handleChange}
+                                  style={{
+                                    width: "120px",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                    backgroundColor: "white",
+                                  }}
+                                >
+                                  <option value="dollar">$ (dollar)</option>
+                                  <option value="euro">€ (euro)</option>
+                                  <option value="pound">£ (pound)</option>
+                                  <option value="yen">¥ (yen)</option>
+                                  <option value="rupee">₹ (rupee)</option>
+                                  <option value="peso">₱ (peso)</option>
+                                  <option value="won">₩ (won)</option>
+                                  <option value="lira">₺ (lira)</option>
+                                  <option value="franc">₣ (franc)</option>
+                                  <option value="shekel">₪ (shekel)</option>
+                                  <option value="other">¤ (other)</option>
+                                </select>
+                                <input
+                                  type="number"
+                                  placeholder="Maximum loss value"
+                                  name="maxLoss"
+                                  value={form.maxLoss}
+                                  onChange={handleChange}
+                                  style={{
+                                    flex: 1,
+                                    boxSizing: "border-box",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                  }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {form.lossDistribution === "beta" && (
+                        <>
+                          <tr title="Minimum loss value for beta distribution">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Minimum Loss:</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                                <select
+                                  name="sleCurrency"
+                                  value={form.sleCurrency}
+                                  onChange={handleChange}
+                                  style={{
+                                    width: "120px",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                    backgroundColor: "white",
+                                  }}
+                                >
+                                  <option value="dollar">$ (dollar)</option>
+                                  <option value="euro">€ (euro)</option>
+                                  <option value="pound">£ (pound)</option>
+                                  <option value="yen">¥ (yen)</option>
+                                  <option value="rupee">₹ (rupee)</option>
+                                  <option value="peso">₱ (peso)</option>
+                                  <option value="won">₩ (won)</option>
+                                  <option value="lira">₺ (lira)</option>
+                                  <option value="franc">₣ (franc)</option>
+                                  <option value="shekel">₪ (shekel)</option>
+                                  <option value="other">¤ (other)</option>
+                                </select>
+                                <input
+                                  type="number"
+                                  placeholder="Minimum loss value"
+                                  name="minLoss"
+                                  value={form.minLoss}
+                                  onChange={handleChange}
+                                  style={{
+                                    flex: 1,
+                                    boxSizing: "border-box",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                  }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+
+                          <tr title="Maximum loss value for beta distribution">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Maximum Loss:</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                                <select
+                                  name="sleCurrency"
+                                  value={form.sleCurrency}
+                                  onChange={handleChange}
+                                  style={{
+                                    width: "120px",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                    backgroundColor: "white",
+                                  }}
+                                >
+                                  <option value="dollar">$ (dollar)</option>
+                                  <option value="euro">€ (euro)</option>
+                                  <option value="pound">£ (pound)</option>
+                                  <option value="yen">¥ (yen)</option>
+                                  <option value="rupee">₹ (rupee)</option>
+                                  <option value="peso">₱ (peso)</option>
+                                  <option value="won">₩ (won)</option>
+                                  <option value="lira">₺ (lira)</option>
+                                  <option value="franc">₣ (franc)</option>
+                                  <option value="shekel">₪ (shekel)</option>
+                                  <option value="other">¤ (other)</option>
+                                </select>
+                                <input
+                                  type="number"
+                                  placeholder="Maximum loss value"
+                                  name="maxLoss"
+                                  value={form.maxLoss}
+                                  onChange={handleChange}
+                                  style={{
+                                    flex: 1,
+                                    boxSizing: "border-box",
+                                    padding: SC3_INPUT_PADDING,
+                                    borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                    border: `1px solid ${SC3_SECONDARY}`,
+                                    fontSize: "1rem",
+                                  }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+
+                          <tr title="Alpha parameter for beta distribution">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Alpha Parameter:</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <input
+                                type="number"
+                                step="0.1"
+                                placeholder="Alpha parameter (e.g., 2.0)"
+                                name="lossAlpha"
+                                value={form.lossAlpha}
+                                onChange={handleChange}
+                                style={{
+                                  width: "100%",
+                                  boxSizing: "border-box",
+                                  padding: SC3_INPUT_PADDING,
+                                  borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                  border: `1px solid ${SC3_SECONDARY}`,
+                                  fontSize: "1rem",
+                                }}
+                              />
+                            </td>
+                          </tr>
+
+                          <tr title="Beta parameter for beta distribution">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Beta Parameter:</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <input
+                                type="number"
+                                step="0.1"
+                                placeholder="Beta parameter (e.g., 5.0)"
+                                name="lossBeta"
+                                value={form.lossBeta}
+                                onChange={handleChange}
+                                style={{
+                                  width: "100%",
+                                  boxSizing: "border-box",
+                                  padding: SC3_INPUT_PADDING,
+                                  borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                  border: `1px solid ${SC3_SECONDARY}`,
+                                  fontSize: "1rem",
+                                }}
+                              />
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      <tr title="Frequency distribution type for Monte Carlo simulation">
+                        <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                          <label style={{ color: SC3_PRIMARY }}>Frequency Distribution:</label>
+                        </td>
+                        <td style={{ paddingBottom: "0.5rem" }}>
+                          <select
+                            name="frequencyDistribution"
+                            value={form.frequencyDistribution}
+                            onChange={handleChange}
+                            style={{
+                              width: "100%",
+                              boxSizing: "border-box",
+                              padding: SC3_INPUT_PADDING,
+                              borderRadius: SC3_INPUT_BORDER_RADIUS,
+                              border: `1px solid ${SC3_SECONDARY}`,
+                              fontSize: "1rem",
+                            }}
+                          >
+                            <option value="triangular">Triangular</option>
+                            <option value="poisson">Poisson</option>
+                            <option value="normal">Normal</option>
+                            <option value="uniform">Uniform</option>
+                            <option value="exponential">Exponential</option>
+                          </select>
+                        </td>
+                      </tr>
+
+                      {/* Distribution-specific Frequency Parameters */}
+                      {form.frequencyDistribution === "triangular" && (
+                        <>
+                          <tr title="Minimum frequency of occurrence per year">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Minimum Frequency:</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="Minimum frequency per year (e.g., 0.1)"
+                                name="minFrequency"
+                                value={form.minFrequency}
+                                onChange={handleChange}
+                                style={{
+                                  width: "100%",
+                                  boxSizing: "border-box",
+                                  padding: SC3_INPUT_PADDING,
+                                  borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                  border: `1px solid ${SC3_SECONDARY}`,
+                                  fontSize: "1rem",
+                                }}
+                              />
+                            </td>
+                          </tr>
+
+                          <tr title="Most likely frequency of occurrence per year">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Most Likely Frequency (mode):</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="Most likely frequency per year (e.g., 0.5)"
+                                name="mostLikelyFrequency"
+                                value={form.mostLikelyFrequency}
+                                onChange={handleChange}
+                                style={{
+                                  width: "100%",
+                                  boxSizing: "border-box",
+                                  padding: SC3_INPUT_PADDING,
+                                  borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                  border: `1px solid ${SC3_SECONDARY}`,
+                                  fontSize: "1rem",
+                                }}
+                              />
+                            </td>
+                          </tr>
+
+                          <tr title="Maximum frequency of occurrence per year">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Maximum Frequency:</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="Maximum frequency per year (e.g., 2.0)"
+                                name="maxFrequency"
+                                value={form.maxFrequency}
+                                onChange={handleChange}
+                                style={{
+                                  width: "100%",
+                                  boxSizing: "border-box",
+                                  padding: SC3_INPUT_PADDING,
+                                  borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                  border: `1px solid ${SC3_SECONDARY}`,
+                                  fontSize: "1rem",
+                                }}
+                              />
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {form.frequencyDistribution === "normal" && (
+                        <>
+                          <tr title="Mean frequency of occurrence per year">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Mean Frequency:</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="Mean frequency per year (e.g., 1.0)"
+                                name="frequencyMean"
+                                value={form.frequencyMean}
+                                onChange={handleChange}
+                                style={{
+                                  width: "100%",
+                                  boxSizing: "border-box",
+                                  padding: SC3_INPUT_PADDING,
+                                  borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                  border: `1px solid ${SC3_SECONDARY}`,
+                                  fontSize: "1rem",
+                                }}
+                              />
+                            </td>
+                          </tr>
+
+                          <tr title="Standard deviation of frequency">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Frequency Standard Deviation:</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="Standard deviation (e.g., 0.3)"
+                                name="frequencyStdDev"
+                                value={form.frequencyStdDev}
+                                onChange={handleChange}
+                                style={{
+                                  width: "100%",
+                                  boxSizing: "border-box",
+                                  padding: SC3_INPUT_PADDING,
+                                  borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                  border: `1px solid ${SC3_SECONDARY}`,
+                                  fontSize: "1rem",
+                                }}
+                              />
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {form.frequencyDistribution === "uniform" && (
+                        <>
+                          <tr title="Minimum frequency of occurrence per year">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Minimum Frequency:</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="Minimum frequency per year (e.g., 0.1)"
+                                name="minFrequency"
+                                value={form.minFrequency}
+                                onChange={handleChange}
+                                style={{
+                                  width: "100%",
+                                  boxSizing: "border-box",
+                                  padding: SC3_INPUT_PADDING,
+                                  borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                  border: `1px solid ${SC3_SECONDARY}`,
+                                  fontSize: "1rem",
+                                }}
+                              />
+                            </td>
+                          </tr>
+
+                          <tr title="Maximum frequency of occurrence per year">
+                            <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                              <label style={{ color: SC3_PRIMARY }}>Maximum Frequency:</label>
+                            </td>
+                            <td style={{ paddingBottom: "0.5rem" }}>
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="Maximum frequency per year (e.g., 2.0)"
+                                name="maxFrequency"
+                                value={form.maxFrequency}
+                                onChange={handleChange}
+                                style={{
+                                  width: "100%",
+                                  boxSizing: "border-box",
+                                  padding: SC3_INPUT_PADDING,
+                                  borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                  border: `1px solid ${SC3_SECONDARY}`,
+                                  fontSize: "1rem",
+                                }}
+                              />
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {form.frequencyDistribution === "poisson" && (
+                        <tr title="Lambda parameter for Poisson distribution (average event rate)">
+                          <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                            <label style={{ color: SC3_PRIMARY }}>Lambda (Average Event Rate):</label>
+                          </td>
+                          <td style={{ paddingBottom: "0.5rem" }}>
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="Average events per year (e.g., 1.5)"
+                              name="frequencyLambda"
+                              value={form.frequencyLambda}
+                              onChange={handleChange}
+                              style={{
+                                width: "100%",
+                                boxSizing: "border-box",
+                                padding: SC3_INPUT_PADDING,
+                                borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                border: `1px solid ${SC3_SECONDARY}`,
+                                fontSize: "1rem",
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      )}
+
+                      {form.frequencyDistribution === "exponential" && (
+                        <tr title="Lambda parameter for exponential distribution (rate parameter)">
+                          <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                            <label style={{ color: SC3_PRIMARY }}>Lambda (Rate Parameter):</label>
+                          </td>
+                          <td style={{ paddingBottom: "0.5rem" }}>
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="Rate parameter (e.g., 0.5)"
+                              name="frequencyLambdaExp"
+                              value={form.frequencyLambdaExp}
+                              onChange={handleChange}
+                              style={{
+                                width: "100%",
+                                boxSizing: "border-box",
+                                padding: SC3_INPUT_PADDING,
+                                borderRadius: SC3_INPUT_BORDER_RADIUS,
+                                border: `1px solid ${SC3_SECONDARY}`,
+                                fontSize: "1rem",
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      )}
+
+                      <tr title="Confidence level for Value at Risk calculation">
+                        <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                          <label style={{ color: SC3_PRIMARY }}>Confidence Level:</label>
+                        </td>
+                        <td style={{ paddingBottom: "0.5rem" }}>
+                          <select
+                            name="confidenceLevel"
+                            value={form.confidenceLevel}
+                            onChange={handleChange}
+                            style={{
+                              width: "100%",
+                              boxSizing: "border-box",
+                              padding: SC3_INPUT_PADDING,
+                              borderRadius: SC3_INPUT_BORDER_RADIUS,
+                              border: `1px solid ${SC3_SECONDARY}`,
+                              fontSize: "1rem",
+                            }}
+                          >
+                            <option value="90">90%</option>
+                            <option value="95">95%</option>
+                            <option value="99">99%</option>
+                            <option value="99.5">99.5%</option>
+                          </select>
+                        </td>
+                      </tr>
+
+                      <tr title="Expected annual loss from Monte Carlo simulation">
+                        <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                          <label style={{ color: SC3_PRIMARY }}>Expected Annual Loss (EAL):</label>
+                        </td>
+                        <td style={{ paddingBottom: "0.5rem" }}>
+                          <input
+                            type="text"
+                            name="expectedLoss"
+                            value={calculateMonteCarloExpectedLoss(form)}
+                            readOnly
+                            style={{
+                              width: "100%",
+                              boxSizing: "border-box",
+                              padding: SC3_INPUT_PADDING,
+                              borderRadius: SC3_INPUT_BORDER_RADIUS,
+                              border: `1px solid ${SC3_SECONDARY}`,
+                              fontSize: "1rem",
+                              backgroundColor: "#f5f5f5",
+                              color: "#666",
+                            }}
+                          />
+                          <small style={{ color: "#666", fontSize: "0.875rem" }}>
+                            Calculated as: Mean(Loss) × Mean(Frequency) = {calculateMonteCarloExpectedLoss(form)}
+                          </small>
+                        </td>
+                      </tr>
+
+                      <tr title="Value at Risk at the selected confidence level">
+                        <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                          <label style={{ color: SC3_PRIMARY }}>Value at Risk (VaR):</label>
+                        </td>
+                        <td style={{ paddingBottom: "0.5rem" }}>
+                          <input
+                            type="text"
+                            name="valueAtRisk"
+                            value={calculateMonteCarloVaR(form)}
+                            readOnly
+                            style={{
+                              width: "100%",
+                              boxSizing: "border-box",
+                              padding: SC3_INPUT_PADDING,
+                              borderRadius: SC3_INPUT_BORDER_RADIUS,
+                              border: `1px solid ${SC3_SECONDARY}`,
+                              fontSize: "1rem",
+                              backgroundColor: "#f5f5f5",
+                              color: "#666",
+                            }}
+                          />
+                          <small style={{ color: "#666", fontSize: "0.875rem" }}>
+                            {form.confidenceLevel}% VaR based on triangular distribution approximation
+                          </small>
+                        </td>
+                      </tr>
+
+                      <tr title="Summary of Monte Carlo simulation results">
+                        <td style={{ width: "30%", verticalAlign: "top", paddingRight: "1rem", paddingBottom: "0.5rem" }}>
+                          <label style={{ color: SC3_PRIMARY }}>Simulation Results:</label>
+                        </td>
+                        <td style={{ paddingBottom: "0.5rem" }}>
+                          <textarea
+                            name="monteCarloResults"
+                            value={calculateMonteCarloResults(form)}
+                            readOnly
+                            rows="12"
+                            style={{
+                              width: "100%",
+                              boxSizing: "border-box",
+                              padding: SC3_INPUT_PADDING,
+                              borderRadius: SC3_INPUT_BORDER_RADIUS,
+                              border: `1px solid ${SC3_SECONDARY}`,
+                              fontSize: "0.9rem",
+                              backgroundColor: "#f5f5f5",
+                              color: "#666",
+                              resize: "vertical",
+                              fontFamily: "monospace",
+                            }}
+                          />
+                          <small style={{ color: "#666", fontSize: "0.875rem" }}>
+                            Automatically generated summary based on triangular distribution approximation
+                          </small>
+                        </td>
+                      </tr>
+                    </>
+                  )}
+
                   <tr title="Risk level based on the assessment type">
                     <td
                       style={{
@@ -3174,6 +5540,40 @@ const RARForm = () => {
                             Matrix
                           </small>
                         </>
+                      ) : form.assessmentType === "advancedQuantitative" ? (
+                        <>
+                          <select
+                            name="manualRiskLevel"
+                            value={form.manualRiskLevel}
+                            onChange={handleChange}
+                            style={{
+                              width: "100%",
+                              boxSizing: "border-box",
+                              padding: SC3_INPUT_PADDING,
+                              borderRadius: SC3_INPUT_BORDER_RADIUS,
+                              border: `2px solid ${getRiskColor(form.manualRiskLevel.charAt(0).toUpperCase() + form.manualRiskLevel.slice(1))}`,
+                              fontSize: "1rem",
+                              backgroundColor: getRiskColor(
+                                form.manualRiskLevel.charAt(0).toUpperCase() +
+                                  form.manualRiskLevel.slice(1),
+                              ),
+                              color: form.manualRiskLevel ? "#fff" : "#333",
+                              fontWeight: "bold",
+                              textAlign: "center",
+                            }}
+                          >
+                            <option value="">Select Risk Level</option>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="extreme">Extreme</option>
+                          </select>
+                          <small
+                            style={{ color: "#666", fontSize: "0.875rem" }}
+                          >
+                            Automatically calculated based on Expected Loss and threshold values
+                          </small>
+                        </>
                       ) : (
                         <>
                           <select
@@ -3205,7 +5605,7 @@ const RARForm = () => {
                           <small
                             style={{ color: "#666", fontSize: "0.875rem" }}
                           >
-                            Manually select based on quantitative analysis
+                            Automatically calculated based on ALE and threshold values
                           </small>
                         </>
                       )}
@@ -3492,7 +5892,7 @@ const RARForm = () => {
                           <small
                             style={{ color: "#666", fontSize: "0.875rem" }}
                           >
-                            Manually select based on quantitative analysis
+                            Manually select based on {form.assessmentType === "advancedQuantitative" ? "Monte Carlo analysis" : "quantitative analysis"}
                           </small>
                         </>
                       )}
@@ -3629,6 +6029,54 @@ const RARForm = () => {
                       </tr>
                     </>
                   )}
+
+                  {/* Approver field for all assessment types */}
+                  <tr title="Name of the person who approves this risk assessment based on the risk level">
+                    <td
+                      style={{
+                        width: "30%",
+                        verticalAlign: "top",
+                        paddingRight: "1rem",
+                        paddingBottom: "0.5rem",
+                      }}
+                    >
+                      <label style={{ color: SC3_PRIMARY }}>
+                        Approver:
+                      </label>
+                    </td>
+                    <td style={{ paddingBottom: "0.5rem" }}>
+                      <input
+                        type="text"
+                        name="approver"
+                        value={form.approver}
+                        onChange={handleChange}
+                        placeholder={getApproverPlaceholder(
+                          form.assessmentType === "qualitative" ? riskLevel : 
+                          form.assessmentType === "quantitative" ? getQuantitativeRiskLevel(calculateALE(form)) : 
+                          getAdvancedQuantitativeRiskLevel(getMonteCarloExpectedLossNumeric(form))
+                        )}
+                        style={{
+                          width: "100%",
+                          boxSizing: "border-box",
+                          padding: SC3_INPUT_PADDING,
+                          borderRadius: SC3_INPUT_BORDER_RADIUS,
+                          border: `1px solid ${SC3_SECONDARY}`,
+                          fontSize: "1rem",
+                        }}
+                      />
+                      <small style={{ color: "#666", fontSize: "0.875rem" }}>
+                        {form.assessmentType === "qualitative" && riskLevel && (
+                          <>Based on {riskLevel} risk level: {getApproverPlaceholder(riskLevel)}</>
+                        )}
+                        {form.assessmentType === "quantitative" && (
+                          <>Based on quantitative assessment ({getQuantitativeRiskLevel(calculateALE(form))} risk level): {getApproverPlaceholder(getQuantitativeRiskLevel(calculateALE(form)))}</>
+                        )}
+                        {form.assessmentType === "advancedQuantitative" && (
+                          <>Based on advanced quantitative assessment ({getAdvancedQuantitativeRiskLevel(getMonteCarloExpectedLossNumeric(form))} risk level): {getApproverPlaceholder(getAdvancedQuantitativeRiskLevel(getMonteCarloExpectedLossNumeric(form)))}</>
+                        )}
+                      </small>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
 
@@ -4012,26 +6460,71 @@ const RARForm = () => {
                   </button>
                 </div>
               ) : (
-                <button
-                  onClick={handleSubmitRisk}
+                <div
                   style={{
-                    background: SC3_SECONDARY,
-                    color: "#fff",
-                    border: "none",
-                    padding: "12px 24px",
-                    borderRadius: SC3_BORDER_RADIUS,
-                    fontWeight: SC3_BTN_FONT_WEIGHT,
-                    cursor: "pointer",
-                    fontSize: "1rem",
-                    transition: "all 0.3s ease",
+                    display: "flex",
+                    gap: "1rem",
+                    justifyContent: "center",
+                    flexWrap: "wrap",
                   }}
-                  onMouseEnter={(e) => (e.target.style.background = "#007aa3")}
-                  onMouseLeave={(e) =>
-                    (e.target.style.background = SC3_SECONDARY)
-                  }
                 >
-                  Submit Risk Details
-                </button>
+                  <button
+                    onClick={handleSubmitRisk}
+                    style={{
+                      background: SC3_SECONDARY,
+                      color: "#fff",
+                      border: "none",
+                      padding: "12px 24px",
+                      borderRadius: SC3_BORDER_RADIUS,
+                      fontWeight: SC3_BTN_FONT_WEIGHT,
+                      cursor: "pointer",
+                      fontSize: "1rem",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => (e.target.style.background = "#007aa3")}
+                    onMouseLeave={(e) =>
+                      (e.target.style.background = SC3_SECONDARY)
+                    }
+                  >
+                    Submit Risk Details
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          "Discard changes and clear the form?",
+                        )
+                      ) {
+                        clearRarFields();
+                        setSelectedRiskIndex(null);
+                        setIsEditingRisk(false);
+                        setRarFieldsOpen(false);
+                        setRisksOpen(true);
+                      }
+                    }}
+                    style={{
+                      background: "#fff",
+                      color: SC3_PRIMARY,
+                      border: `2px solid ${SC3_PRIMARY}`,
+                      padding: "10px 20px",
+                      borderRadius: SC3_BORDER_RADIUS,
+                      fontWeight: SC3_BTN_FONT_WEIGHT,
+                      cursor: "pointer",
+                      fontSize: "1rem",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = SC3_PRIMARY;
+                      e.target.style.color = "#fff";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = "#fff";
+                      e.target.style.color = SC3_PRIMARY;
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -4102,6 +6595,14 @@ const RARForm = () => {
                         Quantitative:{" "}
                         <strong style={{ color: SC3_ACCENT }}>
                           {risks.filter((r) => r.assessmentType === "quantitative").length}
+                        </strong>
+                      </span>
+                    )}
+                    {risks.filter((r) => r.assessmentType === "advancedQuantitative").length > 0 && (
+                      <span style={{ marginLeft: "1rem" }}>
+                        Advanced Quantitative:{" "}
+                        <strong style={{ color: "#8B4513" }}>
+                          {risks.filter((r) => r.assessmentType === "advancedQuantitative").length}
                         </strong>
                       </span>
                     )}
@@ -4600,15 +7101,15 @@ const RARForm = () => {
                           <th
                             style={{
                               background: SC3_TABLE_HEADER_BG,
-                              color: SC3_PRIMARY,
+                              color: SC3_GREEN,
                               padding: "12px 8px",
-                              border: `1px solid ${SC3_PRIMARY}`,
+                              border: `1px solid ${SC3_GREEN}`,
                               fontWeight: "bold",
                               textAlign: "center",
-                              minWidth: "70px",
+                              minWidth: "120px",
                             }}
                           >
-                            Order
+                            Approver
                           </th>
                           <th
                             style={{
@@ -4621,7 +7122,7 @@ const RARForm = () => {
                               minWidth: "100px",
                             }}
                           >
-                            Actions
+                            {/* Combined Order/Actions column - no header text */}
                           </th>
                         </tr>
                       </thead>
@@ -4995,6 +7496,15 @@ const RARForm = () => {
                               </td>
                               <td
                                 style={{
+                                  padding: "12px 8px",
+                                  border: `1px solid ${SC3_PRIMARY}`,
+                                  textAlign: "center",
+                                }}
+                              >
+                                {risk.approver || "Not set"}
+                              </td>
+                              <td
+                                style={{
                                   padding: "8px",
                                   border: `1px solid ${SC3_PRIMARY}`,
                                   textAlign: "center",
@@ -5004,97 +7514,102 @@ const RARForm = () => {
                                 <div
                                   style={{
                                     display: "flex",
-                                    flexDirection: "column",
-                                    gap: "2px",
+                                    flexDirection: "row",
+                                    gap: "8px",
                                     alignItems: "center",
+                                    justifyContent: "center",
                                   }}
                                 >
+                                  {/* Order controls */}
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      gap: "2px",
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        moveRiskUp(index);
+                                      }}
+                                      disabled={index === 0}
+                                      style={{
+                                        background:
+                                          index === 0 ? "#ccc" : SC3_SECONDARY,
+                                        color: "#fff",
+                                        border: "none",
+                                        padding: "2px 6px",
+                                        borderRadius: "2px",
+                                        cursor:
+                                          index === 0 ? "not-allowed" : "pointer",
+                                        fontSize: "10px",
+                                        lineHeight: "1",
+                                      }}
+                                      title="Move Up"
+                                    >
+                                      ▲
+                                    </button>
+                                    <span
+                                      style={{
+                                        fontSize: "11px",
+                                        fontWeight: "bold",
+                                        color: SC3_PRIMARY,
+                                        minWidth: "20px",
+                                        textAlign: "center",
+                                      }}
+                                    >
+                                      {index + 1}
+                                    </span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        moveRiskDown(index);
+                                      }}
+                                      disabled={index === risks.length - 1}
+                                      style={{
+                                        background:
+                                          index === risks.length - 1
+                                            ? "#ccc"
+                                            : SC3_SECONDARY,
+                                        color: "#fff",
+                                        border: "none",
+                                        padding: "2px 6px",
+                                        borderRadius: "2px",
+                                        cursor:
+                                          index === risks.length - 1
+                                            ? "not-allowed"
+                                            : "pointer",
+                                        fontSize: "10px",
+                                        lineHeight: "1",
+                                      }}
+                                      title="Move Down"
+                                    >
+                                      ▼
+                                    </button>
+                                  </div>
+                                  
+                                  {/* Actions */}
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      moveRiskUp(index);
+                                      handleDeleteRisk(index);
                                     }}
-                                    disabled={index === 0}
                                     style={{
-                                      background:
-                                        index === 0 ? "#ccc" : SC3_SECONDARY,
+                                      background: "#dc3545",
                                       color: "#fff",
                                       border: "none",
-                                      padding: "2px 6px",
-                                      borderRadius: "2px",
-                                      cursor:
-                                        index === 0 ? "not-allowed" : "pointer",
-                                      fontSize: "10px",
-                                      lineHeight: "1",
+                                      padding: "4px 8px",
+                                      borderRadius: "3px",
+                                      cursor: "pointer",
+                                      fontSize: "0.8rem",
                                     }}
-                                    title="Move Up"
+                                    title="Delete Risk"
                                   >
-                                    ▲
-                                  </button>
-                                  <span
-                                    style={{
-                                      fontSize: "11px",
-                                      fontWeight: "bold",
-                                      color: SC3_PRIMARY,
-                                      minWidth: "20px",
-                                      textAlign: "center",
-                                    }}
-                                  >
-                                    {index + 1}
-                                  </span>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      moveRiskDown(index);
-                                    }}
-                                    disabled={index === risks.length - 1}
-                                    style={{
-                                      background:
-                                        index === risks.length - 1
-                                          ? "#ccc"
-                                          : SC3_SECONDARY,
-                                      color: "#fff",
-                                      border: "none",
-                                      padding: "2px 6px",
-                                      borderRadius: "2px",
-                                      cursor:
-                                        index === risks.length - 1
-                                          ? "not-allowed"
-                                          : "pointer",
-                                      fontSize: "10px",
-                                      lineHeight: "1",
-                                    }}
-                                    title="Move Down"
-                                  >
-                                    ▼
+                                    ×
                                   </button>
                                 </div>
-                              </td>
-                              <td
-                                style={{
-                                  padding: "8px",
-                                  border: `1px solid ${SC3_PRIMARY}`,
-                                  textAlign: "center",
-                                }}
-                              >
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteRisk(index);
-                                  }}
-                                  style={{
-                                    background: "#dc3545",
-                                    color: "#fff",
-                                    border: "none",
-                                    padding: "4px 8px",
-                                    borderRadius: "3px",
-                                    cursor: "pointer",
-                                    fontSize: "0.8rem",
-                                  }}
-                                  title="Delete Risk"
-                                >
-                                  ×
-                                </button>
                               </td>
                             </tr>
                           );
@@ -5106,7 +7621,7 @@ const RARForm = () => {
                 </div>
               )}
 
-              {risks.length === 0 && (
+              {risks.length === 0 && risksOpen && (
                 <div
                   style={{
                     width: "100vw",
@@ -5275,21 +7790,23 @@ const RARForm = () => {
             flexWrap: "wrap"
           }}>
             <button
-              onClick={handleNewRisk}
+              onClick={rarFieldsOpen ? undefined : handleNewRisk}
+              disabled={rarFieldsOpen}
               style={{
-                background: SC3_GREEN,
+                background: rarFieldsOpen ? "#6c757d" : SC3_GREEN,
                 color: "#fff",
                 border: "none",
                 padding: SC3_BTN_PADDING,
                 borderRadius: SC3_BTN_RADIUS,
                 fontWeight: SC3_BTN_FONT_WEIGHT,
                 fontSize: SC3_BTN_FONT_SIZE,
-                cursor: "pointer",
-                boxShadow: SC3_BTN_BOX_SHADOW(SC3_GREEN),
-                transition: "all 0.3s ease"
+                cursor: rarFieldsOpen ? "not-allowed" : "pointer",
+                boxShadow: rarFieldsOpen ? "none" : SC3_BTN_BOX_SHADOW(SC3_GREEN),
+                transition: "all 0.3s ease",
+                opacity: rarFieldsOpen ? 0.6 : 1,
               }}
-              onMouseOver={(e) => e.target.style.background = "#2e7d32"}
-              onMouseOut={(e) => e.target.style.background = SC3_GREEN}
+              onMouseOver={(e) => !rarFieldsOpen && (e.target.style.background = "#2e7d32")}
+              onMouseOut={(e) => !rarFieldsOpen && (e.target.style.background = SC3_GREEN)}
             >
               + Add New Risk
             </button>
@@ -6094,6 +8611,417 @@ const RARForm = () => {
                     );
                   })()}
                 </div>
+              </div>
+            )}
+
+            {/* Financial Exposure Summary */}
+            {(risks.filter(risk => risk.assessmentType === 'quantitative' || risk.assessmentType === 'advancedQuantitative').length > 0) && (
+              <div style={{ marginTop: "2rem", marginBottom: "2rem" }}>
+                <h3 style={{ color: SC3_PRIMARY, marginBottom: "1.5rem", textAlign: "center" }}>
+                  Financial Exposure Summary
+                </h3>
+                
+                {(() => {
+                  const quantitativeRisks = risks.filter(risk => risk.assessmentType === 'quantitative');
+                  const advancedQuantitativeRisks = risks.filter(risk => risk.assessmentType === 'advancedQuantitative');
+                  
+                  // Calculate totals for quantitative risks (ALE)
+                  const quantitativeTotal = quantitativeRisks.reduce((total, risk) => {
+                    const ale = typeof risk.ale === 'number' ? risk.ale : calculateALE(risk);
+                    return total + (ale || 0);
+                  }, 0);
+                  
+                  // Calculate totals for advanced quantitative risks (Expected Loss)
+                  const advancedQuantitativeTotal = advancedQuantitativeRisks.reduce((total, risk) => {
+                    const expectedLoss = getMonteCarloExpectedLossNumeric(risk);
+                    return total + (expectedLoss || 0);
+                  }, 0);
+                  
+                  // Calculate Value at Risk total
+                  const valueAtRiskTotal = advancedQuantitativeRisks.reduce((total, risk) => {
+                    const varValue = getMonteCarloVaRNumeric(risk);
+                    return total + (varValue || 0);
+                  }, 0);
+                  
+                  const totalFinancialExposure = quantitativeTotal + advancedQuantitativeTotal;
+                  const currency = thresholdCurrency || 'dollar';
+                  
+                  return (
+                    <div style={{
+                      backgroundColor: "#f8f9fa",
+                      padding: "2rem",
+                      borderRadius: "12px",
+                      border: `2px solid ${SC3_PRIMARY}`,
+                      boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
+                    }}>
+                      {/* Summary Cards */}
+                      <div style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                        gap: "1.5rem",
+                        marginBottom: "2rem"
+                      }}>
+                        {/* Total Financial Exposure */}
+                        <div style={{
+                          backgroundColor: "#fff",
+                          padding: "1.5rem",
+                          borderRadius: "8px",
+                          textAlign: "center",
+                          border: `2px solid ${SC3_PRIMARY}`,
+                          boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+                        }}>
+                          <h4 style={{
+                            color: SC3_PRIMARY,
+                            marginBottom: "0.5rem",
+                            fontSize: "1.1rem"
+                          }}>
+                            Total Financial Exposure
+                          </h4>
+                          <div style={{
+                            fontSize: "2rem",
+                            fontWeight: "bold",
+                            color: totalFinancialExposure > 0 ? "#d32f2f" : "#666",
+                            marginBottom: "0.5rem"
+                          }}>
+                            {totalFinancialExposure > 0 ? formatCurrency(totalFinancialExposure, currency) : "No Data"}
+                          </div>
+                          <p style={{
+                            fontSize: "0.9rem",
+                            color: "#666",
+                            margin: 0
+                          }}>
+                            Combined quantitative and advanced quantitative risk exposure
+                          </p>
+                        </div>
+                        
+                        {/* Quantitative Risks Total */}
+                        <div style={{
+                          backgroundColor: "#fff",
+                          padding: "1.5rem",
+                          borderRadius: "8px",
+                          textAlign: "center",
+                          border: `1px solid ${SC3_SECONDARY}`,
+                          boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+                        }}>
+                          <h4 style={{
+                            color: SC3_PRIMARY,
+                            marginBottom: "0.5rem",
+                            fontSize: "1.1rem"
+                          }}>
+                            Quantitative ALE Total
+                          </h4>
+                          <div style={{
+                            fontSize: "1.6rem",
+                            fontWeight: "bold",
+                            color: quantitativeTotal > 0 ? "#1976d2" : "#666",
+                            marginBottom: "0.5rem"
+                          }}>
+                            {quantitativeTotal > 0 ? formatCurrency(quantitativeTotal, currency) : "No Data"}
+                          </div>
+                          <p style={{
+                            fontSize: "0.9rem",
+                            color: "#666",
+                            margin: 0
+                          }}>
+                            {quantitativeRisks.length} quantitative risk{quantitativeRisks.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        
+                        {/* Advanced Quantitative Total */}
+                        <div style={{
+                          backgroundColor: "#fff",
+                          padding: "1.5rem",
+                          borderRadius: "8px",
+                          textAlign: "center",
+                          border: `1px solid ${SC3_SECONDARY}`,
+                          boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+                        }}>
+                          <h4 style={{
+                            color: SC3_PRIMARY,
+                            marginBottom: "0.5rem",
+                            fontSize: "1.1rem"
+                          }}>
+                            Advanced Quantitative Total
+                          </h4>
+                          <div style={{
+                            fontSize: "1.6rem",
+                            fontWeight: "bold",
+                            color: advancedQuantitativeTotal > 0 ? "#7b1fa2" : "#666",
+                            marginBottom: "0.5rem"
+                          }}>
+                            {advancedQuantitativeTotal > 0 ? formatCurrency(advancedQuantitativeTotal, currency) : "No Data"}
+                          </div>
+                          <p style={{
+                            fontSize: "0.9rem",
+                            color: "#666",
+                            margin: 0
+                          }}>
+                            {advancedQuantitativeRisks.length} advanced quantitative risk{advancedQuantitativeRisks.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        
+                        {/* Value at Risk Total */}
+                        <div style={{
+                          backgroundColor: "#fff",
+                          padding: "1.5rem",
+                          borderRadius: "8px",
+                          textAlign: "center",
+                          border: `1px solid ${SC3_SECONDARY}`,
+                          boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+                        }}>
+                          <h4 style={{
+                            color: SC3_PRIMARY,
+                            marginBottom: "0.5rem",
+                            fontSize: "1.1rem"
+                          }}>
+                            Total Value at Risk
+                          </h4>
+                          <div style={{
+                            fontSize: "1.6rem",
+                            fontWeight: "bold",
+                            color: valueAtRiskTotal > 0 ? "#e65100" : "#666",
+                            marginBottom: "0.5rem"
+                          }}>
+                            {valueAtRiskTotal > 0 ? formatCurrency(valueAtRiskTotal, currency) : "No Data"}
+                          </div>
+                          <p style={{
+                            fontSize: "0.9rem",
+                            color: "#666",
+                            margin: 0
+                          }}>
+                            Maximum potential loss with confidence intervals
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Detailed Breakdown Tables */}
+                      {quantitativeRisks.length > 0 && (
+                        <div style={{ marginBottom: "2rem" }}>
+                          <h4 style={{ color: SC3_PRIMARY, marginBottom: "1rem" }}>
+                            Quantitative Risk Assessment Details
+                          </h4>
+                          <div style={{ overflowX: "auto" }}>
+                            <table style={{
+                              width: "100%",
+                              borderCollapse: "collapse",
+                              background: "#fff",
+                              borderRadius: "8px",
+                              overflow: "hidden",
+                              border: `1px solid ${SC3_SECONDARY}`
+                            }}>
+                              <thead>
+                                <tr style={{ backgroundColor: "#f5f5f5" }}>
+                                  <th style={{ padding: "12px", textAlign: "left", border: `1px solid ${SC3_SECONDARY}`, color: SC3_PRIMARY, fontWeight: "bold" }}>
+                                    Risk ID
+                                  </th>
+                                  <th style={{ padding: "12px", textAlign: "left", border: `1px solid ${SC3_SECONDARY}`, color: SC3_PRIMARY, fontWeight: "bold" }}>
+                                    Risk Title
+                                  </th>
+                                  <th style={{ padding: "12px", textAlign: "center", border: `1px solid ${SC3_SECONDARY}`, color: SC3_PRIMARY, fontWeight: "bold" }}>
+                                    SLE
+                                  </th>
+                                  <th style={{ padding: "12px", textAlign: "center", border: `1px solid ${SC3_SECONDARY}`, color: SC3_PRIMARY, fontWeight: "bold" }}>
+                                    ARO
+                                  </th>
+                                  <th style={{ padding: "12px", textAlign: "center", border: `1px solid ${SC3_SECONDARY}`, color: SC3_PRIMARY, fontWeight: "bold" }}>
+                                    ALE
+                                  </th>
+                                  <th style={{ padding: "12px", textAlign: "center", border: `1px solid ${SC3_SECONDARY}`, color: SC3_PRIMARY, fontWeight: "bold" }}>
+                                    Risk Level
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {quantitativeRisks.map((risk, index) => {
+                                  const ale = typeof risk.ale === 'number' ? risk.ale : calculateALE(risk);
+                                  return (
+                                    <tr key={risk.riskId || index}>
+                                      <td style={{ padding: "12px", border: `1px solid ${SC3_SECONDARY}`, fontWeight: "bold" }}>
+                                        {risk.riskId || 'N/A'}
+                                      </td>
+                                      <td style={{ padding: "12px", border: `1px solid ${SC3_SECONDARY}`, maxWidth: "200px", wordBreak: "break-word" }}>
+                                        {risk.riskTitle || 'N/A'}
+                                      </td>
+                                      <td style={{ padding: "12px", border: `1px solid ${SC3_SECONDARY}`, textAlign: "center" }}>
+                                        {risk.sle ? formatCurrency(parseFloat(risk.sle), risk.sleCurrency || currency) : 'N/A'}
+                                      </td>
+                                      <td style={{ padding: "12px", border: `1px solid ${SC3_SECONDARY}`, textAlign: "center" }}>
+                                        {risk.aro || 'N/A'}
+                                      </td>
+                                      <td style={{ padding: "12px", border: `1px solid ${SC3_SECONDARY}`, textAlign: "center", fontWeight: "bold" }}>
+                                        {ale > 0 ? formatCurrency(ale, risk.sleCurrency || currency) : 'N/A'}
+                                      </td>
+                                      <td style={{ padding: "12px", border: `1px solid ${SC3_SECONDARY}`, textAlign: "center" }}>
+                                        <div style={{
+                                          background: risk.riskLevel ? getRiskColor(risk.riskLevel.charAt(0).toUpperCase() + risk.riskLevel.slice(1)) : '#ccc',
+                                          color: "#fff",
+                                          padding: "4px 8px",
+                                          borderRadius: "4px",
+                                          fontWeight: "bold",
+                                          fontSize: "0.8em"
+                                        }}>
+                                          {risk.riskLevel || 'Not Set'}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {advancedQuantitativeRisks.length > 0 && (
+                        <div style={{ marginBottom: "2rem" }}>
+                          <h4 style={{ color: SC3_PRIMARY, marginBottom: "1rem" }}>
+                            Advanced Quantitative Risk Assessment Details
+                          </h4>
+                          <div style={{ overflowX: "auto" }}>
+                            <table style={{
+                              width: "100%",
+                              borderCollapse: "collapse",
+                              background: "#fff",
+                              borderRadius: "8px",
+                              overflow: "hidden",
+                              border: `1px solid ${SC3_SECONDARY}`
+                            }}>
+                              <thead>
+                                <tr style={{ backgroundColor: "#f5f5f5" }}>
+                                  <th style={{ padding: "12px", textAlign: "left", border: `1px solid ${SC3_SECONDARY}`, color: SC3_PRIMARY, fontWeight: "bold" }}>
+                                    Risk ID
+                                  </th>
+                                  <th style={{ padding: "12px", textAlign: "left", border: `1px solid ${SC3_SECONDARY}`, color: SC3_PRIMARY, fontWeight: "bold" }}>
+                                    Risk Title
+                                  </th>
+                                  <th style={{ padding: "12px", textAlign: "center", border: `1px solid ${SC3_SECONDARY}`, color: SC3_PRIMARY, fontWeight: "bold" }}>
+                                    Expected Loss
+                                  </th>
+                                  <th style={{ padding: "12px", textAlign: "center", border: `1px solid ${SC3_SECONDARY}`, color: SC3_PRIMARY, fontWeight: "bold" }}>
+                                    Value at Risk
+                                  </th>
+                                  <th style={{ padding: "12px", textAlign: "center", border: `1px solid ${SC3_SECONDARY}`, color: SC3_PRIMARY, fontWeight: "bold" }}>
+                                    Confidence Level
+                                  </th>
+                                  <th style={{ padding: "12px", textAlign: "center", border: `1px solid ${SC3_SECONDARY}`, color: SC3_PRIMARY, fontWeight: "bold" }}>
+                                    Risk Level
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {advancedQuantitativeRisks.map((risk, index) => {
+                                  // Use cached results for consistent display
+                                  const cachedExpectedLoss = risk.assessmentType === "advancedQuantitative" ? 
+                                    (() => {
+                                      const results = getMonteCarloResults(risk);
+                                      return results.expectedAnnualLoss > 0 ? 
+                                        formatCurrency(results.expectedAnnualLoss, risk.sleCurrency) : 'N/A';
+                                    })() : 'N/A';
+                                  
+                                  const cachedValueAtRisk = risk.assessmentType === "advancedQuantitative" ? 
+                                    (() => {
+                                      const results = getMonteCarloResults(risk);
+                                      return results.valueAtRisk > 0 ? 
+                                        formatCurrency(results.valueAtRisk, risk.sleCurrency) : 'N/A';
+                                    })() : 'N/A';
+                                  
+                                  return (
+                                    <tr key={risk.riskId || index}>
+                                      <td style={{ padding: "12px", border: `1px solid ${SC3_SECONDARY}`, fontWeight: "bold" }}>
+                                        {risk.riskId || 'N/A'}
+                                      </td>
+                                      <td style={{ padding: "12px", border: `1px solid ${SC3_SECONDARY}`, maxWidth: "200px", wordBreak: "break-word" }}>
+                                        {risk.riskTitle || 'N/A'}
+                                      </td>
+                                      <td style={{ padding: "12px", border: `1px solid ${SC3_SECONDARY}`, textAlign: "center", fontWeight: "bold" }}>
+                                        {cachedExpectedLoss}
+                                      </td>
+                                      <td style={{ padding: "12px", border: `1px solid ${SC3_SECONDARY}`, textAlign: "center", fontWeight: "bold" }}>
+                                        {cachedValueAtRisk}
+                                      </td>
+                                      <td style={{ padding: "12px", border: `1px solid ${SC3_SECONDARY}`, textAlign: "center" }}>
+                                        {risk.confidenceLevel ? `${risk.confidenceLevel}%` : 'N/A'}
+                                      </td>
+                                      <td style={{ padding: "12px", border: `1px solid ${SC3_SECONDARY}`, textAlign: "center" }}>
+                                        <div style={{
+                                          background: risk.riskLevel ? getRiskColor(risk.riskLevel.charAt(0).toUpperCase() + risk.riskLevel.slice(1)) : '#ccc',
+                                          color: "#fff",
+                                          padding: "4px 8px",
+                                          borderRadius: "4px",
+                                          fontWeight: "bold",
+                                          fontSize: "0.8em"
+                                        }}>
+                                          {risk.riskLevel || 'Not Set'}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Executive Summary */}
+                      <div style={{
+                        backgroundColor: "#fff",
+                        padding: "1.5rem",
+                        borderRadius: "8px",
+                        border: `1px solid ${SC3_SECONDARY}`,
+                        marginTop: "1rem"
+                      }}>
+                        <h4 style={{ color: SC3_PRIMARY, marginBottom: "1rem" }}>
+                          Executive Summary
+                        </h4>
+                        <div style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                          gap: "1rem",
+                          fontSize: "0.9rem"
+                        }}>
+                          <div>
+                            <strong>Total Risks Assessed:</strong> {quantitativeRisks.length + advancedQuantitativeRisks.length}
+                          </div>
+                          <div>
+                            <strong>Assessment Currency:</strong> {currency.charAt(0).toUpperCase() + currency.slice(1)}
+                          </div>
+                          <div>
+                            <strong>Highest Individual Risk:</strong> {(() => {
+                              const allRisks = [...quantitativeRisks, ...advancedQuantitativeRisks];
+                              if (allRisks.length === 0) return "No Data";
+                              
+                              const highestRisk = allRisks.reduce((highest, current) => {
+                                const currentValue = current.assessmentType === 'quantitative' 
+                                  ? (typeof current.ale === 'number' ? current.ale : calculateALE(current))
+                                  : getMonteCarloExpectedLossNumeric(current);
+                                const highestValue = highest.assessmentType === 'quantitative' 
+                                  ? (typeof highest.ale === 'number' ? highest.ale : calculateALE(highest))
+                                  : getMonteCarloExpectedLossNumeric(highest);
+                                
+                                return currentValue > highestValue ? current : highest;
+                              });
+                              
+                              const value = highestRisk.assessmentType === 'quantitative' 
+                                ? (typeof highestRisk.ale === 'number' ? highestRisk.ale : calculateALE(highestRisk))
+                                : getMonteCarloExpectedLossNumeric(highestRisk);
+                              
+                              return `${highestRisk.riskId || 'N/A'} (${formatCurrency(value, currency)})`;
+                            })()}
+                          </div>
+                          <div>
+                            <strong>Average Risk Value:</strong> {(() => {
+                              const totalRisks = quantitativeRisks.length + advancedQuantitativeRisks.length;
+                              if (totalRisks === 0) return "No Data";
+                              const average = totalFinancialExposure / totalRisks;
+                              return formatCurrency(average, currency);
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
