@@ -2,49 +2,27 @@ import React, { useState, useEffect } from "react";
 import { runMonteCarlo, sampleDistribution } from "./montecarlo";
 import RARIntro from "./RARIntro";
 import InputForm from "./RARinputForm";
-import ExcelExport from "./ExcelExport";
 import RARReport from "./RARReport";
 import RARTable from "./RARTable";
 import "./RAR.css";
 
-const VERSION = "v0.2.0"; // Update as needed
+const VERSION = "v0.2.1"; // Update as needed
 
-// TODO: Refactor to use a more modular approach with hooks and components
+
 // TODO: Add more unit tests for all components and functions
 // TODO: Implement error handling and validation for form inputs
 // TODO: Add tooltips and help texts for form fields
 // TODO: Implement accessibility features (ARIA labels, keyboard navigation, etc.)
 // TODO: Add localization support for different languages
 // TODO: Implement responsive design for mobile and tablet views
-// TODO: Externalise styles and constants
 
 
 // SC3.com.au theme colours
 const SC3_PRIMARY = "#003366"; // Deep blue
 const SC3_SECONDARY = "#0099cc"; // Bright blue
-const SC3_ACCENT = "#fbc02d"; // Gold/yellow
-const SC3_BG = "#f4f8fb"; // Light background
-const SC3_GREEN = "#388e3c"; // For impact
-const SC3_TABLE_HEADER = "#e5eef5"; // Light blue for table header
 
 // Additional style constants for parametric styling
-const SC3_BORDER_RADIUS = 6;
-const SC3_FORM_PADDING = 12;
-const SC3_SECTION_MARGIN = 16;
-const SC3_BTN_RADIUS = 4;
 const SC3_BTN_FONT_WEIGHT = "bold";
-const SC3_BTN_FONT_SIZE = "1em";
-const SC3_BTN_PADDING = "0.6em 1.5em";
-const SC3_BTN_BOX_SHADOW = (color) => `0 2px 6px ${color}22`;
-const SC3_TABLE_BORDER_RADIUS = 8;
-const SC3_TABLE_BG = "#fff";
-const SC3_TABLE_HEADER_FONT_SIZE = "1.05em";
-const SC3_TABLE_HEADER_FONT_WEIGHT = "bold";
-const SC3_TABLE_HEADER_BG = "#e5eef5";
-const SC3_TABLE_ROW_HIGHLIGHT = "#e3f2fd";
-const SC3_TABLE_TRANSITION = "background 0.2s";
-const SC3_INPUT_BORDER_RADIUS = 4;
-const SC3_INPUT_PADDING = "0.4em 0.6em";
 
 // Helper to get today's date in YYYY-MM-DD format
 const getToday = () => {
@@ -141,6 +119,9 @@ const RARForm = () => {
   const [isEditingRisk, setIsEditingRisk] = useState(false);
   const [rarFieldsOpen, setRarFieldsOpen] = useState(true);
   const [risksOpen, setRisksOpen] = useState(false);
+  
+  const [editIndex, setEditIndex] = useState(null);
+  const [hoveredRowIndex, setHoveredRowIndex] = useState(null);
 
   // Drag and drop state for reordering risks
   const [draggedRiskIndex, setDraggedRiskIndex] = useState(null);
@@ -1255,6 +1236,7 @@ INTERPRETATION:
     setSelectedRiskIndex(null);
     setIsEditingRisk(false);
     setShowValidation(false);
+    setEditIndex(null);
     setValidationErrors({});
   };
 
@@ -1480,9 +1462,9 @@ INTERPRETATION:
   return (
     <div>
       <div className="rar-main-container">
-        <h1 className="rar-main-title">
+        <h2 className="rar-main-heading">
           Risk Assessment Report
-        </h1>
+        </h2>
 
         {/* Collapsible RAR Guidance and Preparation Section */}
         <RARIntro
@@ -1567,24 +1549,17 @@ INTERPRETATION:
           setDraggedRiskIndex={setDraggedRiskIndex}
           dropTargetIndex={dropTargetIndex}
           setDropTargetIndex={setDropTargetIndex}
-          isEditingRisk={isEditingRisk}
+          editIndex={editIndex}
+          setEditIndex={setEditIndex}
+          hoveredRowIndex={hoveredRowIndex}
+          setHoveredRowIndex={setHoveredRowIndex}
+          setRarFieldsOpen={setRarFieldsOpen}
+          setIsEditingRisk={setIsEditingRisk}
+          setForm={setForm}
           calculateALE={calculateALE}
           formatCurrency={formatCurrency}
           getRiskColor={getRiskColor}
           getStatusColor={getStatusColor}
-          SC3_PRIMARY={SC3_PRIMARY}
-          SC3_SECONDARY={SC3_SECONDARY}
-          SC3_GREEN={SC3_GREEN}
-          SC3_ACCENT={SC3_ACCENT}
-          SC3_TABLE_BG={SC3_TABLE_BG}
-          SC3_TABLE_HEADER_BG={SC3_TABLE_HEADER_BG}
-          SC3_TABLE_BORDER_RADIUS={SC3_TABLE_BORDER_RADIUS}
-          SC3_BORDER_RADIUS={SC3_BORDER_RADIUS}
-          SC3_BTN_PADDING={SC3_BTN_PADDING}
-          SC3_BTN_RADIUS={SC3_BTN_RADIUS}
-          SC3_BTN_FONT_WEIGHT={SC3_BTN_FONT_WEIGHT}
-          SC3_BTN_FONT_SIZE={SC3_BTN_FONT_SIZE}
-          SC3_BTN_BOX_SHADOW={SC3_BTN_BOX_SHADOW}
           likelihoodMap={likelihoodMap}
           impactMap={impactMap}
         />

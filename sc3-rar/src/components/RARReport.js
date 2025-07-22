@@ -48,7 +48,7 @@ const RARReport = ({
         </summary>
         <div>
           <h3 className="rar-report-title">
-            Risk Assessment Report Structure
+            Risk Assessment Report
           </h3>
 
           {/* Risk Portfolio Analytics - Embedded within Risk Assessment Results */}

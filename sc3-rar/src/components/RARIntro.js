@@ -36,7 +36,7 @@ const RARIntro = ({
     const [showQualitativeGuidance, setShowQualitativeGuidance] = useState(false);
 
     return (        
-        <details className="rar-intro-section">
+        <details className="rar-intro-details">
           <summary className="rar-intro-summary">
             RAR Guidance and Preparation
           </summary>
