@@ -755,7 +755,7 @@ const RARIntro = ({
                         
                         <div className="rar-distribution-content">
                           <div className="rar-distribution-item">
-                            <strong className="rar-distribution-name">Triangular Distribution</strong>
+                            <strong className="rar-distribution-name">Triangular Loss Distribution</strong>
                             <p className="rar-distribution-detail">
                               <strong>Best for:</strong> When you have minimum, most likely, and maximum loss estimates
                             </p>
@@ -765,7 +765,7 @@ const RARIntro = ({
                           </div>
                           
                           <div className="rar-distribution-item">
-                            <strong className="rar-distribution-name-normal">Normal Distribution</strong>
+                            <strong className="rar-distribution-name-normal">Normal Loss Distribution</strong>
                             <p className="rar-distribution-detail">
                               <strong>Best for:</strong> Symmetric losses around a mean with known standard deviation
                             </p>
@@ -775,7 +775,7 @@ const RARIntro = ({
                           </div>
                           
                           <div className="rar-distribution-item">
-                            <strong className="rar-distribution-name-lognormal">Lognormal Distribution</strong>
+                            <strong className="rar-distribution-name-lognormal">Lognormal Loss Distribution</strong>
                             <p className="rar-distribution-detail">
                               <strong>Best for:</strong> Right-skewed losses with potential for extreme values
                             </p>
@@ -785,7 +785,7 @@ const RARIntro = ({
                           </div>
                           
                           <div className="rar-distribution-item">
-                            <strong className="rar-distribution-name-uniform">Uniform Distribution</strong>
+                            <strong className="rar-distribution-name-uniform">Uniform Loss Distribution</strong>
                             <p className="rar-distribution-detail">
                               <strong>Best for:</strong> Equal probability across a range of loss values
                             </p>
@@ -813,7 +813,7 @@ const RARIntro = ({
                         
                         <div className="rar-distribution-content">
                           <div className="rar-distribution-item">
-                            <strong className="rar-distribution-name">Triangular Distribution</strong>
+                            <strong className="rar-distribution-name">Triangular Frequency Distribution</strong>
                             <p className="rar-distribution-detail">
                               <strong>Best for:</strong> Three-point estimates of event frequency per year
                             </p>
@@ -823,7 +823,7 @@ const RARIntro = ({
                           </div>
                           
                           <div className="rar-distribution-item">
-                            <strong className="rar-distribution-name-normal">Normal Distribution</strong>
+                            <strong className="rar-distribution-name-normal">Normal Frequency Distribution</strong>
                             <p className="rar-distribution-detail">
                               <strong>Best for:</strong> Symmetric frequency patterns with known variability
                             </p>
@@ -833,7 +833,7 @@ const RARIntro = ({
                           </div>
                           
                           <div className="rar-distribution-item-indent">
-                            <strong className="rar-distribution-type-header">Uniform Distribution</strong>
+                            <strong className="rar-distribution-type-header">Uniform Frequency Distribution</strong>
                             <p className="rar-distribution-detail-small">
                               <strong>Best for:</strong> Equal probability across a frequency range
                             </p>
@@ -843,7 +843,7 @@ const RARIntro = ({
                           </div>
                           
                           <div className="rar-distribution-item">
-                            <strong className="rar-distribution-name-lognormal">Poisson Distribution</strong>
+                            <strong className="rar-distribution-name-lognormal">Poisson Frequency Distribution</strong>
                             <p className="rar-distribution-detail">
                               <strong>Best for:</strong> Rare events with known average rate
                             </p>
@@ -853,7 +853,7 @@ const RARIntro = ({
                           </div>
                           
                           <div className="rar-distribution-item">
-                            <strong className="rar-distribution-name-beta">Exponential Distribution</strong>
+                            <strong className="rar-distribution-name-beta">Exponential Frequency Distribution</strong>
                             <p className="rar-distribution-detail">
                               <strong>Best for:</strong> Time between events, failure rates
                             </p>
@@ -864,7 +864,7 @@ const RARIntro = ({
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="rar-distribution-guidelines">
                       <h5 className="rar-distribution-guidelines-title">
                         🎯 Distribution Selection Guidelines
@@ -876,20 +876,343 @@ const RARIntro = ({
                         <li><strong>Select Poisson</strong> - For rare events with known average occurrence rates</li>
                         <li><strong>Apply Beta</strong> - For bounded scenarios requiring flexible shape control</li>
                         <li><strong>Consider Uniform</strong> - When making conservative assumptions with limited data</li>
+                        <li><strong>Use Exponential</strong> - For modeling time until an event occurs</li>
+                      </ul>
+                    </div>   
+                    <p></p>                 
+                  
+                    <div className="rar-pro-tip">
+                      <h4 className="rar-pro-tip-title">
+                        💡 Pro Tip
+                      </h4>
+                      <p className="rar-pro-tip-content">
+                        Many organizations use a <strong>graduated approach</strong>: Start with qualitative assessments 
+                        for risk identification, then advance to quantitative methods for high-priority risks requiring 
+                        detailed analysis or business case development. Advanced quantitative methods are typically 
+                        reserved for critical risks, regulatory requirements, or strategic decision-making.
+                    </p>
+                  </div>                  
+                  
+                  <div className="rar-treatment-strategies-section">
+                    <h4 className="rar-treatment-strategies-title">
+                      Risk Treatment Strategies
+                    </h4>
+                    <p className="rar-treatment-strategies-intro">
+                      Once risks are identified and assessed, organizations must decide how to respond. There are four primary risk treatment strategies:
+                    </p>
+                    
+                    <div className="rar-treatment-strategy">
+                      <h5 className="rar-treatment-strategy-header">
+                        <span className="rar-strategy-icon">🚫</span> Avoid
+                      </h5>
+                      <p className="rar-treatment-strategy-definition">
+                        <strong>Definition:</strong> Eliminate the risk by removing the risk source or changing the activity.
+                      </p>
+                      <p className="rar-treatment-strategy-usage">
+                        <strong>When to use:</strong> When the risk is unacceptable and can be eliminated without significant business impact.
+                      </p>
+                      <p className="rar-treatment-strategy-examples-header"><strong>Examples:</strong></p>
+                      <ul className="rar-treatment-strategy-examples">
+                        <li>Discontinuing a high-risk product line</li>
+                        <li>Exiting from high-risk geographical markets</li>
+                        <li>Choosing not to pursue risky business opportunities</li>
+                        <li>Implementing technology solutions that eliminate manual processes</li>
                       </ul>
                     </div>
+
+                    <div className="rar-treatment-strategy">
+                      <h5 className="rar-treatment-strategy-header">
+                        <span className="rar-strategy-icon">🛡️</span> Mitigate
+                      </h5>
+                      <p className="rar-treatment-strategy-definition">
+                        <strong>Definition:</strong> Reduce the likelihood or impact of the risk through controls and preventive measures.
+                      </p>
+                      <p className="rar-treatment-strategy-usage">
+                        <strong>When to use:</strong> When the risk cannot be avoided but can be reduced to acceptable levels.
+                      </p>
+                      <p className="rar-treatment-strategy-examples-header"><strong>Examples:</strong></p>
+                      <ul className="rar-treatment-strategy-examples">
+                        <li>Implementing security controls to reduce cyber risk</li>
+                        <li>Staff training to reduce human error</li>
+                        <li>Regular maintenance to prevent equipment failure</li>
+                        <li>Backup systems and redundancy measures</li>
+                        <li>Quality assurance processes</li>
+                      </ul>
+                    </div>
+
+                    <div className="rar-treatment-strategy">
+                      <h5 className="rar-treatment-strategy-header">
+                        <span className="rar-strategy-icon">🤝</span> Transfer
+                      </h5>
+                      <p className="rar-treatment-strategy-definition">
+                        <strong>Definition:</strong> Shift the risk or its consequences to another party through contracts, insurance, or outsourcing.
+                      </p>
+                      <p className="rar-treatment-strategy-usage">
+                        <strong>When to use:</strong> When another party is better positioned to manage the risk or when cost-effective risk transfer is available.
+                      </p>
+                      <p className="rar-treatment-strategy-examples-header"><strong>Examples:</strong></p>
+                      <ul className="rar-treatment-strategy-examples">
+                        <li>Purchasing insurance policies</li>
+                        <li>Outsourcing high-risk activities</li>
+                        <li>Contractual risk transfer clauses</li>
+                        <li>Financial hedging instruments</li>
+                        <li>Joint ventures and partnerships</li>
+                      </ul>
+                    </div>
+
+                    <div className="rar-treatment-strategy">
+                      <h5 className="rar-treatment-strategy-header">
+                        <span className="rar-strategy-icon">✅</span> Accept
+                      </h5>
+                      <p className="rar-treatment-strategy-definition">
+                        <strong>Definition:</strong> Acknowledge the risk and accept its potential consequences without taking specific action.
+                      </p>
+                      <p className="rar-treatment-strategy-usage">
+                        <strong>When to use:</strong> When the cost of treatment exceeds the potential impact, or when risks are within acceptable tolerance levels.
+                      </p>
+                      <p className="rar-treatment-strategy-types-header"><strong>Types:</strong></p>
+                      <ul className="rar-treatment-strategy-types">
+                        <li><strong>Active Acceptance:</strong> Deliberately choose to accept with contingency plans</li>
+                        <li><strong>Passive Acceptance:</strong> Accept by default with no specific response</li>
+                      </ul>
+                      <p className="rar-treatment-strategy-examples-header"><strong>Examples:</strong></p>
+                      <ul className="rar-treatment-strategy-examples">
+                        <li>Minor operational risks with low impact</li>
+                        <li>Market risks that are inherent to business operations</li>
+                        <li>Risks where treatment costs exceed potential losses</li>
+                      </ul>
+                    </div>
+
+                    <div className="rar-treatment-strategy-note">
+                      <p>
+                        <strong>Important:</strong> Organizations often use a combination of strategies for complex risks. The chosen strategy should align with the organization's risk appetite, available resources, and strategic objectives. Regular review and adjustment of treatment strategies is essential as business conditions change.
+                      </p>
+                    </div>
                   </div>
-                  
-                  <div className="rar-pro-tip">
-                    <h4 className="rar-pro-tip-title">
-                      💡 Pro Tip
+                  </div>
+
+                  <div className="rar-quantitative-guidance-section">
+                    <h4 className="rar-quantitative-guidance-title">
+                      Quantitative Risk Assessment Guidance
                     </h4>
-                    <p className="rar-pro-tip-content">
-                      Many organizations use a <strong>graduated approach</strong>: Start with qualitative assessments 
-                      for risk identification, then advance to quantitative methods for high-priority risks requiring 
-                      detailed analysis or business case development. Advanced quantitative methods are typically 
-                      reserved for critical risks, regulatory requirements, or strategic decision-making.
+                    <p className="rar-quantitative-guidance-intro">
+                      Quantitative risk assessment uses numerical values to calculate potential financial losses. Understanding the relationship between Single Loss Expectancy (SLE), Annual Rate of Occurrence (ARO), and Annual Loss Expectancy (ALE) is crucial for effective quantitative risk management.
                     </p>
+                    
+                    <div className="rar-quantitative-formulas">
+                      <div className="rar-formula-card">
+                        <h5 className="rar-formula-title">Core Formula</h5>
+                        <div className="rar-formula-equation">
+                          <span className="rar-formula-term">ALE</span>
+                          <span className="rar-formula-operator">=</span>
+                          <span className="rar-formula-term">SLE</span>
+                          <span className="rar-formula-operator">×</span>
+                          <span className="rar-formula-term">ARO</span>
+                        </div>
+                        <p className="rar-formula-description">
+                          Annual Loss Expectancy = Single Loss Expectancy × Annual Rate of Occurrence
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="rar-quantitative-definitions">
+                      <div className="rar-definition-grid">
+                        <div className="rar-definition-card rar-definition-sle">
+                          <h5 className="rar-definition-title">
+                            <span className="rar-definition-icon">💰</span>
+                            Single Loss Expectancy (SLE)
+                          </h5>
+                          <p className="rar-definition-text">
+                            <strong>Definition:</strong> The expected financial loss from a single occurrence of a risk event.
+                          </p>
+                          <p className="rar-definition-calculation">
+                            <strong>Calculation:</strong> Asset Value × Exposure Factor
+                          </p>
+                          <div className="rar-definition-examples">
+                            <strong>Examples:</strong>
+                            <ul>
+                              <li>Server failure: $50,000 (replacement + downtime)</li>
+                              <li>Data breach: $2,000,000 (fines + recovery costs)</li>
+                              <li>Ransomware attack: $500,000 (ransom + restoration)</li>
+                            </ul>
+                          </div>
+                        </div>
+
+                        <div className="rar-definition-card rar-definition-aro">
+                          <h5 className="rar-definition-title">
+                            <span className="rar-definition-icon">📅</span>
+                            Annual Rate of Occurrence (ARO)
+                          </h5>
+                          <p className="rar-definition-text">
+                            <strong>Definition:</strong> The expected frequency of a risk event occurring within a one-year period.
+                          </p>
+                          <p className="rar-definition-calculation">
+                            <strong>Calculation:</strong> Based on historical data, industry statistics, or expert judgment
+                          </p>
+                          <div className="rar-definition-examples">
+                            <strong>Examples:</strong>
+                            <ul>
+                              <li>Hardware failure: 0.1 (once every 10 years)</li>
+                              <li>Phishing attempts: 12 (monthly occurrences)</li>
+                              <li>Natural disaster: 0.02 (once every 50 years)</li>
+                            </ul>
+                          </div>
+                        </div>
+
+                        <div className="rar-definition-card rar-definition-ale">
+                          <h5 className="rar-definition-title">
+                            <span className="rar-definition-icon">📊</span>
+                            Annual Loss Expectancy (ALE)
+                          </h5>
+                          <p className="rar-definition-text">
+                            <strong>Definition:</strong> The expected annual financial loss from a specific risk, used for risk prioritization and cost-benefit analysis.
+                          </p>
+                          <p className="rar-definition-calculation">
+                            <strong>Usage:</strong> Compare against cost of controls to determine cost-effectiveness
+                          </p>
+                          <div className="rar-definition-examples">
+                            <strong>Decision Rule:</strong>
+                            <ul>
+                              <li>If control cost &lt; ALE → Implement control</li>
+                              <li>If control cost &gt; ALE → Consider accepting risk</li>
+                              <li>Consider residual risk after control implementation</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rar-quantitative-examples-section">
+                      <h5 className="rar-quantitative-examples-title">
+                        📈 Quantitative Assessment Examples
+                      </h5>
+                      
+                      <div className="rar-examples-grid">
+                        <div className="rar-example-card rar-example-low">
+                          <h6 className="rar-example-card-title">Low Risk Example</h6>
+                          <div className="rar-example-scenario">
+                            <strong>Scenario:</strong> Laptop theft in office environment
+                          </div>
+                          <div className="rar-example-calculations">
+                            <div className="rar-calc-row">
+                              <span className="rar-calc-label">Asset Value:</span>
+                              <span className="rar-calc-value">$2,000</span>
+                            </div>
+                            <div className="rar-calc-row">
+                              <span className="rar-calc-label">Exposure Factor:</span>
+                              <span className="rar-calc-value">100%</span>
+                            </div>
+                            <div className="rar-calc-row rar-calc-result">
+                              <span className="rar-calc-label">SLE:</span>
+                              <span className="rar-calc-value">$2,000</span>
+                            </div>
+                            <div className="rar-calc-row">
+                              <span className="rar-calc-label">ARO:</span>
+                              <span className="rar-calc-value">0.1 (once per 10 years)</span>
+                            </div>
+                            <div className="rar-calc-row rar-calc-final">
+                              <span className="rar-calc-label">ALE:</span>
+                              <span className="rar-calc-value">$200</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="rar-example-card rar-example-medium">
+                          <h6 className="rar-example-card-title">Medium Risk Example</h6>
+                          <div className="rar-example-scenario">
+                            <strong>Scenario:</strong> Email server outage
+                          </div>
+                          <div className="rar-example-calculations">
+                            <div className="rar-calc-row">
+                              <span className="rar-calc-label">Business Impact:</span>
+                              <span className="rar-calc-value">$25,000</span>
+                            </div>
+                            <div className="rar-calc-row">
+                              <span className="rar-calc-label">Recovery Cost:</span>
+                              <span className="rar-calc-value">$5,000</span>
+                            </div>
+                            <div className="rar-calc-row rar-calc-result">
+                              <span className="rar-calc-label">SLE:</span>
+                              <span className="rar-calc-value">$30,000</span>
+                            </div>
+                            <div className="rar-calc-row">
+                              <span className="rar-calc-label">ARO:</span>
+                              <span className="rar-calc-value">0.5 (once per 2 years)</span>
+                            </div>
+                            <div className="rar-calc-row rar-calc-final">
+                              <span className="rar-calc-label">ALE:</span>
+                              <span className="rar-calc-value">$15,000</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="rar-example-card rar-example-high">
+                          <h6 className="rar-example-card-title">High Risk Example</h6>
+                          <div className="rar-example-scenario">
+                            <strong>Scenario:</strong> Customer data breach
+                          </div>
+                          <div className="rar-example-calculations">
+                            <div className="rar-calc-row">
+                              <span className="rar-calc-label">Regulatory Fines:</span>
+                              <span className="rar-calc-value">$1,500,000</span>
+                            </div>
+                            <div className="rar-calc-row">
+                              <span className="rar-calc-label">Business Loss:</span>
+                              <span className="rar-calc-value">$800,000</span>
+                            </div>
+                            <div className="rar-calc-row rar-calc-result">
+                              <span className="rar-calc-label">SLE:</span>
+                              <span className="rar-calc-value">$2,300,000</span>
+                            </div>
+                            <div className="rar-calc-row">
+                              <span className="rar-calc-label">ARO:</span>
+                              <span className="rar-calc-value">0.05 (once per 20 years)</span>
+                            </div>
+                            <div className="rar-calc-row rar-calc-final">
+                              <span className="rar-calc-label">ALE:</span>
+                              <span className="rar-calc-value">$115,000</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rar-quantitative-best-practices">
+                      <h5 className="rar-quantitative-best-practices-title">
+                        🎯 Quantitative Assessment Best Practices
+                      </h5>
+                      <div className="rar-best-practices-grid">
+                        <div className="rar-best-practice-item">
+                          <h6 className="rar-best-practice-title">📋 Data Collection</h6>
+                          <ul className="rar-best-practice-list">
+                            <li>Use historical incident data when available</li>
+                            <li>Leverage industry benchmarks and statistics</li>
+                            <li>Conduct structured interviews with SMEs</li>
+                            <li>Document assumptions and data sources</li>
+                          </ul>
+                        </div>
+                        
+                        <div className="rar-best-practice-item">
+                          <h6 className="rar-best-practice-title">🔄 Validation & Review</h6>
+                          <ul className="rar-best-practice-list">
+                            <li>Regular review and update of estimates</li>
+                            <li>Sensitivity analysis for key parameters</li>
+                            <li>Peer review of calculations</li>
+                            <li>Comparison with actual incident costs</li>
+                          </ul>
+                        </div>
+                        
+                        <div className="rar-best-practice-item">
+                          <h6 className="rar-best-practice-title">💡 Decision Making</h6>
+                          <ul className="rar-best-practice-list">
+                            <li>Consider control effectiveness in calculations</li>
+                            <li>Factor in implementation and maintenance costs</li>
+                            <li>Account for risk interdependencies</li>
+                            <li>Include uncertainty ranges in reporting</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

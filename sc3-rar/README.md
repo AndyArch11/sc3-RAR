@@ -35,10 +35,17 @@ sc3-rar
 │   ├── App.js             # Main App component, imports BIAForm
 │   ├── App.css            # CSS styles for the application
 │   └── components
-│       └── RARForm.js     # RAR SPA form
-            distribution.js # logic for the different Monte Carlo distribution algorithms
-            montecarlo.js  # Monte Carlo simulations
-├── package.json           # npm configuration file
+│       └── DistributionChart.js    # logic for creating charts for the Monte Carlo algorithms
+│       └── distribution.js         # logic for the different Monte Carlo distribution algorithms
+│       └── montecarlo.js           # Monte Carlo simulations
+│       └── ExcelExport.js          # Exports risks to an Excel file
+│       └── RAR.css                 # CSS for the components
+│       └── RARForm.js              # RAR SPA form
+│       └── RARInputForm.js         # Captures the Risk details
+│       └── RARIntro.js             # Provides guidance on the use of the Risk Assessment Report
+│       └── RARReport.js            # Provides a summary of the Risk Assessments
+│       └── RARTable.js             # Lists the Risks, and their more relevant attributes
+├── package.json            # npm configuration file
 └── README.md              # Project documentation
 ```
 
@@ -59,6 +66,7 @@ In the project folder
 
 ### `npm install`
 ### `npm install xlsx --save`
+### `npm install recharts`
 
 ## Available Scripts
 

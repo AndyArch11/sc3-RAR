@@ -91,7 +91,7 @@ const RARTable = ({
 
   const handleExport = () => {
     exportRisksToExcel(risks);
-};
+  };
 
   return (
     <div className="rar-table-outer-container">
@@ -383,7 +383,7 @@ const RARTable = ({
                             }
                         >
                             {risk.status
-                                ? risk.status.replace(/(^|\s|\-)([a-z])/g, (m, p1, p2) => p1 + p2.toUpperCase())
+                                ? risk.status.replace(/(^|\s|-)([a-z])/g, (m, p1, p2) => p1 + p2.toUpperCase())
                                 : 'N/A'}
                         </div>
                       </td>

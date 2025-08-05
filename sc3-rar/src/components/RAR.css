@@ -1245,16 +1245,27 @@
 }
 
 .rar-select-currency {
-  width: 120px;
-  flex-shrink: 0;
+  width: auto;
+  min-width: unset;
+  flex: 0 0 auto;
 }
 
 .rar-input-currency {
-  flex: 1;
+  flex: 1 1 0%;
+}
+
+.rar-input-date {
+  width: auto;
+  box-sizing: border-box;
+  padding: var(--sc3-input-padding);
+  border-radius: var(--sc3-input-border-radius);
+  border: 1px solid var(--sc3-secondary);
+  font-size: 1rem;
+  font-family: inherit;
 }
 
 .rar-select {
-  width: 100%;
+  width: auto;
   box-sizing: border-box;
   padding: var(--sc3-input-padding);
   border-radius: var(--sc3-input-border-radius);
@@ -1301,7 +1312,7 @@
 }
 
 .rar-form-label-cell {
-  width: 30%;
+  width: 25%;
   vertical-align: top;
   padding-right: 1rem;
   padding-bottom: 0.5rem;
@@ -1610,11 +1621,12 @@
 
 /* Status select with dynamic colors */
 .rar-select-status {
-  width: 100%;
+  width: auto;
   box-sizing: border-box;
   padding: var(--sc3-input-padding);
   border-radius: var(--sc3-input-border-radius);
   font-size: 1rem;
+  text-align: center;
 }
 
 /* Risk matrix visualization styling */
@@ -3179,4 +3191,610 @@
 .rar-btn-refresh {
   background: var(--sc3-secondary);
   transition: background 0.2s ease;
+}
+
+.rar-distribution-chart-container {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.rar-distribution-chart-title {
+  margin: 0 0 0.5rem 0;
+  color: var(--sc3-primary);
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.rar-distribution-chart-placeholder {
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-style: italic;
+  background: #f9f9f9;
+  border: 2px dashed #ddd;
+  border-radius: 4px;
+}
+
+/* Ensure chart text is readable */
+.recharts-cartesian-axis-tick-value {
+  font-size: 12px !important;
+}
+
+.recharts-tooltip-wrapper {
+  z-index: 1000;
+}
+
+.rar-distribution-info {
+  display: block;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #f0f7ff;
+  border-left: 3px solid var(--sc3-secondary);
+  border-radius: 3px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.rar-distribution-info strong {
+  color: var(--sc3-primary);
+  font-weight: bold;
+  font-style: normal;
+}
+
+.rar-treatment-strategies-section {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.rar-treatment-strategies-title {
+  color: var(--sc3-primary);
+  margin: 0 0 1rem 0;
+  font-size: 1.3em;
+  font-weight: bold;
+}
+
+.rar-treatment-strategies-intro {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.05em;
+  line-height: 1.5;
+}
+
+.rar-treatment-strategy {
+  margin: 1.5rem 0;
+  padding: 1.2rem;
+  border-left: 4px solid var(--sc3-secondary);
+  background: white;
+  border-radius: 0 6px 6px 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.rar-treatment-strategy-header {
+  margin: 0 0 0.8rem 0;
+  color: var(--sc3-primary);
+  font-size: 1.2em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: bold;
+}
+
+.rar-strategy-icon {
+  font-size: 1.3em;
+}
+
+.rar-treatment-strategy-definition,
+.rar-treatment-strategy-usage {
+  margin: 0.6rem 0;
+  line-height: 1.5;
+}
+
+.rar-treatment-strategy-examples-header,
+.rar-treatment-strategy-types-header {
+  margin: 0.8rem 0 0.4rem 0;
+  font-weight: bold;
+}
+
+.rar-treatment-strategy-examples,
+.rar-treatment-strategy-types {
+  margin: 0.4rem 0 0.8rem 1.5rem;
+  padding: 0;
+}
+
+.rar-treatment-strategy-examples li,
+.rar-treatment-strategy-types li {
+  margin: 0.3rem 0;
+  line-height: 1.4;
+}
+
+.rar-treatment-strategy-note {
+  margin: 1.5rem 0 0 0;
+  padding: 1rem;
+  background: #e3f2fd;
+  border: 1px solid var(--sc3-secondary);
+  border-radius: 6px;
+}
+
+.rar-treatment-strategy-note p {
+  margin: 0;
+  font-style: italic;
+  color: var(--sc3-primary);
+  line-height: 1.5;
+}
+
+.rar-quantitative-guidance-section {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.rar-quantitative-guidance-title {
+  color: var(--sc3-primary);
+  margin: 0 0 1rem 0;
+  font-size: 1.3em;
+  font-weight: bold;
+}
+
+.rar-quantitative-guidance-intro {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.05em;
+  line-height: 1.5;
+}
+
+.rar-quantitative-formulas {
+  margin: 1.5rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.rar-formula-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  text-align: center;
+  border: 2px solid var(--sc3-secondary);
+}
+
+.rar-formula-title {
+  margin: 0 0 1rem 0;
+  color: var(--sc3-primary);
+  font-weight: bold;
+}
+
+.rar-formula-equation {
+  font-size: 1.8em;
+  font-weight: bold;
+  margin: 1rem 0;
+  color: var(--sc3-primary);
+}
+
+.rar-formula-term {
+  color: var(--sc3-primary);
+  background: #e3f2fd;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  margin: 0 0.2rem;
+}
+
+.rar-formula-operator {
+  color: var(--sc3-secondary);
+  margin: 0 0.5rem;
+}
+
+.rar-formula-description {
+  margin: 1rem 0 0 0;
+  font-style: italic;
+  color: #666;
+}
+
+.rar-quantitative-definitions {
+  margin: 2rem 0;
+}
+
+.rar-definition-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin: 1rem 0;
+}
+
+.rar-definition-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  border-left: 4px solid;
+}
+
+.rar-definition-sle {
+  border-left-color: #4caf50;
+}
+
+.rar-definition-aro {
+  border-left-color: #ff9800;
+}
+
+.rar-definition-ale {
+  border-left-color: #2196f3;
+}
+
+.rar-definition-title {
+  margin: 0 0 1rem 0;
+  color: var(--sc3-primary);
+  font-size: 1.1em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rar-definition-icon {
+  font-size: 1.2em;
+}
+
+.rar-definition-text,
+.rar-definition-calculation {
+  margin: 0.8rem 0;
+  line-height: 1.5;
+}
+
+.rar-definition-examples {
+  margin: 1rem 0 0 0;
+}
+
+.rar-definition-examples ul {
+  margin: 0.5rem 0;
+  padding-left: 1.2rem;
+}
+
+.rar-definition-examples li {
+  margin: 0.3rem 0;
+  line-height: 1.4;
+}
+
+.rar-quantitative-examples-section {
+  margin: 2rem 0;
+}
+
+.rar-quantitative-examples-title {
+  color: var(--sc3-primary);
+  margin: 0 0 1.5rem 0;
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.rar-examples-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.rar-example-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  border-top: 4px solid;
+}
+
+.rar-example-low {
+  border-top-color: #4caf50;
+}
+
+.rar-example-medium {
+  border-top-color: #ff9800;
+}
+
+.rar-example-high {
+  border-top-color: #f44336;
+}
+
+.rar-example-card-title {
+  margin: 0 0 1rem 0;
+  color: var(--sc3-primary);
+  font-weight: bold;
+}
+
+.rar-example-scenario {
+  margin: 0 0 1rem 0;
+  font-style: italic;
+  color: #666;
+}
+
+.rar-example-calculations {
+  margin: 1rem 0;
+}
+
+.rar-calc-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.5rem 0;
+  padding: 0.3rem 0;
+}
+
+.rar-calc-label {
+  font-weight: 500;
+}
+
+.rar-calc-value {
+  font-weight: bold;
+  color: var(--sc3-primary);
+}
+
+.rar-calc-result {
+  border-top: 1px solid #eee;
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+}
+
+.rar-calc-final {
+  border-top: 2px solid var(--sc3-primary);
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+  background: #f8f9fa;
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+  padding-left: 0.8rem;
+  padding-right: 0.8rem;
+  border-radius: 4px;
+}
+
+.rar-calc-final .rar-calc-value {
+  font-size: 1.1em;
+  color: var(--sc3-primary);
+}
+
+.rar-quantitative-best-practices {
+  margin: 2rem 0;
+}
+
+.rar-quantitative-best-practices-title {
+  color: var(--sc3-primary);
+  margin: 0 0 1.5rem 0;
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.rar-best-practices-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.rar-best-practice-item {
+  background: white;
+  padding: 1.3rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-left: 4px solid var(--sc3-secondary);
+}
+
+.rar-best-practice-title {
+  margin: 0 0 1rem 0;
+  color: var(--sc3-primary);
+  font-size: 1em;
+  font-weight: bold;
+}
+
+.rar-best-practice-list {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.rar-best-practice-list li {
+  margin: 0.4rem 0;
+  line-height: 1.4;
+}
+
+.rar-quantitative-chart-container {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.rar-quantitative-chart-title {
+  color: var(--sc3-primary);
+  margin: 0 0 1rem 0;
+  font-size: 1.1em;
+  font-weight: bold;
+  text-align: center;
+}
+
+.rar-quantitative-chart-summary {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.rar-chart-calculation-display {
+  text-align: center;
+}
+
+.rar-calc-formula {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.rar-calc-component {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+.rar-calc-sle {
+  background: rgba(54, 162, 235, 0.1);
+  border: 2px solid rgba(54, 162, 235, 0.5);
+  color: #2196f3;
+}
+
+.rar-calc-aro {
+  background: rgba(255, 206, 86, 0.1);
+  border: 2px solid rgba(255, 206, 86, 0.5);
+  color: #ff9800;
+}
+
+.rar-calc-ale {
+  background: rgba(255, 99, 132, 0.1);
+  border: 2px solid rgba(255, 99, 132, 0.5);
+  color: #f44336;
+  font-size: 1em;
+}
+
+.rar-calc-operator {
+  font-size: 1.2em;
+  font-weight: bold;
+  color: var(--sc3-primary);
+}
+
+.rar-frequency-interpretation {
+  color: #666;
+  font-style: italic;
+  font-size: 0.9em;
+  margin-top: 0.5rem;
+}
+
+.rar-cumulative-breakdown {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid var(--sc3-primary);
+}
+
+.rar-cumulative-breakdown h5 {
+  margin: 0 0 0.75rem 0;
+  color: var(--sc3-primary);
+  font-size: 0.95em;
+  font-weight: bold;
+}
+
+.rar-cumulative-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rar-cumulative-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: white;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+}
+
+.rar-cumulative-period {
+  font-weight: bold;
+  color: var(--sc3-primary);
+  min-width: 80px;
+}
+
+.rar-cumulative-value {
+  font-weight: bold;
+  font-size: 1.05em;
+  color: #333;
+}
+
+.rar-cumulative-formula {
+  color: #666;
+  font-size: 0.85em;
+  font-style: italic;
+}
+
+.rar-investment-guidance {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #e3f2fd;
+  border-radius: 6px;
+  border-left: 4px solid #2196f3;
+  color: #1565c0;
+  font-size: 0.9em;
+}
+
+.rar-calc-base {
+  background: rgba(33, 150, 243, 0.1);
+  border: 2px solid rgba(33, 150, 243, 0.3);
+  color: #2196f3;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-weight: bold;
+  display: block;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.rar-tooltip-description {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.85em;
+  color: #666;
+  font-style: italic;
+}
+
+.rar-tooltip-breakdown {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #eee;
+}
+
+.rar-tooltip-breakdown small {
+  color: #888;
+  font-size: 0.8em;
+}
+
+@media (max-width: 768px) {
+  .rar-cumulative-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  
+  .rar-cumulative-period {
+    min-width: auto;
+  }
+  
+  .rar-calc-base {
+    font-size: 0.85em;
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .rar-quantitative-chart-container {
+    padding: 1rem;
+  }
+  
+  .rar-calc-formula {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .rar-calc-operator {
+    transform: rotate(90deg);
+    margin: 0.2rem 0;
+  }
+  
+  .rar-calc-component {
+    font-size: 0.8em;
+  }
 }
