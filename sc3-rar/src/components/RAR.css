@@ -1416,6 +1416,8 @@
   gap: 0.5rem;
   cursor: pointer;
   font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--sc3-primary);
 }
 
 .rar-radio {
@@ -1574,20 +1576,8 @@
 }
 
 /* Action fields section styling */
-.rar-form-action-label-cell {
-  width: 30%;
-  vertical-align: top;
-  padding-right: 1rem;
-  padding-bottom: 0.5rem;
-}
-
 .rar-form-action-input-cell {
   padding-bottom: 0.5rem;
-}
-
-.rar-form-action-label {
-  color: var(--sc3-primary);
-  font-weight: bold;
 }
 
 .rar-textarea-actions {

@@ -1703,8 +1703,8 @@ const InputForm = ({
                   </tr>
 
                   <tr title="Person responsible for implementing the recommended actions">
-                    <td className="rar-form-action-label-cell">
-                      <label className="rar-form-action-label">Action Owner:</label>
+                    <td className="rar-form-label-cell">
+                      <label className="rar-form-label">Action Owner:</label>
                     </td>
                     <td className="rar-form-action-input-cell">
                       <input
@@ -1719,8 +1719,8 @@ const InputForm = ({
                   </tr>
 
                   <tr title="Target date for implementing the recommended actions">
-                    <td className="rar-form-action-label-cell">
-                      <label className="rar-form-action-label">Target Date:</label>
+                    <td className="rar-form-label-cell">
+                      <label className="rar-form-label">Target Date:</label>
                     </td>
                     <td className="rar-form-action-input-cell">
                       <input
@@ -1736,8 +1736,8 @@ const InputForm = ({
                   {form.assessmentType === "qualitative" && (
                     <>
                       <tr title="Likelihood of the risk occurring after implementing controls">
-                        <td className="rar-form-action-label-cell">
-                          <label className="rar-form-action-label">
+                        <td className="rar-form-label-cell">
+                          <label className="rar-form-label">
                             Residual Risk Likelihood:
                           </label>
                         </td>
@@ -1759,8 +1759,8 @@ const InputForm = ({
                       </tr>
 
                       <tr title="Risk impact after implementing controls">
-                        <td className="rar-form-action-label-cell">
-                          <label className="rar-form-action-label">
+                        <td className="rar-form-label-cell">
+                          <label className="rar-form-label">
                             Residual Risk Impact:
                           </label>
                         </td>
@@ -1784,8 +1784,8 @@ const InputForm = ({
                   )}
 
                   <tr title="Residual risk level after implementing controls">
-                    <td className="rar-form-action-label-cell">
-                      <label className="rar-form-action-label">
+                    <td className="rar-form-label-cell">
+                      <label className="rar-form-label">
                         Residual Risk:
                       </label>
                     </td>
@@ -1843,8 +1843,8 @@ const InputForm = ({
                   </tr>
 
                   <tr title="Date for reviewing the risk assessment">
-                    <td className="rar-form-action-label-cell">
-                      <label className="rar-form-action-label">Review Date:</label>
+                    <td className="rar-form-label-cell">
+                      <label className="rar-form-label">Review Date:</label>
                     </td>
                     <td className="rar-form-action-input-cell">
                       <input
@@ -1855,8 +1855,8 @@ const InputForm = ({
                   </tr>
 
                   <tr title="Status of the risk assessment">
-                    <td className="rar-form-action-label-cell">
-                      <label className="rar-form-action-label">Status:</label>
+                    <td className="rar-form-label-cell">
+                      <label className="rar-form-label">Status:</label>
                     </td>
                     <td className="rar-form-action-input-cell">
                       <select
@@ -1883,8 +1883,8 @@ const InputForm = ({
                   {form.status === "closed" && (
                     <>
                       <tr title="Date when the risk was closed">
-                        <td className="rar-form-action-label-cell">
-                          <label className="rar-form-action-label">
+                        <td className="rar-form-label-cell">
+                          <label className="rar-form-label">
                             Closed Date:
                           </label>
                         </td>
@@ -1901,8 +1901,8 @@ const InputForm = ({
                       </tr>
 
                       <tr title="Name of the person who closed the risk">
-                        <td className="rar-form-action-label-cell">
-                          <label className="rar-form-action-label">
+                        <td className="rar-form-label-cell">
+                          <label className="rar-form-label">
                             Closed By:
                           </label>
                         </td>
@@ -1922,8 +1922,8 @@ const InputForm = ({
 
                   {/* Approver field for all assessment types */}
                   <tr title="Name of the person who approves this risk assessment based on the risk level">
-                    <td className="rar-form-action-label-cell">
-                      <label className="rar-form-action-label">
+                    <td className="rar-form-label-cell">
+                      <label className="rar-form-label">
                         Approver:
                       </label>
                     </td>
