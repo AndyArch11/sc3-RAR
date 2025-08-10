@@ -34,6 +34,10 @@ const RARTable = ({
 
   // Calculation functions
   calculateALE,
+  calculateResidualALE,
+  getQuantitativeRiskLevel,
+  getAdvancedQuantitativeRiskLevel,
+  getResidualMonteCarloExpectedLossNumeric,
   formatCurrency,
   getRiskColor,
   getStatusColor,
@@ -288,9 +292,12 @@ const RARTable = ({
                         {risk.assessmentType === 'qualitative' 
                           ? (likelihoodMap[risk.likelihood] || risk.likelihood || 'N/A')
                           : risk.assessmentType === 'quantitative'
-                          ? (risk.aro || 'N/A')
+                          ? (risk.aro ? `${risk.aro}/year` : 'N/A')
                           : risk.assessmentType === 'advancedQuantitative'
-                          ? 'Monte Carlo'
+                          ? (() => {
+                              const frequency = risk.mostLikelyFrequency || risk.frequencyMean;
+                              return frequency ? `${parseFloat(frequency).toFixed(2)}/year` : 'N/A';
+                            })()
                           : 'N/A'}
                       </td>
 
@@ -301,7 +308,10 @@ const RARTable = ({
                           : risk.assessmentType === 'quantitative'
                           ? (risk.sle ? formatCurrency(parseFloat(risk.sle), risk.sleCurrency) : 'N/A')
                           : risk.assessmentType === 'advancedQuantitative'
-                          ? 'Simulation'
+                          ? (() => {
+                              const loss = risk.mostLikelyLoss || risk.lossMean;
+                              return loss ? formatCurrency(parseFloat(loss), risk.sleCurrency) : 'N/A';
+                            })()
                           : 'N/A'}
                       </td>
 
@@ -343,29 +353,120 @@ const RARTable = ({
 
                       {/* Residual Likelihood */}
                       <td className="rar-td-assessment">
-                        {risk.residualLikelihood ? (likelihoodMap[risk.residualLikelihood] || risk.residualLikelihood) : 'N/A'}
+                        {(() => {
+                          if (risk.assessmentType === 'quantitative') {
+                            // For quantitative risks, show ARO value
+                            return risk.residualAro ? `${risk.residualAro}/year` : 'N/A';
+                          } else if (risk.assessmentType === 'advancedQuantitative') {
+                            // For advanced quantitative risks, show frequency from Monte Carlo or fallback to main
+                            const frequency = risk.residualMostLikelyFrequency || risk.residualFrequencyMean || 
+                                            risk.mostLikelyFrequency || risk.frequencyMean;
+                            return frequency ? `${parseFloat(frequency).toFixed(2)}/year` : 'N/A';
+                          } else {
+                            // For qualitative risks, show likelihood description
+                            return risk.residualLikelihood ? (likelihoodMap[risk.residualLikelihood] || risk.residualLikelihood) : 'N/A';
+                          }
+                        })()}
                       </td>
 
                       {/* Residual Impact */}
                       <td className="rar-td-assessment">
-                        {risk.residualImpact ? (impactMap[risk.residualImpact] || risk.residualImpact) : 'N/A'}
+                        {(() => {
+                          if (risk.assessmentType === 'quantitative') {
+                            // For quantitative risks, show SLE value
+                            return risk.residualSle ? formatCurrency(parseFloat(risk.residualSle)) : 'N/A';
+                          } else if (risk.assessmentType === 'advancedQuantitative') {
+                            // For advanced quantitative risks, show loss from Monte Carlo or fallback to main
+                            const loss = risk.residualMostLikelyLoss || risk.residualLossMean || 
+                                        risk.mostLikelyLoss || risk.lossMean;
+                            return loss ? formatCurrency(parseFloat(loss), risk.residualSleCurrency || risk.sleCurrency) : 'N/A';
+                          } else {
+                            // For qualitative risks, show impact description
+                            return risk.residualImpact ? (impactMap[risk.residualImpact] || risk.residualImpact) : 'N/A';
+                          }
+                        })()}
                       </td>
 
                       {/* Residual Risk */}
                       <td className="rar-td-assessment">
-                        {risk.calculatedResidualRiskLevel ? (
-                            <div
+                        {(() => {
+                          // For qualitative assessments, use the calculated residual risk level
+                          if (risk.calculatedResidualRiskLevel) {
+                            return (
+                              <div
                                 className={
-                                    "rar-td-residual-badge " +
-                                    (["low", "medium", "high", "extreme"].includes(risk.calculatedResidualRiskLevel.toLowerCase())
+                                  "rar-td-residual-badge " +
+                                  (["low", "medium", "high", "extreme"].includes(risk.calculatedResidualRiskLevel.toLowerCase())
                                     ? risk.calculatedResidualRiskLevel.toLowerCase()
                                     : "default")
                                 }
-                            >
+                              >
                                 {risk.calculatedResidualRiskLevel.toUpperCase()}
-                            </div>
-                        ) : 'Not Set'}
-                        </td>
+                              </div>
+                            );
+                          }
+                          
+                          // For advanced quantitative assessments, use pre-calculated value or calculate
+                          if (risk.assessmentType === 'advancedQuantitative') {
+                            try {
+                              // First try to use the pre-calculated residual expected loss
+                              let residualEAL = 0;
+                              if (risk.residualExpectedLoss && typeof risk.residualExpectedLoss === 'string') {
+                                // Extract numeric value from formatted string like "$1,234.56"
+                                const match = risk.residualExpectedLoss.match(/[\d,]+\.?\d*/);
+                                if (match) {
+                                  residualEAL = parseFloat(match[0].replace(/,/g, ''));
+                                }
+                              }
+                              
+                              // If no pre-calculated value, fall back to calculation
+                              if (residualEAL === 0) {
+                                residualEAL = getResidualMonteCarloExpectedLossNumeric(risk);
+                              }
+                              
+                              if (residualEAL > 0) {
+                                const residualRiskLevel = getAdvancedQuantitativeRiskLevel(residualEAL);
+                                return (
+                                  <div
+                                    className={
+                                      "rar-td-residual-badge " +
+                                      (["low", "medium", "high", "extreme"].includes(residualRiskLevel.toLowerCase())
+                                        ? residualRiskLevel.toLowerCase()
+                                        : "default")
+                                    }
+                                  >
+                                    {residualRiskLevel.toUpperCase()}
+                                  </div>
+                                );
+                              }
+                            } catch (error) {
+                              console.warn('Error calculating residual Monte Carlo EAL for table:', error);
+                            }
+                          }
+                          
+                          // For quantitative assessments, calculate from residual ALE
+                          if (risk.assessmentType === 'quantitative' && risk.residualSle && risk.residualAro) {
+                            const residualALE = calculateResidualALE(risk);
+                            if (residualALE > 0) {
+                              const residualRiskLevel = getQuantitativeRiskLevel(residualALE);
+                              return (
+                                <div
+                                  className={
+                                    "rar-td-residual-badge " +
+                                    (["low", "medium", "high", "extreme"].includes(residualRiskLevel.toLowerCase())
+                                      ? residualRiskLevel.toLowerCase()
+                                      : "default")
+                                  }
+                                >
+                                  {residualRiskLevel.toUpperCase()}
+                                </div>
+                              );
+                            }
+                          }
+                          
+                          return 'Not Set';
+                        })()}
+                      </td>
 
                       {/* Review Date */}
                       <td className="rar-td-assessment">

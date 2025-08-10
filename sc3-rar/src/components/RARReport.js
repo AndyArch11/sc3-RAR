@@ -33,6 +33,8 @@ const RARReport = ({
   getRiskColor,
   getRiskMatrixHeatMapData,
   calculateALE,
+  calculateResidualALE,
+  getQuantitativeRiskLevel,
   getMonteCarloExpectedLossNumeric,
   getMonteCarloVaRNumeric,
   getMonteCarloResults,
@@ -700,11 +702,17 @@ const RARReport = ({
                                 <th className="rar-report-table-header rar-report-table-center">ARO</th>
                                 <th className="rar-report-table-header rar-report-table-center">ALE</th>
                                 <th className="rar-report-table-header rar-report-table-center">Risk Level</th>
+                                <th className="rar-report-table-header rar-report-table-center">Residual SLE</th>
+                                <th className="rar-report-table-header rar-report-table-center">Residual ARO</th>
+                                <th className="rar-report-table-header rar-report-table-center">Residual ALE</th>
+                                <th className="rar-report-table-header rar-report-table-center">Residual Risk Level</th>
                               </tr>
                             </thead>
                             <tbody>
                               {quantitativeRisks.map((risk, index) => {
                                 const ale = typeof risk.ale === 'number' ? risk.ale : calculateALE(risk);
+                                const residualAle = calculateResidualALE(risk);
+                                const residualRiskLevel = residualAle > 0 ? getQuantitativeRiskLevel(residualAle) : '';
                                 return (
                                   <tr key={risk.riskId || index}>
                                     <td className="rar-report-table-cell"
@@ -735,6 +743,28 @@ const RARReport = ({
                                         fontSize: "0.8em"
                                       }}>
                                         {risk.riskLevel || 'Not Set'}
+                                      </div>
+                                    </td>
+                                    <td className="rar-report-table-cell rar-report-table-center">
+                                      {risk.residualSle ? formatCurrency(parseFloat(risk.residualSle), risk.residualSleCurrency || currency) : 'N/A'}
+                                    </td>
+                                    <td className="rar-report-table-cell rar-report-table-center">
+                                      {risk.residualAro || 'N/A'}
+                                    </td>
+                                    <td className="rar-report-table-cell rar-report-table-center"
+                                      style={{ fontWeight: "bold" }}>
+                                      {residualAle > 0 ? formatCurrency(residualAle, risk.residualSleCurrency || currency) : 'N/A'}
+                                    </td>
+                                    <td className="rar-report-table-cell rar-report-table-center">
+                                      <div style={{
+                                        background: residualRiskLevel ? getRiskColor(residualRiskLevel.charAt(0).toUpperCase() + residualRiskLevel.slice(1)) : '#ccc',
+                                        color: "#fff",
+                                        padding: "4px 8px",
+                                        borderRadius: "4px",
+                                        fontWeight: "bold",
+                                        fontSize: "0.8em"
+                                      }}>
+                                        {residualRiskLevel || 'Not Set'}
                                       </div>
                                     </td>
                                   </tr>

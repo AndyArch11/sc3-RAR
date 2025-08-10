@@ -40,8 +40,20 @@ export function runMonteCarlo(events, iterations = 10000, confidenceLevel = 0.95
     let totalLoss = 0;
 
     events.forEach((event) => {
-      const freq = Math.max(0, Math.round(sampleDistribution(event.frequency)));
-      for (let j = 0; j < freq; j++) {
+      const sampledFreq = Math.max(0, sampleDistribution(event.frequency));
+      
+      // Handle fractional frequencies by using probability
+      // For example, 0.3 events/year means 30% chance of 1 event, 70% chance of 0 events
+      const wholeEvents = Math.floor(sampledFreq);
+      const fractionalPart = sampledFreq - wholeEvents;
+      
+      // Generate losses for whole events
+      for (let j = 0; j < wholeEvents; j++) {
+        totalLoss += sampleDistribution(event.severity);
+      }
+      
+      // Handle fractional part probabilistically
+      if (fractionalPart > 0 && Math.random() < fractionalPart) {
         totalLoss += sampleDistribution(event.severity);
       }
     });

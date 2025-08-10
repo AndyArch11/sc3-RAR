@@ -950,6 +950,101 @@
   border-color: var(--sc3-secondary);
 }
 
+/* Qualitative Assessment Tab Styles */
+.rar-qualitative-tabs {
+  display: flex;
+  border-bottom: 2px solid #e0e0e0;
+  margin-bottom: 0;
+  background: #f8f9fa;
+  border-radius: var(--sc3-border-radius) var(--sc3-border-radius) 0 0;
+}
+
+.rar-qualitative-tab {
+  flex: 1;
+  padding: 12px 20px;
+  background: #f8f9fa;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--sc3-gray);
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.rar-qualitative-tab:first-child {
+  border-radius: var(--sc3-border-radius) 0 0 0;
+}
+
+.rar-qualitative-tab:last-child {
+  border-radius: 0 var(--sc3-border-radius) 0 0;
+}
+
+.rar-qualitative-tab:hover {
+  background: #e9ecef;
+  color: var(--sc3-primary);
+}
+
+.rar-qualitative-tab.active {
+  background: var(--sc3-table-bg);
+  color: var(--sc3-primary);
+  border-bottom-color: var(--sc3-secondary);
+  font-weight: 600;
+  box-shadow: 0 -2px 4px rgba(0, 51, 102, 0.1);
+}
+
+.rar-qualitative-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--sc3-secondary), var(--sc3-accent));
+}
+
+/* Tab Content Background Styles - Simple approach using adjacent selectors */
+.rar-qualitative-tabs + tr td,
+.rar-qualitative-tabs + tr + tr td,
+.rar-qualitative-tabs + tr + tr + tr td,
+.rar-qualitative-tabs + tr + tr + tr + tr td {
+  background: var(--sc3-blue-light) !important;
+  position: relative;
+}
+
+.rar-qualitative-tabs {
+  margin-bottom: 0;
+  border-bottom: 3px solid var(--sc3-secondary);
+}
+
+/* Enhanced tab styling for better visual separation */
+.rar-qualitative-tab.active {
+  background: var(--sc3-table-bg);
+  color: var(--sc3-primary);
+  border-bottom-color: var(--sc3-secondary);
+  font-weight: 600;
+  box-shadow: 0 -2px 4px rgba(0, 51, 102, 0.1);
+  position: relative;
+  z-index: 2;
+}
+
+/* Tab content indicator - left border for all tab-specific rows */
+.rar-tab-specific-content {
+  background: var(--sc3-blue-light) !important;
+  border-left: 4px solid var(--sc3-secondary) !important;
+  position: relative;
+}
+
+.rar-tab-specific-content td {
+  background: var(--sc3-blue-light);
+  padding-left: 12px;
+}
+
+.rar-external-content {
+  background: var(--sc3-bg);
+}
+
 .rar-form-input.error,
 .rar-form-textarea.error,
 .rar-form-select.error {
@@ -3786,5 +3881,145 @@
   
   .rar-calc-component {
     font-size: 0.8em;
+  }
+}
+
+/* Cumulative Distribution Chart Styles */
+.rar-cdf-chart-container {
+  margin: 1rem 0;
+  padding: 1.5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.rar-cdf-chart-title {
+  margin: 0 0 1rem 0;
+  color: var(--sc3-primary);
+  font-size: 1rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+.rar-cdf-chart-placeholder {
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-style: italic;
+  background: #f9f9f9;
+  border: 2px dashed #ddd;
+  border-radius: 4px;
+}
+
+.rar-percentile-controls {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.rar-percentile-slider-container {
+  margin-bottom: 1rem;
+}
+
+.rar-percentile-label {
+  display: block;
+  font-weight: bold;
+  color: var(--sc3-primary);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.rar-percentile-slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: #ddd;
+  outline: none;
+  margin: 0.5rem 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.rar-percentile-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--sc3-primary);
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.rar-percentile-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--sc3-primary);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.rar-percentile-markers {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-size: 0.85em;
+  color: #666;
+}
+
+.rar-percentile-info {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 4px solid var(--sc3-secondary);
+}
+
+.rar-percentile-result {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.rar-percentile-text {
+  color: var(--sc3-primary);
+  font-weight: 500;
+}
+
+.rar-percentile-value {
+  background: var(--sc3-primary);
+  color: white;
+  padding: 0.3rem 0.8rem;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 1.05em;
+}
+
+.rar-percentile-interpretation {
+  color: #666;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .rar-cdf-chart-container {
+    padding: 1rem;
+  }
+  
+  .rar-percentile-result {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+  }
+  
+  .rar-percentile-value {
+    font-size: 1em;
   }
 }

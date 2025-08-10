@@ -6,7 +6,7 @@ import RARReport from "./RARReport";
 import RARTable from "./RARTable";
 import "./RAR.css";
 
-const VERSION = "v0.2.3"; // Update as needed
+const VERSION = "v0.3.0"; // Update as needed
 
 
 // TODO: Add more unit tests for all components and functions
@@ -89,6 +89,10 @@ const initialForm = {
   residualRisk: "",
   residualLikelihood: "",
   residualImpact: "",
+  // Residual risk quantitative fields
+  residualSle: "",
+  residualSleCurrency: "dollar",
+  residualAro: "",
   closedDate: "",
   closedBy: "",
 };
@@ -594,8 +598,42 @@ const RARForm = () => {
       if (risk.assessmentType === 'qualitative') {
         // For qualitative, use the calculated residual risk level
         residualLevel = risk.calculatedResidualRiskLevel || '';
+      } else if (risk.assessmentType === 'quantitative') {
+        // For quantitative, calculate from residual ALE
+        if (risk.residualSle && risk.residualAro) {
+          const residualALE = calculateResidualALE(risk);
+          if (residualALE > 0) {
+            residualLevel = getQuantitativeRiskLevel(residualALE);
+          }
+        }
+      } else if (risk.assessmentType === 'advancedQuantitative') {
+        // For advanced quantitative, calculate from residual Monte Carlo expected loss
+        try {
+          // First try to use the pre-calculated residual expected loss
+          let residualEAL = 0;
+          if (risk.residualExpectedLoss && typeof risk.residualExpectedLoss === 'string') {
+            // Extract numeric value from formatted string like "$1,234.56"
+            const match = risk.residualExpectedLoss.match(/[\d,]+\.?\d*/);
+            if (match) {
+              residualEAL = parseFloat(match[0].replace(/,/g, ''));
+            }
+          }
+          
+          // If no pre-calculated value, fall back to calculation
+          if (residualEAL === 0) {
+            residualEAL = getResidualMonteCarloExpectedLossNumeric(risk);
+          }
+          
+          if (residualEAL > 0) {
+            residualLevel = getAdvancedQuantitativeRiskLevel(residualEAL);
+          }
+        } catch (error) {
+          console.warn('Error calculating residual risk level for donut chart:', error);
+          // Fall back to manual field if calculation fails
+          residualLevel = risk.residualRisk || '';
+        }
       } else {
-        // For quantitative, use the manual residual risk field
+        // For other assessment types, use the manual residual risk field
         residualLevel = risk.residualRisk || '';
       }
       
@@ -681,6 +719,12 @@ const RARForm = () => {
     const sleValue = parseFloat(form.sle) || 0;
     const aroValue = parseFloat(form.aro) || 0;
     return sleValue * aroValue;
+  };
+
+  const calculateResidualALE = (form) => {
+    const residualSleValue = parseFloat(form.residualSle) || 0;
+    const residualAroValue = parseFloat(form.residualAro) || 0;
+    return residualSleValue * residualAroValue;
   };
 
   const formatCurrency = (amount, currency = "dollar") => {
@@ -897,11 +941,13 @@ const RARForm = () => {
     console.log('Running new Monte Carlo simulation');
     const results = runMonteCarloSimulation(form);
     
-    // Cache the results
-    setMonteCarloCache(prev => ({
-      ...prev,
-      [cacheKey]: results
-    }));
+    // Cache the results using setTimeout to avoid setState during render
+    setTimeout(() => {
+      setMonteCarloCache(prev => ({
+        ...prev,
+        [cacheKey]: results
+      }));
+    }, 0);
 
     return results;
   };
@@ -1050,6 +1096,58 @@ INTERPRETATION:
   const handleChange = (e) => {
     const { name, value } = e.target;
     let updatedForm = { ...form, [name]: value };
+    
+    // Map likelihood/impact values to ARO/SLE for quantitative assessments
+    if (updatedForm.assessmentType === "quantitative") {
+      // Map likelihood to ARO (Annual Rate of Occurrence)
+      if (name === "likelihood" && value) {
+        const aroMapping = {
+          "1": "0.1",   // Very Unlikely - 0.1 times per year
+          "2": "0.5",   // Unlikely - 0.5 times per year  
+          "3": "1.0",   // Possible - 1 time per year
+          "4": "2.0",   // Likely - 2 times per year
+          "5": "5.0"    // Very Likely - 5 times per year
+        };
+        updatedForm.aro = aroMapping[value] || "";
+      }
+      
+      // Map impact to SLE (Single Loss Expectancy) 
+      if (name === "impact" && value) {
+        const sleMapping = {
+          "1": "1000",    // Negligible - $1,000
+          "2": "10000",   // Minor - $10,000
+          "3": "50000",   // Moderate - $50,000
+          "4": "200000",  // Major - $200,000
+          "5": "1000000"  // Severe - $1,000,000
+        };
+        updatedForm.sle = sleMapping[value] || "";
+      }
+      
+      // Map residual likelihood to residual ARO
+      if (name === "residualLikelihood" && value) {
+        const residualAroMapping = {
+          "1": "0.05",  // Very Unlikely - 0.05 times per year (reduced from original)
+          "2": "0.25",  // Unlikely - 0.25 times per year
+          "3": "0.5",   // Possible - 0.5 times per year  
+          "4": "1.0",   // Likely - 1 time per year
+          "5": "2.5"    // Very Likely - 2.5 times per year
+        };
+        updatedForm.residualAro = residualAroMapping[value] || "";
+      }
+      
+      // Map residual impact to residual SLE
+      if (name === "residualImpact" && value) {
+        const residualSleMapping = {
+          "1": "500",     // Negligible - $500 (reduced from original)
+          "2": "5000",    // Minor - $5,000
+          "3": "25000",   // Moderate - $25,000
+          "4": "100000",  // Major - $100,000  
+          "5": "500000"   // Severe - $500,000
+        };
+        updatedForm.residualSle = residualSleMapping[value] || "";
+      }
+    }
+    
     setForm(updatedForm);
     
     // Clear Monte Carlo cache when parameters that affect simulation change
@@ -1096,6 +1194,158 @@ INTERPRETATION:
     form.residualLikelihood,
     form.residualImpact,
   );
+
+  // RESIDUAL MONTE CARLO CALCULATION FUNCTIONS
+  const getResidualMonteCarloResults = (form) => {
+    // Create a cache key based on residual form parameters that affect Monte Carlo simulation
+    const cacheKey = JSON.stringify({
+      assessmentType: form.assessmentType,
+      residualLossDistribution: form.residualLossDistribution || form.lossDistribution,
+      residualFrequencyDistribution: form.residualFrequencyDistribution || form.frequencyDistribution,
+      residualMinLoss: form.residualMinLoss || form.minLoss,
+      residualMostLikelyLoss: form.residualMostLikelyLoss || form.mostLikelyLoss,
+      residualMaxLoss: form.residualMaxLoss || form.maxLoss,
+      residualMinFrequency: form.residualMinFrequency || form.minFrequency,
+      residualMostLikelyFrequency: form.residualMostLikelyFrequency || form.mostLikelyFrequency,
+      residualMaxFrequency: form.residualMaxFrequency || form.maxFrequency,
+      residualMonteCarloIterations: form.residualMonteCarloIterations || form.monteCarloIterations,
+      residualConfidenceLevel: form.residualConfidenceLevel || form.confidenceLevel,
+      residualSleCurrency: form.residualSleCurrency || form.sleCurrency,
+      // Residual distribution-specific parameters
+      residualLossMean: form.residualLossMean || form.lossMean,
+      residualLossStdDev: form.residualLossStdDev || form.lossStdDev,
+      residualFrequencyMean: form.residualFrequencyMean || form.frequencyMean,
+      residualFrequencyStdDev: form.residualFrequencyStdDev || form.frequencyStdDev,
+      residualLossAlpha: form.residualLossAlpha || form.lossAlpha,
+      residualLossBeta: form.residualLossBeta || form.lossBeta,
+      residualFrequencyAlpha: form.residualFrequencyAlpha || form.frequencyAlpha,
+      residualFrequencyBeta: form.residualFrequencyBeta || form.frequencyBeta,
+      residualFrequencyLambda: form.residualFrequencyLambda || form.frequencyLambda,
+      residualFrequencyLambdaExp: form.residualFrequencyLambdaExp || form.frequencyLambdaExp
+    });
+
+    // Check if we have cached results for these parameters
+    if (monteCarloCache[cacheKey]) {
+      return monteCarloCache[cacheKey];
+    }
+
+    // Create a temporary form object with residual parameters mapped to main parameter names
+    const residualForm = {
+      ...form,
+      assessmentType: 'advancedQuantitative',
+      lossDistribution: form.residualLossDistribution || form.lossDistribution,
+      frequencyDistribution: form.residualFrequencyDistribution || form.frequencyDistribution,
+      minLoss: form.residualMinLoss || form.minLoss,
+      mostLikelyLoss: form.residualMostLikelyLoss || form.mostLikelyLoss,
+      maxLoss: form.residualMaxLoss || form.maxLoss,
+      minFrequency: form.residualMinFrequency || form.minFrequency,
+      mostLikelyFrequency: form.residualMostLikelyFrequency || form.mostLikelyFrequency,
+      maxFrequency: form.residualMaxFrequency || form.maxFrequency,
+      monteCarloIterations: form.residualMonteCarloIterations || form.monteCarloIterations,
+      confidenceLevel: form.residualConfidenceLevel || form.confidenceLevel,
+      sleCurrency: form.residualSleCurrency || form.sleCurrency,
+      lossMean: form.residualLossMean || form.lossMean,
+      lossStdDev: form.residualLossStdDev || form.lossStdDev,
+      frequencyMean: form.residualFrequencyMean || form.frequencyMean,
+      frequencyStdDev: form.residualFrequencyStdDev || form.frequencyStdDev,
+      lossAlpha: form.residualLossAlpha || form.lossAlpha,
+      lossBeta: form.residualLossBeta || form.lossBeta,
+      frequencyAlpha: form.residualFrequencyAlpha || form.frequencyAlpha,
+      frequencyBeta: form.residualFrequencyBeta || form.frequencyBeta,
+      frequencyLambda: form.residualFrequencyLambda || form.frequencyLambda,
+      frequencyLambdaExp: form.residualFrequencyLambdaExp || form.frequencyLambdaExp
+    };
+
+    // Run new simulation and cache results
+    const results = runMonteCarloSimulation(residualForm);
+    
+    // Cache the results using setTimeout to avoid setState during render
+    setTimeout(() => {
+      setMonteCarloCache(prev => ({
+        ...prev,
+        [cacheKey]: results
+      }));
+    }, 0);
+
+    return results;
+  };
+
+  const calculateResidualMonteCarloExpectedLoss = (form) => {
+    const results = getResidualMonteCarloResults(form);
+    
+    if (results.expectedAnnualLoss && results.expectedAnnualLoss > 0) {
+      return formatCurrency(results.expectedAnnualLoss, form.residualSleCurrency || form.sleCurrency);
+    }
+    
+    return "";
+  };
+
+  // Helper function to get numeric value for residual risk level calculation
+  const getResidualMonteCarloExpectedLossNumeric = (form) => {
+    const results = getResidualMonteCarloResults(form);
+    return results.expectedAnnualLoss || 0;
+  };
+
+  const calculateResidualMonteCarloVaR = (form) => {
+    const results = getResidualMonteCarloResults(form);
+    console.log('Residual VaR Results:', results);
+    
+    if (results.valueAtRisk && results.valueAtRisk > 0) {
+      return formatCurrency(results.valueAtRisk, form.residualSleCurrency || form.sleCurrency);
+    }
+    
+    return "";
+  };
+
+  const calculateResidualMonteCarloResults = (form) => {
+    const results = getResidualMonteCarloResults(form);
+    const iterations = parseInt(form.residualMonteCarloIterations || form.monteCarloIterations) || 10000;
+    const confidenceLevel = parseFloat(form.residualConfidenceLevel || form.confidenceLevel) || 95;
+    
+    if (!results.expectedAnnualLoss && !results.valueAtRisk) {
+      return "Residual Monte Carlo simulation requires distribution parameters to be set.";
+    }
+
+    const currency = form.residualSleCurrency || form.sleCurrency;
+    const lossDistribution = form.residualLossDistribution || form.lossDistribution;
+    const frequencyDistribution = form.residualFrequencyDistribution || form.frequencyDistribution;
+
+    return `Residual Monte Carlo Simulation Results (${iterations.toLocaleString()} iterations):
+
+RESIDUAL LOSS DISTRIBUTION (${lossDistribution}):
+${lossDistribution === 'triangular' ? 
+  `• Minimum: ${formatCurrency(form.residualMinLoss || form.minLoss, currency)}
+• Mode: ${formatCurrency(form.residualMostLikelyLoss || form.mostLikelyLoss, currency)}
+• Maximum: ${formatCurrency(form.residualMaxLoss || form.maxLoss, currency)}` :
+  lossDistribution === 'normal' || lossDistribution === 'lognormal' ?
+  `• Mean: ${formatCurrency(form.residualLossMean || form.lossMean, currency)}
+• Standard Deviation: ${formatCurrency(form.residualLossStdDev || form.lossStdDev, currency)}` :
+  `• Distribution parameters from main Risk tab`
+}
+
+RESIDUAL FREQUENCY DISTRIBUTION (${frequencyDistribution}):
+${frequencyDistribution === 'triangular' ? 
+  `• Minimum: ${(parseFloat(form.residualMinFrequency || form.minFrequency) || 0).toFixed(2)} events/year
+• Mode: ${(parseFloat(form.residualMostLikelyFrequency || form.mostLikelyFrequency) || 0).toFixed(2)} events/year
+• Maximum: ${(parseFloat(form.residualMaxFrequency || form.maxFrequency) || 0).toFixed(2)} events/year` :
+  frequencyDistribution === 'normal' ?
+  `• Mean: ${(parseFloat(form.residualFrequencyMean || form.frequencyMean) || 0).toFixed(2)} events/year
+• Standard Deviation: ${(parseFloat(form.residualFrequencyStdDev || form.frequencyStdDev) || 0).toFixed(2)} events/year` :
+  `• Distribution parameters from main Risk tab`
+}
+
+RESIDUAL RISK METRICS:
+• Expected Annual Loss: ${formatCurrency(results.expectedAnnualLoss || 0, currency)}
+• Value at Risk (${confidenceLevel}%): ${formatCurrency(results.valueAtRisk || 0, currency)}
+• Standard Deviation: ${formatCurrency(results.standardDeviation || 0, currency)}
+
+CONFIDENCE INTERVALS:
+• 90th Percentile: ${formatCurrency(results.percentile90 || 0, currency)}
+• 95th Percentile: ${formatCurrency(results.percentile95 || 0, currency)}
+• 99th Percentile: ${formatCurrency(results.percentile99 || 0, currency)}
+
+Note: Residual risk represents the remaining risk after implementing security controls and mitigation measures.`;
+  };
 
   // Function to determine risk level based on ALE value and threshold currency
   const getQuantitativeRiskLevel = (aleValue) => {
@@ -1177,25 +1427,63 @@ INTERPRETATION:
     setMonteCarloCache({}); // Clear Monte Carlo cache when resetting form
   };
 
-  const getCurrentRiskData = () => ({
-    ...form,
-    riskLevel:
-      form.assessmentType === "qualitative" ? riskLevel : form.manualRiskLevel,
-    calculatedResidualRiskLevel:
-      form.assessmentType === "qualitative"
-        ? calculatedResidualRiskLevel
-        : form.residualRisk,
-    ale: form.assessmentType === "quantitative" ? calculateALE(form) : 0,
-    expectedLoss: form.assessmentType === "advancedQuantitative" ? calculateMonteCarloExpectedLoss(form) : "",
-    valueAtRisk: form.assessmentType === "advancedQuantitative" ? calculateMonteCarloVaR(form) : "",
-    monteCarloResults: form.assessmentType === "advancedQuantitative" ? calculateMonteCarloResults(form) : "",
-  });
+  const getCurrentRiskData = () => {
+    // Ensure all residual Monte Carlo fields are included in the saved data
+    const residualFields = {
+      residualMonteCarloIterations: form.residualMonteCarloIterations || "10000",
+      residualMinLoss: form.residualMinLoss || "",
+      residualMaxLoss: form.residualMaxLoss || "",
+      residualMostLikelyLoss: form.residualMostLikelyLoss || "",
+      residualMinFrequency: form.residualMinFrequency || "",
+      residualMaxFrequency: form.residualMaxFrequency || "",
+      residualMostLikelyFrequency: form.residualMostLikelyFrequency || "",
+      residualConfidenceLevel: form.residualConfidenceLevel || "95",
+      residualLossDistribution: form.residualLossDistribution || "triangular",
+      residualFrequencyDistribution: form.residualFrequencyDistribution || "triangular",
+      residualLossMean: form.residualLossMean || "",
+      residualLossStdDev: form.residualLossStdDev || "",
+      residualFrequencyMean: form.residualFrequencyMean || "",
+      residualFrequencyStdDev: form.residualFrequencyStdDev || "",
+      residualLossAlpha: form.residualLossAlpha || "",
+      residualLossBeta: form.residualLossBeta || "",
+      residualFrequencyAlpha: form.residualFrequencyAlpha || "",
+      residualFrequencyBeta: form.residualFrequencyBeta || "",
+      residualFrequencyLambda: form.residualFrequencyLambda || "",
+      residualFrequencyLambdaExp: form.residualFrequencyLambdaExp || "",
+    };
+
+    return {
+      ...form,
+      ...residualFields,
+      riskLevel:
+        form.assessmentType === "qualitative" ? riskLevel : form.manualRiskLevel,
+      calculatedResidualRiskLevel:
+        form.assessmentType === "qualitative"
+          ? calculatedResidualRiskLevel
+          : form.residualRisk,
+      ale: form.assessmentType === "quantitative" ? calculateALE(form) : 0,
+      expectedLoss: form.assessmentType === "advancedQuantitative" ? calculateMonteCarloExpectedLoss(form) : "",
+      valueAtRisk: form.assessmentType === "advancedQuantitative" ? calculateMonteCarloVaR(form) : "",
+      monteCarloResults: form.assessmentType === "advancedQuantitative" ? calculateMonteCarloResults(form) : "",
+      residualExpectedLoss: form.assessmentType === "advancedQuantitative" ? calculateResidualMonteCarloExpectedLoss(form) : "",
+      residualValueAtRisk: form.assessmentType === "advancedQuantitative" ? calculateResidualMonteCarloVaR(form) : "",
+      residualMonteCarloResults: form.assessmentType === "advancedQuantitative" ? calculateResidualMonteCarloResults(form) : "",
+    };
+  };
 
   const loadRiskData = (risk) => {
-    setForm({
+    // Ensure all fields are included, including residual Monte Carlo fields
+    const completeRiskData = {
       ...initialForm,
       ...risk,
-    });
+      // Ensure residual Monte Carlo fields are properly loaded
+      residualMonteCarloIterations: risk.residualMonteCarloIterations || "10000",
+      residualConfidenceLevel: risk.residualConfidenceLevel || "95",
+      residualLossDistribution: risk.residualLossDistribution || "triangular",
+      residualFrequencyDistribution: risk.residualFrequencyDistribution || "triangular",
+    };
+    
+    setForm(completeRiskData);
     setMonteCarloCache({}); // Clear Monte Carlo cache when loading new risk data
   };
 
@@ -1508,6 +1796,7 @@ INTERPRETATION:
           
           // Calculation functions
           calculateALE={calculateALE}
+          calculateResidualALE={calculateResidualALE}
           formatCurrency={formatCurrency}
           getRiskColor={getRiskColor}
           getStatusColor={getStatusColor}
@@ -1523,6 +1812,13 @@ INTERPRETATION:
           calculateMonteCarloResults={calculateMonteCarloResults}
           handleRefreshMonteCarloSimulation={handleRefreshMonteCarloSimulation}
           getMonteCarloExpectedLossNumeric={getMonteCarloExpectedLossNumeric}
+          
+          // Residual Monte Carlo functions
+          calculateResidualMonteCarloExpectedLoss={calculateResidualMonteCarloExpectedLoss}
+          calculateResidualMonteCarloVaR={calculateResidualMonteCarloVaR}
+          calculateResidualMonteCarloResults={calculateResidualMonteCarloResults}
+          getResidualMonteCarloExpectedLossNumeric={getResidualMonteCarloExpectedLossNumeric}
+          getResidualMonteCarloResults={getResidualMonteCarloResults}
           
           // Risk level functions
           getQuantitativeRiskLevel={getQuantitativeRiskLevel}
@@ -1557,9 +1853,16 @@ INTERPRETATION:
           setIsEditingRisk={setIsEditingRisk}
           setForm={setForm}
           calculateALE={calculateALE}
+          calculateResidualALE={calculateResidualALE}
+          getQuantitativeRiskLevel={getQuantitativeRiskLevel}
           formatCurrency={formatCurrency}
           getRiskColor={getRiskColor}
           getStatusColor={getStatusColor}
+          
+          // Advanced Quantitative functions
+          getAdvancedQuantitativeRiskLevel={getAdvancedQuantitativeRiskLevel}
+          getResidualMonteCarloExpectedLossNumeric={getResidualMonteCarloExpectedLossNumeric}
+          
           likelihoodMap={likelihoodMap}
           impactMap={impactMap}
         />
@@ -1585,6 +1888,8 @@ INTERPRETATION:
             getRiskColor={getRiskColor}
             getRiskMatrixHeatMapData={getRiskMatrixHeatMapData}
             calculateALE={calculateALE}
+            calculateResidualALE={calculateResidualALE}
+            getQuantitativeRiskLevel={getQuantitativeRiskLevel}
             getMonteCarloExpectedLossNumeric={getMonteCarloExpectedLossNumeric}
             getMonteCarloVaRNumeric={getMonteCarloVaRNumeric}
             getMonteCarloResults={getMonteCarloResults}
