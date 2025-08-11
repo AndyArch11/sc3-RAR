@@ -41,6 +41,10 @@ const RARReport = ({
   thresholdCurrency,
   formatCurrency
 }) => {
+  if (risks.length === 0) {
+    return null;
+  }
+  
   return (
     <div className="rar-report-container">
       {/* Risk Assessment Report Section */}

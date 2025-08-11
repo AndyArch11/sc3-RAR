@@ -97,6 +97,11 @@ const RARTable = ({
     exportRisksToExcel(risks);
   };
 
+  if (risks.length === 0) {
+    return null;
+  }
+
+
   return (
     <div className="rar-table-outer-container">
       <div className="rar-table-inner">
@@ -295,6 +300,12 @@ const RARTable = ({
                           ? (risk.aro ? `${risk.aro}/year` : 'N/A')
                           : risk.assessmentType === 'advancedQuantitative'
                           ? (() => {
+                              // Check for exponential distribution lambda parameters first
+                              const lambdaValue = risk.frequencyLambda || risk.frequencyLambdaExp;
+                              if (lambdaValue) {
+                                return `λ=${parseFloat(lambdaValue).toFixed(2)}/year`;
+                              }
+                              // Fall back to other frequency parameters
                               const frequency = risk.mostLikelyFrequency || risk.frequencyMean;
                               return frequency ? `${parseFloat(frequency).toFixed(2)}/year` : 'N/A';
                             })()
@@ -358,7 +369,12 @@ const RARTable = ({
                             // For quantitative risks, show ARO value
                             return risk.residualAro ? `${risk.residualAro}/year` : 'N/A';
                           } else if (risk.assessmentType === 'advancedQuantitative') {
-                            // For advanced quantitative risks, show frequency from Monte Carlo or fallback to main
+                            // For advanced quantitative risks, check for exponential lambda parameters first
+                            const lambdaValue = risk.residualFrequencyLambda || risk.residualFrequencyLambdaExp;
+                            if (lambdaValue) {
+                              return `λ=${parseFloat(lambdaValue).toFixed(2)}/year`;
+                            }
+                            // Fall back to other frequency parameters
                             const frequency = risk.residualMostLikelyFrequency || risk.residualFrequencyMean || 
                                             risk.mostLikelyFrequency || risk.frequencyMean;
                             return frequency ? `${parseFloat(frequency).toFixed(2)}/year` : 'N/A';

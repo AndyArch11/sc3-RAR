@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import DistributionChart, { CumulativeDistributionChart } from './DistributionChart';
+import RiskHeatMap from './RiskHeatMap';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import "./RAR.css";
 
@@ -133,8 +134,7 @@ const QuantitativeValuesChart = ({ sle, aro, ale, formatCurrency }) => {
           </div>
           
           <div className="rar-investment-guidance">
-            <strong>Investment Guidance:</strong> Risk mitigation investments up to {formatCurrency(aleValue * 5)}&nbsp;
-            over 5 years could be cost-justified to reduce this risk.
+            <strong>Investment Guidance:</strong> Risk mitigation investments up to {formatCurrency(aleValue * 5)}&nbsp;over 5 years could be cost-justified to reduce this risk.
           </div>
         </div>
       </div>
@@ -178,6 +178,7 @@ const InputForm = ({
     calculateMonteCarloExpectedLoss,
     calculateMonteCarloVaR,
     calculateMonteCarloResults,
+    getMonteCarloResults,
     handleRefreshMonteCarloSimulation,
     getMonteCarloExpectedLossNumeric,
     
@@ -186,33 +187,32 @@ const InputForm = ({
     calculateResidualMonteCarloVaR,
     calculateResidualMonteCarloResults,
     getResidualMonteCarloExpectedLossNumeric,
-    getResidualMonteCarloResults,
     
     // Risk level functions
     getQuantitativeRiskLevel,
     getAdvancedQuantitativeRiskLevel,
     
+    // Tab state management
+    activeQualitativeTab,
+    setActiveQualitativeTab,
+    activeQuantitativeTab,
+    setActiveQuantitativeTab,
+    activeAdvancedQuantitativeTab,
+    setActiveAdvancedQuantitativeTab,
+    
     // Risk matrix
     riskMatrix
 }) => {
-  // State for managing qualitative assessment tabs
-  const [activeQualitativeTab, setActiveQualitativeTab] = useState('risk');
-  // State for managing quantitative assessment tabs
-  const [activeQuantitativeTab, setActiveQuantitativeTab] = useState('risk');
-  // State for managing advanced quantitative assessment tabs
-  const [activeAdvancedQuantitativeTab, setActiveAdvancedQuantitativeTab] = useState('risk');
+  // State for VaR and EAL visibility toggles
+  const [showVaR, setShowVaR] = useState(true);
+  const [showEAL, setShowEAL] = useState(true);
+  const [showPercentiles, setShowPercentiles] = useState(true);
 
   return (
-    <form>
+    <form onSubmit={handleSubmitRisk}>
         {/* RAR Fields Section*/}
-        <details open={rarFieldsOpen} className="rar-form-section">
-          <summary
-            className="rar-form-summary"
-            onClick={(e) => {
-              e.preventDefault();
-              setRarFieldsOpen(!rarFieldsOpen);
-            }}
-          >
+        <details className="rar-intro-details" open={rarFieldsOpen} onToggle={e => {setRarFieldsOpen(e.target.open); e.preventDefault();}}>
+          <summary className="rar-intro-summary">
             RAR Fields{" "}
             {isEditingRisk && `(Editing: ${form.riskTitle || "Untitled Risk"})`}
           </summary>
@@ -1372,7 +1372,7 @@ const InputForm = ({
                                 {form.lossDistribution === "normal" && 
                                   "Used for losses that cluster around a mean value with symmetric spread. Suitable for well-understood risks with historical data showing bell-curve patterns."}
                                 {form.lossDistribution === "lognormal" && 
-                                  "Best for losses that are always positive and right-skewed (most losses are small, but occasional large losses occur). Common for financial and cyber risks."}
+                                  "Best for losses that are always positive and right-skewed (most losses are small, but occasional large losses occur). Uses natural logarithm (ln, base e). Parameters: μ (mu) = 1-6 and σ (sigma) = 0.3-1.2 for reasonable results. The fields below represent parameters of the underlying normal distribution, not the log-normal mean/std."}
                                 {form.lossDistribution === "uniform" && 
                                   "Used when all loss values within a range are equally likely. Appropriate when there's complete uncertainty about loss magnitude within known bounds."}
                                 {form.lossDistribution === "beta" && 
@@ -1527,7 +1527,9 @@ const InputForm = ({
                           <>
                             <tr title="Mean (average) loss value for the distribution" className="rar-tab-specific-content">
                               <td className="rar-form-label-cell">
-                                <label className="rar-form-label">Mean Loss:</label>
+                                <label className="rar-form-label">
+                                  {form.lossDistribution === "lognormal" ? "μ (Mu - Underlying Normal Mean):" : "Mean Loss:"}
+                                </label>
                               </td>
                               <td className="rar-form-input-cell">
                                 <div className="rar-currency-input">
@@ -1551,7 +1553,7 @@ const InputForm = ({
                                   </select>
                                   <input
                                     type="number"
-                                    placeholder="Mean loss value"
+                                    placeholder={form.lossDistribution === "lognormal" ? "μ (mu) value (e.g., 2-5)" : "Mean loss value"}
                                     name="lossMean"
                                     value={form.lossMean}
                                     onChange={handleChange}
@@ -1563,7 +1565,9 @@ const InputForm = ({
 
                             <tr title="Standard deviation of loss values" className="rar-tab-specific-content">
                               <td className="rar-form-label-cell">
-                                <label className="rar-form-label">Loss Standard Deviation:</label>
+                                <label className="rar-form-label">
+                                  {form.lossDistribution === "lognormal" ? "σ (Sigma - Underlying Normal Std Dev):" : "Loss Standard Deviation:"}
+                                </label>
                               </td>
                               <td className="rar-form-input-cell">
                                 <div className="rar-currency-input">
@@ -1587,7 +1591,7 @@ const InputForm = ({
                                   </select>
                                   <input
                                     type="number"
-                                    placeholder="Standard deviation"
+                                    placeholder={form.lossDistribution === "lognormal" ? "σ (sigma) value (e.g., 0.3-1.2)" : "Standard deviation"}
                                     name="lossStdDev"
                                     value={form.lossStdDev}
                                     onChange={handleChange}
@@ -1596,15 +1600,90 @@ const InputForm = ({
                                 </div>
                               </td>
                             </tr>
+                            
+                            {/* Log-Normal Distribution Statistics Display */}
+                            {form.lossDistribution === "lognormal" && form.lossMean && form.lossStdDev && (
+                              <tr className="rar-tab-specific-content">
+                                <td colSpan="2" className="rar-form-input-cell">
+                                  <div className="rar-lognormal-stats">
+                                    <h5 style={{ margin: '10px 0 5px 0', color: '#0099cc' }}>
+                                      📊 Resulting Log-Normal Distribution:
+                                    </h5>
+                                    <div style={{ 
+                                      display: 'grid', 
+                                      gridTemplateColumns: '1fr 1fr', 
+                                      gap: '10px',
+                                      padding: '10px',
+                                      backgroundColor: '#f8f9fa',
+                                      border: '1px solid #dee2e6',
+                                      borderRadius: '5px',
+                                      fontSize: '14px'
+                                    }}>
+                                      <div>
+                                        <strong>Actual Mean:</strong><br/>
+                                        {(() => {
+                                          const mu = parseFloat(form.lossMean) || 0;
+                                          const sigma = parseFloat(form.lossStdDev) || 1;
+                                          const actualMean = Math.exp(mu + (sigma * sigma) / 2);
+                                          return formatCurrency(actualMean, form.sleCurrency);
+                                        })()}
+                                      </div>
+                                      <div>
+                                        <strong>Actual Std Dev:</strong><br/>
+                                        {(() => {
+                                          const mu = parseFloat(form.lossMean) || 0;
+                                          const sigma = parseFloat(form.lossStdDev) || 1;
+                                          const actualVariance = (Math.exp(sigma * sigma) - 1) * Math.exp(2 * mu + sigma * sigma);
+                                          const actualStdDev = Math.sqrt(actualVariance);
+                                          return formatCurrency(actualStdDev, form.sleCurrency);
+                                        })()}
+                                      </div>
+                                      <div>
+                                        <strong>Median:</strong><br/>
+                                        {(() => {
+                                          const mu = parseFloat(form.lossMean) || 0;
+                                          const median = Math.exp(mu);
+                                          return formatCurrency(median, form.sleCurrency);
+                                        })()}
+                                      </div>
+                                      <div>
+                                        <strong>Mode:</strong><br/>
+                                        {(() => {
+                                          const mu = parseFloat(form.lossMean) || 0;
+                                          const sigma = parseFloat(form.lossStdDev) || 1;
+                                          const mode = Math.exp(mu - sigma * sigma);
+                                          return formatCurrency(mode, form.sleCurrency);
+                                        })()}
+                                      </div>
+                                    </div>
+                                    <small style={{ color: '#6c757d', fontStyle: 'italic' }}>
+                                      These are the actual statistics of the log-normal distribution created from your μ and σ parameters.
+                                    </small>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
                               <tr className="rar-tab-specific-content">
                               <td colSpan="2" className="rar-form-input-cell">
+                                {form.lossDistribution === 'lognormal' && (
+                                  <div style={{ 
+                                    backgroundColor: '#f0f8ff', 
+                                    padding: '8px', 
+                                    borderRadius: '4px', 
+                                    marginBottom: '10px',
+                                    fontSize: '12px',
+                                    color: '#0066cc'
+                                  }}>
+                                    <strong>Graph Range Info:</strong> The chart shows the 1st to 99th percentile range of your log-normal distribution. With μ={parseFloat(form.lossMean) || 0} and σ={parseFloat(form.lossStdDev) || 1}, this covers roughly {formatCurrency(Math.exp((parseFloat(form.lossMean) || 0) + (parseFloat(form.lossStdDev) || 1) * (-2.326)), form.sleCurrency)} to {formatCurrency(Math.exp((parseFloat(form.lossMean) || 0) + (parseFloat(form.lossStdDev) || 1) * 2.326), form.sleCurrency)}.
+                                  </div>
+                                )}
                                 <DistributionChart
                                   distributionType={form.lossDistribution}
                                   parameters={{
                                     mean: parseFloat(form.lossMean) || 0,
                                     stdDev: parseFloat(form.lossStdDev) || 1
                                   }}
-                                  title={`Loss Distribution - ${form.lossDistribution === 'lognormal' ? 'Log-Normal' : 'Normal'}`}
+                                  title={`Loss Distribution - ${form.lossDistribution === 'lognormal' ? 'Log-Normal (1st-99th percentile)' : 'Normal'}`}
                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
                                 />
                               </td>
@@ -1617,7 +1696,7 @@ const InputForm = ({
                                     mean: parseFloat(form.lossMean) || 0,
                                     stdDev: parseFloat(form.lossStdDev) || 1
                                   }}
-                                  title={`Loss Distribution - ${form.lossDistribution === 'lognormal' ? 'Log-Normal' : 'Normal'}`}
+                                  title={`Cumulative Loss Distribution - ${form.lossDistribution === 'lognormal' ? 'Log-Normal (1st-99th percentile)' : 'Normal'}`}
                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
                                 />
                               </td>
@@ -2138,7 +2217,7 @@ const InputForm = ({
 
                         {form.frequencyDistribution === "exponential" && (
                           <>
-                          <tr title="Lambda parameter for exponential distribution (rate parameter)" className="rar-tab-specific-content">
+                          <tr title="Lambda parameter for exponential distribution (rate parameter - number of events per year)" className="rar-tab-specific-content">
                             <td className="rar-form-label-cell">
                               <label className="rar-form-label">Lambda (Rate Parameter):</label>
                             </td>
@@ -2246,6 +2325,109 @@ const InputForm = ({
                             <small className="rar-help-text">
                               Automatically generated summary based on triangular distribution approximation
                             </small>
+                          </td>
+                        </tr>
+
+                        <tr title="Heat map display options" className="rar-tab-specific-content">
+                          <td className="rar-form-label-cell">
+                            <label className="rar-form-label">Heat Map Display Options:</label>
+                          </td>
+                          <td className="rar-form-input-cell">
+                            <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={showVaR}
+                                  onChange={(e) => setShowVaR(e.target.checked)}
+                                />
+                                <span style={{ color: '#0066ff', fontWeight: 'bold' }}>VaR Line</span>
+                              </label>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={showEAL}
+                                  onChange={(e) => setShowEAL(e.target.checked)}
+                                />
+                                <span style={{ color: '#00cc66', fontWeight: 'bold' }}>EAL Line</span>
+                              </label>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={showPercentiles}
+                                  onChange={(e) => setShowPercentiles(e.target.checked)}
+                                />
+                                <span>Percentile Lines</span>
+                              </label>
+                            </div>
+                            <small className="rar-help-text">
+                              Toggle visibility of different contour lines on the heat maps
+                            </small>
+                          </td>
+                        </tr>
+
+                        <tr title="Joint unit cost and frequency heat map with probability density" className="rar-tab-specific-content">
+                          <td colSpan="2" className="rar-form-input-cell">
+                            {(() => {
+                              const results = getMonteCarloResults(form);
+                              const varValue = results.valueAtRisk || 0;
+                              const ealValue = results.expectedAnnualLoss || 0;
+                              const varStdDev = results.valueAtRiskStdDev || results.varStandardDeviation || (varValue * 0.15); // Default to 15% if not available
+                              const ealStdDev = results.expectedAnnualLossStdDev || results.ealStandardDeviation || (ealValue * 0.15); // Default to 15% if not available
+                              
+                              console.log('VaR & EAL Calculation Debug:', {
+                                varValue,
+                                ealValue,
+                                varStdDev,
+                                ealStdDev,
+                                resultsValueAtRisk: results.valueAtRisk,
+                                resultsExpectedAnnualLoss: results.expectedAnnualLoss,
+                                fullResults: results,
+                                formValues: {
+                                  minFrequency: form.minFrequency,
+                                  mostLikelyFrequency: form.mostLikelyFrequency,
+                                  maxFrequency: form.maxFrequency,
+                                  minLoss: form.minLoss,
+                                  mostLikelyLoss: form.mostLikelyLoss,
+                                  maxLoss: form.maxLoss
+                                }
+                              });
+                              
+                              return (
+                                <RiskHeatMap
+                                  frequencyDistribution={form.frequencyDistribution || 'triangular'}
+                                  frequencyParams={{
+                                    min: parseFloat(form.minFrequency) || parseFloat(form.frequencyMean) - parseFloat(form.frequencyStdDev) || parseFloat(form.frequencyLambdaExp) * 0.1 || 0.1,
+                                    mode: parseFloat(form.mostLikelyFrequency) || parseFloat(form.frequencyMean) || parseFloat(form.frequencyLambda) || parseFloat(form.frequencyLambdaExp) || 1,
+                                    max: parseFloat(form.maxFrequency) || parseFloat(form.frequencyMean) + parseFloat(form.frequencyStdDev) || parseFloat(form.frequencyLambdaExp) * 10 || 10,
+                                    mean: parseFloat(form.frequencyMean) || parseFloat(form.frequencyLambda) || undefined,
+                                    std: parseFloat(form.frequencyStdDev) || undefined,
+                                    lambda: parseFloat(form.frequencyLambda) || parseFloat(form.frequencyLambdaExp) || undefined
+                                  }}
+                                  lossDistribution={form.lossDistribution || 'triangular'}
+                                  lossParams={{
+                                    min: parseFloat(form.minLoss) || parseFloat(form.lossMean) - parseFloat(form.lossStdDev) || 1000,
+                                    mode: parseFloat(form.mostLikelyLoss) || parseFloat(form.lossMean) || 50000,
+                                    max: parseFloat(form.maxLoss) || parseFloat(form.lossMean) + parseFloat(form.lossStdDev) || 500000,
+                                    mean: parseFloat(form.lossMean) || undefined,
+                                    std: parseFloat(form.lossStdDev) || undefined,
+                                    mu: parseFloat(form.lognormalMuLoss) || undefined,
+                                    sigma: parseFloat(form.lognormalSigmaLoss) || undefined,
+                                    alpha: parseFloat(form.lossAlpha) || undefined,
+                                    beta: parseFloat(form.lossBeta) || undefined
+                                  }}
+                                  formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                  title="Risk Assessment: Unit Cost × Frequency Heat Map"
+                                  iterations={form.monteCarloIterations || 10000}
+                                  valueAtRisk={varValue || null}
+                                  expectedAnnualLoss={ealValue || null}
+                                  valueAtRiskStdDev={varStdDev || null}
+                                  expectedAnnualLossStdDev={ealStdDev || null}
+                                  showVaR={showVaR}
+                                  showEAL={showEAL}
+                                  showPercentiles={showPercentiles}
+                                />
+                              );
+                            })()}
                           </td>
                         </tr>                        
 
@@ -2459,7 +2641,17 @@ const InputForm = ({
                                <option value="beta">Beta</option>
                              </select>
                              <small className="rar-help-text">
-                               Distribution type for modeling residual loss uncertainty
+                               <strong>Residual Risk Distribution:</strong>{" "}
+                               {(form.residualLossDistribution || form.lossDistribution) === "triangular" && 
+                                 "Three-point estimates for post-control residual losses."}
+                               {(form.residualLossDistribution || form.lossDistribution) === "normal" && 
+                                 "Bell-curve pattern for residual losses after controls."}
+                               {(form.residualLossDistribution || form.lossDistribution) === "lognormal" && 
+                                 "Right-skewed residual losses using natural logarithm (ln, base e). Parameters: μ = 1-6, σ = 0.3-1.2. Fields represent underlying normal distribution parameters."}
+                               {(form.residualLossDistribution || form.lossDistribution) === "uniform" && 
+                                 "Equally likely residual loss values within range."}
+                               {(form.residualLossDistribution || form.lossDistribution) === "beta" && 
+                                 "Flexible bounded residual loss distribution."}
                                {!form.residualLossDistribution && form.lossDistribution && (
                                  <>
                                    <br />
@@ -2480,8 +2672,8 @@ const InputForm = ({
                                <td className="rar-form-input-cell">
                                  <div className="rar-currency-input">
                                    <select
-                                     name="sleCurrency"
-                                     value={form.sleCurrency}
+                                     name="residualSleCurrency"
+                                     value={form.residualSleCurrency || form.sleCurrency}
                                      onChange={handleChange}
                                      className="rar-select rar-select-currency"
                                    >
@@ -2516,8 +2708,8 @@ const InputForm = ({
                                <td className="rar-form-input-cell">
                                  <div className="rar-currency-input">
                                    <select
-                                     name="sleCurrency"
-                                     value={form.sleCurrency}
+                                     name="residualSleCurrency"
+                                     value={form.residualSleCurrency || form.sleCurrency}
                                      onChange={handleChange}
                                      className="rar-select rar-select-currency"
                                    >
@@ -2552,8 +2744,8 @@ const InputForm = ({
                                <td className="rar-form-input-cell">
                                  <div className="rar-currency-input">
                                    <select
-                                     name="sleCurrency"
-                                     value={form.sleCurrency}
+                                     name="residualSleCurrency"
+                                     value={form.residualSleCurrency || form.sleCurrency}
                                      onChange={handleChange}
                                      className="rar-select rar-select-currency"
                                    >
@@ -2590,7 +2782,7 @@ const InputForm = ({
                                      max: parseFloat(form.residualMaxLoss) || 0
                                    }}
                                    title="Residual Loss Distribution - Triangular"
-                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
                                  />
                                </td>
                              </tr>
@@ -2604,7 +2796,7 @@ const InputForm = ({
                                      max: parseFloat(form.residualMaxLoss) || 0
                                    }}
                                    title="Residual Loss Distribution - Triangular"
-                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
                                  />
                                </td>
                              </tr>
@@ -2615,13 +2807,15 @@ const InputForm = ({
                            <>
                              <tr title="Mean (average) residual loss value for the distribution" className="rar-tab-specific-content">
                                <td className="rar-form-label-cell">
-                                 <label className="rar-form-label">Residual Mean Loss:</label>
+                                 <label className="rar-form-label">
+                                   {(form.residualLossDistribution || form.lossDistribution) === "lognormal" ? "Residual μ (Mu - Underlying Normal Mean):" : "Residual Mean Loss:"}
+                                 </label>
                                </td>
                                <td className="rar-form-input-cell">
                                  <div className="rar-currency-input">
                                    <select
-                                     name="sleCurrency"
-                                     value={form.sleCurrency}
+                                     name="residualSleCurrency"
+                                     value={form.residualSleCurrency || form.sleCurrency}
                                      onChange={handleChange}
                                      className="rar-select rar-select-currency"
                                    >
@@ -2639,7 +2833,7 @@ const InputForm = ({
                                    </select>
                                    <input
                                      type="number"
-                                     placeholder="Mean residual loss value"
+                                     placeholder={(form.residualLossDistribution || form.lossDistribution) === "lognormal" ? "Residual μ (mu) value (e.g., 2-5)" : "Mean residual loss value"}
                                      name="residualLossMean"
                                      value={form.residualLossMean}
                                      onChange={handleChange}
@@ -2651,13 +2845,15 @@ const InputForm = ({
 
                              <tr title="Standard deviation of residual loss values" className="rar-tab-specific-content">
                                <td className="rar-form-label-cell">
-                                 <label className="rar-form-label">Residual Loss Standard Deviation:</label>
+                                 <label className="rar-form-label">
+                                   {(form.residualLossDistribution || form.lossDistribution) === "lognormal" ? "Residual σ (Sigma - Underlying Normal Std Dev):" : "Residual Loss Standard Deviation:"}
+                                 </label>
                                </td>
                                <td className="rar-form-input-cell">
                                  <div className="rar-currency-input">
                                    <select
-                                     name="sleCurrency"
-                                     value={form.sleCurrency}
+                                     name="residualSleCurrency"
+                                     value={form.residualSleCurrency || form.sleCurrency}
                                      onChange={handleChange}
                                      className="rar-select rar-select-currency"
                                    >
@@ -2675,7 +2871,7 @@ const InputForm = ({
                                    </select>
                                    <input
                                      type="number"
-                                     placeholder="Standard deviation"
+                                     placeholder={(form.residualLossDistribution || form.lossDistribution) === "lognormal" ? "Residual σ (sigma) value (e.g., 0.3-1.2)" : "Standard deviation"}
                                      name="residualLossStdDev"
                                      value={form.residualLossStdDev}
                                      onChange={handleChange}
@@ -2684,16 +2880,92 @@ const InputForm = ({
                                  </div>
                                </td>
                              </tr>
+                             
+                             {/* Residual Log-Normal Distribution Statistics Display */}
+                             {(form.residualLossDistribution || form.lossDistribution) === "lognormal" && 
+                              (form.residualLossMean || form.lossMean) && (form.residualLossStdDev || form.lossStdDev) && (
+                               <tr className="rar-tab-specific-content">
+                                 <td colSpan="2" className="rar-form-input-cell">
+                                   <div className="rar-lognormal-stats">
+                                     <h5 style={{ margin: '10px 0 5px 0', color: '#0099cc' }}>
+                                       📊 Resulting Residual Log-Normal Distribution:
+                                     </h5>
+                                     <div style={{ 
+                                       display: 'grid', 
+                                       gridTemplateColumns: '1fr 1fr', 
+                                       gap: '10px',
+                                       padding: '10px',
+                                       backgroundColor: '#f8f9fa',
+                                       border: '1px solid #dee2e6',
+                                       borderRadius: '5px',
+                                       fontSize: '14px'
+                                     }}>
+                                       <div>
+                                         <strong>Actual Mean:</strong><br/>
+                                         {(() => {
+                                           const mu = parseFloat(form.residualLossMean || form.lossMean) || 0;
+                                           const sigma = parseFloat(form.residualLossStdDev || form.lossStdDev) || 1;
+                                           const actualMean = Math.exp(mu + (sigma * sigma) / 2);
+                                           return formatCurrency(actualMean, form.residualSleCurrency || form.sleCurrency);
+                                         })()}
+                                       </div>
+                                       <div>
+                                         <strong>Actual Std Dev:</strong><br/>
+                                         {(() => {
+                                           const mu = parseFloat(form.residualLossMean || form.lossMean) || 0;
+                                           const sigma = parseFloat(form.residualLossStdDev || form.lossStdDev) || 1;
+                                           const actualVariance = (Math.exp(sigma * sigma) - 1) * Math.exp(2 * mu + sigma * sigma);
+                                           const actualStdDev = Math.sqrt(actualVariance);
+                                           return formatCurrency(actualStdDev, form.residualSleCurrency || form.sleCurrency);
+                                         })()}
+                                       </div>
+                                       <div>
+                                         <strong>Median:</strong><br/>
+                                         {(() => {
+                                           const mu = parseFloat(form.residualLossMean || form.lossMean) || 0;
+                                           const median = Math.exp(mu);
+                                           return formatCurrency(median, form.residualSleCurrency || form.sleCurrency);
+                                         })()}
+                                       </div>
+                                       <div>
+                                         <strong>Mode:</strong><br/>
+                                         {(() => {
+                                           const mu = parseFloat(form.residualLossMean || form.lossMean) || 0;
+                                           const sigma = parseFloat(form.residualLossStdDev || form.lossStdDev) || 1;
+                                           const mode = Math.exp(mu - sigma * sigma);
+                                           return formatCurrency(mode, form.residualSleCurrency || form.sleCurrency);
+                                         })()}
+                                       </div>
+                                     </div>
+                                     <small style={{ color: '#6c757d', fontStyle: 'italic' }}>
+                                       These are the actual statistics of the residual log-normal distribution created from your μ and σ parameters.
+                                     </small>
+                                   </div>
+                                 </td>
+                               </tr>
+                             )}
                                <tr className="rar-tab-specific-content">
                                <td colSpan="2" className="rar-form-input-cell">
+                                 {(form.residualLossDistribution || form.lossDistribution) === 'lognormal' && (
+                                   <div style={{ 
+                                     backgroundColor: '#f0f8ff', 
+                                     padding: '8px', 
+                                     borderRadius: '4px', 
+                                     marginBottom: '10px',
+                                     fontSize: '12px',
+                                     color: '#0066cc'
+                                   }}>
+                                     <strong>Graph Range Info:</strong> The chart shows the 1st to 99th percentile range of your residual log-normal distribution. With μ={parseFloat(form.residualLossMean || form.lossMean) || 0} and σ={parseFloat(form.residualLossStdDev || form.lossStdDev) || 1}, this covers roughly {formatCurrency(Math.exp((parseFloat(form.residualLossMean || form.lossMean) || 0) + (parseFloat(form.residualLossStdDev || form.lossStdDev) || 1) * (-2.326)), form.residualSleCurrency || form.sleCurrency)} to {formatCurrency(Math.exp((parseFloat(form.residualLossMean || form.lossMean) || 0) + (parseFloat(form.residualLossStdDev || form.lossStdDev) || 1) * 2.326), form.residualSleCurrency || form.sleCurrency)}.
+                                   </div>
+                                 )}
                                  <DistributionChart
                                    distributionType={form.residualLossDistribution || form.lossDistribution}
                                    parameters={{
                                      mean: parseFloat(form.residualLossMean) || 0,
                                      stdDev: parseFloat(form.residualLossStdDev) || 1
                                    }}
-                                   title={`Residual Loss Distribution - ${(form.residualLossDistribution || form.lossDistribution) === 'lognormal' ? 'Log-Normal' : 'Normal'}`}
-                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                   title={`Residual Loss Distribution - ${(form.residualLossDistribution || form.lossDistribution) === 'lognormal' ? 'Log-Normal (1st-99th percentile)' : 'Normal'}`}
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
                                  />
                                </td>
                              </tr>
@@ -2705,8 +2977,8 @@ const InputForm = ({
                                      mean: parseFloat(form.residualLossMean) || 0,
                                      stdDev: parseFloat(form.residualLossStdDev) || 1
                                    }}
-                                   title={`Residual Loss Distribution - ${(form.residualLossDistribution || form.lossDistribution) === 'lognormal' ? 'Log-Normal' : 'Normal'}`}
-                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                   title={`Cumulative Residual Loss Distribution - ${(form.residualLossDistribution || form.lossDistribution) === 'lognormal' ? 'Log-Normal (1st-99th percentile)' : 'Normal'}`}
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
                                  />
                                </td>
                              </tr>
@@ -2722,8 +2994,8 @@ const InputForm = ({
                                <td className="rar-form-input-cell">
                                  <div className="rar-currency-input">
                                    <select
-                                     name="sleCurrency"
-                                     value={form.sleCurrency}
+                                     name="residualSleCurrency"
+                                     value={form.residualSleCurrency || form.sleCurrency}
                                      onChange={handleChange}
                                      className="rar-select rar-select-currency"
                                    >
@@ -2758,8 +3030,8 @@ const InputForm = ({
                                <td className="rar-form-input-cell">
                                  <div className="rar-currency-input">
                                    <select
-                                     name="sleCurrency"
-                                     value={form.sleCurrency}
+                                     name="residualSleCurrency"
+                                     value={form.residualSleCurrency || form.sleCurrency}
                                      onChange={handleChange}
                                      className="rar-select rar-select-currency"
                                    >
@@ -2791,11 +3063,11 @@ const InputForm = ({
                                  <DistributionChart
                                    distributionType="uniform"
                                    parameters={{
-                                     min: parseFloat(form.residualUniformMinLoss) || 0,
-                                     max: parseFloat(form.residualUniformMaxLoss) || 0
+                                     minVal: parseFloat(form.residualUniformMinLoss) || 0,
+                                     maxVal: parseFloat(form.residualUniformMaxLoss) || 0
                                    }}
                                    title="Residual Loss Distribution - Uniform"
-                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
                                  />
                                </td>
                              </tr>
@@ -2804,11 +3076,11 @@ const InputForm = ({
                                  <CumulativeDistributionChart
                                    distributionType="uniform"
                                    parameters={{
-                                     min: parseFloat(form.residualUniformMinLoss) || 0,
-                                     max: parseFloat(form.residualUniformMaxLoss) || 0
+                                     minVal: parseFloat(form.residualUniformMinLoss) || 0,
+                                     maxVal: parseFloat(form.residualUniformMaxLoss) || 0
                                    }}
-                                   title="Residual Loss Distribution - Uniform"
-                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                   title="Cumulative Residual Loss Distribution - Uniform"
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
                                  />
                                </td>
                              </tr>
@@ -2860,8 +3132,8 @@ const InputForm = ({
                                <td className="rar-form-input-cell">
                                  <div className="rar-currency-input">
                                    <select
-                                     name="sleCurrency"
-                                     value={form.sleCurrency}
+                                     name="residualSleCurrency"
+                                     value={form.residualSleCurrency || form.sleCurrency}
                                      onChange={handleChange}
                                      className="rar-select rar-select-currency"
                                    >
@@ -2896,8 +3168,8 @@ const InputForm = ({
                                <td className="rar-form-input-cell">
                                  <div className="rar-currency-input">
                                    <select
-                                     name="sleCurrency"
-                                     value={form.sleCurrency}
+                                     name="residualSleCurrency"
+                                     value={form.residualSleCurrency || form.sleCurrency}
                                      onChange={handleChange}
                                      className="rar-select rar-select-currency"
                                    >
@@ -2931,11 +3203,11 @@ const InputForm = ({
                                    parameters={{
                                      alpha: parseFloat(form.residualBetaAlpha) || 2,
                                      beta: parseFloat(form.residualBetaBeta) || 2,
-                                     min: parseFloat(form.residualBetaMinLoss) || 0,
-                                     max: parseFloat(form.residualBetaMaxLoss) || 100000
+                                     minBeta: parseFloat(form.residualBetaMinLoss) || 0,
+                                     maxBeta: parseFloat(form.residualBetaMaxLoss) || 100000
                                    }}
                                    title="Residual Loss Distribution - Beta"
-                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
                                  />
                                </td>
                              </tr>
@@ -2946,11 +3218,11 @@ const InputForm = ({
                                    parameters={{
                                      alpha: parseFloat(form.residualBetaAlpha) || 2,
                                      beta: parseFloat(form.residualBetaBeta) || 2,
-                                     min: parseFloat(form.residualBetaMinLoss) || 0,
-                                     max: parseFloat(form.residualBetaMaxLoss) || 100000
+                                     minBeta: parseFloat(form.residualBetaMinLoss) || 0,
+                                     maxBeta: parseFloat(form.residualBetaMaxLoss) || 100000
                                    }}
-                                   title="Residual Loss Distribution - Beta"
-                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                   title="Cumulative Residual Loss Distribution - Beta"
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
                                  />
                                </td>
                              </tr>
@@ -3238,7 +3510,7 @@ const InputForm = ({
 
                          {(form.residualFrequencyDistribution || form.frequencyDistribution) === "exponential" && (
                            <>
-                           <tr title="Lambda parameter for residual exponential distribution (rate parameter)" className="rar-tab-specific-content">
+                           <tr title="Lambda parameter for exponential distribution (rate parameter - number of events per year)" className="rar-tab-specific-content">
                              <td className="rar-form-label-cell">
                                <label className="rar-form-label">Residual Lambda (Rate Parameter):</label>
                              </td>
@@ -3352,6 +3624,124 @@ const InputForm = ({
                              <small className="rar-help-text">
                                Automatically generated summary based on residual distribution approximation
                              </small>
+                           </td>
+                         </tr>
+
+                         <tr title="Residual heat map display options" className="rar-tab-specific-content">
+                           <td className="rar-form-label-cell">
+                             <label className="rar-form-label">Residual Heat Map Display Options:</label>
+                           </td>
+                           <td className="rar-form-input-cell">
+                             <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                               <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
+                                 <input
+                                   type="checkbox"
+                                   checked={showVaR}
+                                   onChange={(e) => setShowVaR(e.target.checked)}
+                                 />
+                                 <span style={{ color: '#0066ff', fontWeight: 'bold' }}>VaR Line</span>
+                               </label>
+                               <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
+                                 <input
+                                   type="checkbox"
+                                   checked={showEAL}
+                                   onChange={(e) => setShowEAL(e.target.checked)}
+                                 />
+                                 <span style={{ color: '#00cc66', fontWeight: 'bold' }}>EAL Line</span>
+                               </label>
+                               <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
+                                 <input
+                                   type="checkbox"
+                                   checked={showPercentiles}
+                                   onChange={(e) => setShowPercentiles(e.target.checked)}
+                                 />
+                                 <span>Percentile Lines</span>
+                               </label>
+                             </div>
+                             <small className="rar-help-text">
+                               Toggle visibility of different contour lines on the residual heat map
+                             </small>
+                           </td>
+                         </tr>
+
+                         <tr title="Joint residual unit cost and frequency heat map with probability density" className="rar-tab-specific-content">
+                           <td colSpan="2" className="rar-form-input-cell">
+                             {(() => {
+                               const residualVarRaw = calculateResidualMonteCarloVaR(form);
+                               const residualEalRaw = calculateResidualMonteCarloExpectedLoss(form);
+                               
+                               // Extract numeric values from potentially formatted strings
+                               const extractNumericValue = (value) => {
+                                 if (typeof value === 'number') return value;
+                                 if (typeof value === 'string') {
+                                   // Remove all currency symbols, commas, spaces, and extract number
+                                   // This regex removes common currency symbols: $, €, £, ¥, ₩, ₹, ₽, ₪, ₣, ₱, ₺, ¤, etc.
+                                   const cleaned = value.replace(/[$€£¥₩₹₽₪₣₱₺¤,\s]/g, '');
+                                   const num = parseFloat(cleaned);
+                                   return isNaN(num) ? 0 : num;
+                                 }
+                                 return 0;
+                               };
+                               
+                               const residualVarValue = extractNumericValue(residualVarRaw);
+                               const residualEalValue = extractNumericValue(residualEalRaw);
+                               const residualVarStdDev = (residualVarValue * 0.15); // Default to 15% since no stddev function available
+                               const residualEalStdDev = (residualEalValue * 0.15); // Default to 15% since no stddev function available
+                               
+                               console.log('Residual VaR & EAL Debug:', {
+                                 residualVarRaw,
+                                 residualEalRaw,
+                                 residualVarValue,
+                                 residualEalValue,
+                                 residualVarStdDev,
+                                 residualEalStdDev,
+                                 showVaR,
+                                 showEAL,
+                                 formValues: {
+                                   residualMinFrequency: form.residualMinFrequency,
+                                   residualMaxFrequency: form.residualMaxFrequency,
+                                   residualMinLoss: form.residualMinLoss,
+                                   residualMaxLoss: form.residualMaxLoss
+                                 }
+                               });
+                               
+                               return (
+                                 <RiskHeatMap
+                                   frequencyDistribution={form.residualFrequencyDistribution || form.frequencyDistribution || 'triangular'}
+                                   frequencyParams={{
+                                     min: parseFloat(form.residualMinFrequency) || parseFloat(form.minFrequency) || parseFloat(form.residualFrequencyMean) - parseFloat(form.residualFrequencyStdDev) || parseFloat(form.frequencyMean) - parseFloat(form.frequencyStdDev) || 0.1,
+                                     mode: parseFloat(form.residualMostLikelyFrequency) || parseFloat(form.mostLikelyFrequency) || parseFloat(form.residualFrequencyMean) || parseFloat(form.frequencyMean) || 1,
+                                     max: parseFloat(form.residualMaxFrequency) || parseFloat(form.maxFrequency) || parseFloat(form.residualFrequencyMean) + parseFloat(form.residualFrequencyStdDev) || parseFloat(form.frequencyMean) + parseFloat(form.frequencyStdDev) || 10,
+                                     mean: parseFloat(form.residualFrequencyMean) || parseFloat(form.frequencyMean) || parseFloat(form.residualFrequencyLambda) || parseFloat(form.frequencyLambda) || undefined,
+                                     std: parseFloat(form.residualFrequencyStdDev) || parseFloat(form.frequencyStdDev) || undefined,
+                                     lambda: parseFloat(form.residualFrequencyLambda) || parseFloat(form.frequencyLambda) || parseFloat(form.residualFrequencyLambdaExp) || parseFloat(form.frequencyLambdaExp) || undefined
+                                   }}
+                                   lossDistribution={form.residualLossDistribution || form.lossDistribution || 'triangular'}
+                                   lossParams={{
+                                     min: parseFloat(form.residualMinLoss) || parseFloat(form.minLoss) || parseFloat(form.residualLossMean) - parseFloat(form.residualLossStdDev) || parseFloat(form.lossMean) - parseFloat(form.lossStdDev) || 1000,
+                                     mode: parseFloat(form.residualMostLikelyLoss) || parseFloat(form.mostLikelyLoss) || parseFloat(form.residualLossMean) || parseFloat(form.lossMean) || 50000,
+                                     max: parseFloat(form.residualMaxLoss) || parseFloat(form.maxLoss) || parseFloat(form.residualLossMean) + parseFloat(form.residualLossStdDev) || parseFloat(form.lossMean) + parseFloat(form.lossStdDev) || 500000,
+                                     mean: parseFloat(form.residualLossMean) || parseFloat(form.lossMean) || undefined,
+                                     std: parseFloat(form.residualLossStdDev) || parseFloat(form.lossStdDev) || undefined,
+                                     mu: parseFloat(form.residualLognormalMuLoss) || parseFloat(form.lognormalMuLoss) || undefined,
+                                     sigma: parseFloat(form.residualLognormalSigmaLoss) || parseFloat(form.lognormalSigmaLoss) || undefined,
+                                     alpha: parseFloat(form.residualBetaAlpha) || parseFloat(form.betaAlpha) || undefined,
+                                     beta: parseFloat(form.residualBetaBeta) || parseFloat(form.betaBeta) || undefined
+                                   }}
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
+                                   title="Residual Risk Assessment: Unit Cost × Frequency Heat Map"
+                                   isResidual={true}
+                                   iterations={form.residualMonteCarloIterations || form.monteCarloIterations || 10000}
+                                   valueAtRisk={residualVarValue || residualVarRaw || null}
+                                   expectedAnnualLoss={residualEalValue || residualEalRaw || null}
+                                   valueAtRiskStdDev={residualVarStdDev || null}
+                                   expectedAnnualLossStdDev={residualEalStdDev || null}
+                                   showVaR={showVaR}
+                                   showEAL={showEAL}
+                                   showPercentiles={showPercentiles}
+                                 />
+                               );
+                             })()}
                            </td>
                          </tr>
 

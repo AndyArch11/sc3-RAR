@@ -53,23 +53,21 @@ const DistributionChart = ({ distributionType, parameters, title, formatCurrency
         break;
 
       case 'lognormal':
-        const { mean: logMean, stdDev: logStdDev } = parameters;
-        if ((!logMean && logMean !== 0) || !logStdDev) return [];
+        const { mean: inputMu, stdDev: inputSigma } = parameters;
+        if ((!inputMu && inputMu !== 0) || !inputSigma) return [];
         
-        // For log-normal, we need to work with the underlying normal distribution parameters
-        // If mean and stdDev are given as the actual mean and stdDev of the log-normal distribution,
-        // we need to convert them to the underlying normal distribution parameters (mu, sigma)
-        
-        // Convert log-normal mean and stdDev to underlying normal parameters
-        const variance = logStdDev * logStdDev;
-        const meanSquared = logMean * logMean;
-        const mu = Math.log(meanSquared / Math.sqrt(variance + meanSquared));
-        const sigma = Math.sqrt(Math.log(1 + variance / meanSquared));
+        // The parameters from the form are already the underlying normal distribution parameters (mu, sigma)
+        // No conversion needed - use them directly
+        const mu = inputMu;
+        const sigma = inputSigma;
         
         // Generate points starting from a small positive value (log-normal is only defined for x > 0)
-        // Show up to 4 standard deviations
-        const maxRange = Math.exp(mu + 4 * sigma); 
-        const minRange = Math.max(0.01, Math.exp(mu - 4 * sigma)); // Avoid x = 0
+        // Use percentiles of the log-normal distribution for more intuitive ranging
+        // Show from 1st percentile to 99th percentile for better visual comprehension
+        const p01 = Math.exp(mu + sigma * (-2.326)); // 1st percentile
+        const p99 = Math.exp(mu + sigma * 2.326);    // 99th percentile
+        const minRange = Math.max(0.01, p01);
+        const maxRange = p99;
         
         for (let i = 0; i <= points; i++) {
           const x = minRange + (maxRange - minRange) * (i / points);
@@ -324,16 +322,19 @@ export const CumulativeDistributionChart = ({ distributionType, parameters, titl
         break;
 
       case 'lognormal':
-        const { mean: logMean, stdDev: logStdDev } = parameters;
-        if ((!logMean && logMean !== 0) || !logStdDev) return [];
+        const { mean: inputMu, stdDev: inputSigma } = parameters;
+        if ((!inputMu && inputMu !== 0) || !inputSigma) return [];
         
-        const variance = logStdDev * logStdDev;
-        const meanSquared = logMean * logMean;
-        const mu = Math.log(meanSquared / Math.sqrt(variance + meanSquared));
-        const sigma = Math.sqrt(Math.log(1 + variance / meanSquared));
+        // The parameters from the form are already the underlying normal distribution parameters (mu, sigma)
+        // No conversion needed - use them directly
+        const mu = inputMu;
+        const sigma = inputSigma;
         
-        const maxRange = Math.exp(mu + 4 * sigma);
-        const minRange = Math.max(0.01, Math.exp(mu - 4 * sigma));
+        // Use percentiles of the log-normal distribution for more intuitive ranging
+        const p01 = Math.exp(mu + sigma * (-2.326)); // 1st percentile
+        const p99 = Math.exp(mu + sigma * 2.326);    // 99th percentile
+        const minRange = Math.max(0.01, p01);
+        const maxRange = p99;
         
         for (let i = 0; i <= points; i++) {
           const x = minRange + (maxRange - minRange) * (i / points);
@@ -579,16 +580,25 @@ export const CumulativeDistributionChart = ({ distributionType, parameters, titl
   const minX = data[0]?.x || 0;
   const maxX = data[data.length - 1]?.x || 1;
   const xRange = maxX - minX;
-  const gradientStopPosition = xRange > 0 ? ((percentileX - minX) / xRange) * 100 : 0;
   
-  // Create a unique gradient ID that includes the percentile to force re-render
-  const gradientId = `colorGradient-${distributionType}-${percentile}`;
+  // Ensure gradient position is calculated correctly and clamped between 0-100
+  let gradientStopPosition = 0;
+  if (xRange > 0 && percentileValue) {
+    gradientStopPosition = Math.max(0, Math.min(100, ((percentileX - minX) / xRange) * 100));
+  }
+  
+  // Create a unique gradient ID that includes the percentile and position to force re-render
+  const gradientId = `colorGradient-${distributionType}-${percentile}-${gradientStopPosition.toFixed(1)}`;
 
   return (
     <div className="rar-cdf-chart-container">
       <h5 className="rar-cdf-chart-title">{title} - Cumulative Distribution</h5>
       <ResponsiveContainer width="100%" height={250}>
-        <AreaChart data={data} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
+        <AreaChart 
+          key={`${distributionType}-${JSON.stringify(parameters)}-${percentile}`}
+          data={data} 
+          margin={{ top: 10, right: 30, left: 10, bottom: 20 }}
+        >
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
               <stop offset={`${gradientStopPosition}%`} stopColor="#0099cc" stopOpacity={0.6}/>

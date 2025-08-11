@@ -132,6 +132,11 @@ const RARForm = () => {
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [dropTargetIndex, setDropTargetIndex] = useState(null);
 
+  // Tab state management for Risk Details form
+  const [activeQualitativeTab, setActiveQualitativeTab] = useState('risk');
+  const [activeQuantitativeTab, setActiveQuantitativeTab] = useState('risk');
+  const [activeAdvancedQuantitativeTab, setActiveAdvancedQuantitativeTab] = useState('risk');
+
   // Sync threshold currency with form currency for quantitative assessments
   useEffect(() => {
     if (form.assessmentType === "quantitative" || form.assessmentType === "advancedQuantitative") {
@@ -1148,6 +1153,56 @@ INTERPRETATION:
       }
     }
     
+    // Auto-populate residual distributions when primary distributions change
+    // (only if residual distributions haven't been explicitly set)
+    if (name === 'lossDistribution' && (!form.residualLossDistribution || form.residualLossDistribution === 'triangular')) {
+      updatedForm.residualLossDistribution = value;
+      
+      // Also copy relevant parameters if they're not already set
+      if (value === 'triangular' && !form.residualMinLoss && !form.residualMostLikelyLoss && !form.residualMaxLoss) {
+        updatedForm.residualMinLoss = form.minLoss;
+        updatedForm.residualMostLikelyLoss = form.mostLikelyLoss;
+        updatedForm.residualMaxLoss = form.maxLoss;
+      } else if ((value === 'normal' || value === 'lognormal') && !form.residualLossMean && !form.residualLossStdDev) {
+        updatedForm.residualLossMean = form.lossMean;
+        updatedForm.residualLossStdDev = form.lossStdDev;
+      } else if (value === 'uniform' && !form.residualMinLoss && !form.residualMaxLoss) {
+        updatedForm.residualMinLoss = form.minLoss;
+        updatedForm.residualMaxLoss = form.maxLoss;
+      } else if (value === 'beta' && !form.residualLossAlpha && !form.residualLossBeta) {
+        updatedForm.residualLossAlpha = form.lossAlpha;
+        updatedForm.residualLossBeta = form.lossBeta;
+        updatedForm.residualMinLoss = form.minLoss;
+        updatedForm.residualMaxLoss = form.maxLoss;
+      }
+    }
+    
+    if (name === 'frequencyDistribution' && (!form.residualFrequencyDistribution || form.residualFrequencyDistribution === 'triangular')) {
+      updatedForm.residualFrequencyDistribution = value;
+      
+      // Also copy relevant parameters if they're not already set
+      if (value === 'triangular' && !form.residualMinFrequency && !form.residualMostLikelyFrequency && !form.residualMaxFrequency) {
+        updatedForm.residualMinFrequency = form.minFrequency;
+        updatedForm.residualMostLikelyFrequency = form.mostLikelyFrequency;
+        updatedForm.residualMaxFrequency = form.maxFrequency;
+      } else if ((value === 'normal') && !form.residualFrequencyMean && !form.residualFrequencyStdDev) {
+        updatedForm.residualFrequencyMean = form.frequencyMean;
+        updatedForm.residualFrequencyStdDev = form.frequencyStdDev;
+      } else if (value === 'uniform' && !form.residualMinFrequency && !form.residualMaxFrequency) {
+        updatedForm.residualMinFrequency = form.minFrequency;
+        updatedForm.residualMaxFrequency = form.maxFrequency;
+      } else if (value === 'beta' && !form.residualFrequencyAlpha && !form.residualFrequencyBeta) {
+        updatedForm.residualFrequencyAlpha = form.frequencyAlpha;
+        updatedForm.residualFrequencyBeta = form.frequencyBeta;
+        updatedForm.residualMinFrequency = form.minFrequency;
+        updatedForm.residualMaxFrequency = form.maxFrequency;
+      } else if (value === 'poisson' && !form.residualFrequencyLambda) {
+        updatedForm.residualFrequencyLambda = form.frequencyLambda;
+      } else if (value === 'exponential' && !form.residualFrequencyLambdaExp) {
+        updatedForm.residualFrequencyLambdaExp = form.frequencyLambdaExp;
+      }
+    }
+    
     setForm(updatedForm);
     
     // Clear Monte Carlo cache when parameters that affect simulation change
@@ -1157,7 +1212,15 @@ INTERPRETATION:
       'monteCarloIterations', 'confidenceLevel', 'sleCurrency',
       'lossMean', 'lossStdDev', 'frequencyMean', 'frequencyStdDev',
       'lossAlpha', 'lossBeta', 'frequencyAlpha', 'frequencyBeta',
-      'frequencyLambda', 'frequencyLambdaExp'
+      'frequencyLambda', 'frequencyLambdaExp',
+      // Residual Monte Carlo parameters
+      'residualLossDistribution', 'residualFrequencyDistribution',
+      'residualMinLoss', 'residualMostLikelyLoss', 'residualMaxLoss', 
+      'residualMinFrequency', 'residualMostLikelyFrequency', 'residualMaxFrequency',
+      'residualMonteCarloIterations', 'residualConfidenceLevel', 'residualSleCurrency',
+      'residualLossMean', 'residualLossStdDev', 'residualFrequencyMean', 'residualFrequencyStdDev',
+      'residualLossAlpha', 'residualLossBeta', 'residualFrequencyAlpha', 'residualFrequencyBeta',
+      'residualFrequencyLambda', 'residualFrequencyLambdaExp'
     ];
     
     if (monteCarloParams.includes(name)) {
@@ -1425,6 +1488,10 @@ Note: Residual risk represents the remaining risk after implementing security co
   const clearRarFields = () => {
     setForm(initialForm);
     setMonteCarloCache({}); // Clear Monte Carlo cache when resetting form
+    // Reset all tabs to 'risk' when clearing form
+    setActiveQualitativeTab('risk');
+    setActiveQuantitativeTab('risk');
+    setActiveAdvancedQuantitativeTab('risk');
   };
 
   const getCurrentRiskData = () => {
@@ -1455,6 +1522,10 @@ Note: Residual risk represents the remaining risk after implementing security co
     return {
       ...form,
       ...residualFields,
+      // Map form field names to table field names for qualitative risk fields
+      category: form.riskCategory,
+      description: form.riskDescription,
+      owner: form.riskOwner,
       riskLevel:
         form.assessmentType === "qualitative" ? riskLevel : form.manualRiskLevel,
       calculatedResidualRiskLevel:
@@ -1479,8 +1550,9 @@ Note: Residual risk represents the remaining risk after implementing security co
       // Ensure residual Monte Carlo fields are properly loaded
       residualMonteCarloIterations: risk.residualMonteCarloIterations || "10000",
       residualConfidenceLevel: risk.residualConfidenceLevel || "95",
-      residualLossDistribution: risk.residualLossDistribution || "triangular",
-      residualFrequencyDistribution: risk.residualFrequencyDistribution || "triangular",
+      // If residual distribution isn't set, default to the primary distribution, then to triangular
+      residualLossDistribution: risk.residualLossDistribution || risk.lossDistribution || "triangular",
+      residualFrequencyDistribution: risk.residualFrequencyDistribution || risk.frequencyDistribution || "triangular",
     };
     
     setForm(completeRiskData);
@@ -1722,6 +1794,10 @@ Note: Residual risk represents the remaining risk after implementing security co
     setSelectedRiskIndex(null);
     setIsEditingRisk(false);
     setRarFieldsOpen(true);
+    // Reset all tabs to 'risk' for new risk entry
+    setActiveQualitativeTab('risk');
+    setActiveQuantitativeTab('risk');
+    setActiveAdvancedQuantitativeTab('risk');
   };
 
   const handleRefreshMonteCarloSimulation = () => {
@@ -1744,6 +1820,10 @@ Note: Residual risk represents the remaining risk after implementing security co
       setIsEditingRisk(false);
       setRarFieldsOpen(true);
       setRisksOpen(false);
+      // Reset all tabs to 'risk' for new assessment
+      setActiveQualitativeTab('risk');
+      setActiveQuantitativeTab('risk');
+      setActiveAdvancedQuantitativeTab('risk');
     }
   };
 
@@ -1810,6 +1890,7 @@ Note: Residual risk represents the remaining risk after implementing security co
           calculateMonteCarloExpectedLoss={calculateMonteCarloExpectedLoss}
           calculateMonteCarloVaR={calculateMonteCarloVaR}
           calculateMonteCarloResults={calculateMonteCarloResults}
+          getMonteCarloResults={getMonteCarloResults}
           handleRefreshMonteCarloSimulation={handleRefreshMonteCarloSimulation}
           getMonteCarloExpectedLossNumeric={getMonteCarloExpectedLossNumeric}
           
@@ -1824,11 +1905,19 @@ Note: Residual risk represents the remaining risk after implementing security co
           getQuantitativeRiskLevel={getQuantitativeRiskLevel}
           getAdvancedQuantitativeRiskLevel={getAdvancedQuantitativeRiskLevel}
           
+          // Tab state management
+          activeQualitativeTab={activeQualitativeTab}
+          setActiveQualitativeTab={setActiveQualitativeTab}
+          activeQuantitativeTab={activeQuantitativeTab}
+          setActiveQuantitativeTab={setActiveQuantitativeTab}
+          activeAdvancedQuantitativeTab={activeAdvancedQuantitativeTab}
+          setActiveAdvancedQuantitativeTab={setActiveAdvancedQuantitativeTab}
+          
           // Risk matrix
           riskMatrix={riskMatrix}
         /> 
 
-         {/* RAR Table Section */}
+        {/* RAR Table Section */}
         <RARTable 
           risks={risks}
           risksOpen={risksOpen}

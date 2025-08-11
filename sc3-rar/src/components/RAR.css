@@ -2919,6 +2919,18 @@
   font-style: italic;
 }
 
+.rar-heatmap-note {
+  font-size: 0.8rem;
+  color: #7a7a7a;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  font-style: normal;
+  text-align: left;
+}
+
 .rar-heatmap-matrix-container {
   overflow-x: auto;
   margin-bottom: 1rem;
@@ -3070,6 +3082,18 @@
   font-size: 0.85rem;
   color: #666;
   text-align: center;
+}
+
+.rar-heatmap-note {
+  font-size: 0.8rem;
+  color: #7a7a7a;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  font-style: normal;
+  text-align: left;
 }
 
 .rar-heatmap-matrix-container {
@@ -4021,5 +4045,167 @@
   
   .rar-percentile-value {
     font-size: 1em;
+  }
+}
+
+/* Heat Map Styles */
+.rar-heatmap-container {
+  background: var(--sc3-table-bg);
+  border: 1px solid #ddd;
+  border-radius: var(--sc3-table-border-radius);
+  padding: 20px;
+  margin: 20px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.rar-heatmap-title {
+  color: var(--sc3-primary);
+  font-size: 1.2em;
+  font-weight: var(--sc3-table-header-font-weight);
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.rar-heatmap-main {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.rar-heatmap-chart {
+  flex: 1;
+  min-width: 0;
+}
+
+.rar-heatmap-legend {
+  width: 180px;
+  flex-shrink: 0;
+}
+
+.rar-heatmap-svg {
+  width: 100%;
+  height: 500px;
+  border: 1px solid #e0e0e0;
+  border-radius: var(--sc3-border-radius);
+  background: #fafafa;
+}
+
+.rar-heatmap-cell {
+  stroke: #ffffff;
+  stroke-width: 0.5;
+  cursor: pointer;
+  transition: stroke-width 0.2s;
+}
+
+.rar-heatmap-cell:hover {
+  stroke: var(--sc3-primary);
+  stroke-width: 2;
+}
+
+.rar-heatmap-contour {
+  fill: none;
+  stroke: var(--sc3-primary);
+  stroke-width: 2;
+  opacity: 0.8;
+}
+
+.rar-heatmap-axis {
+  font-size: 12px;
+  fill: var(--sc3-gray);
+}
+
+.rar-heatmap-axis-label {
+  font-size: 14px;
+  font-weight: var(--sc3-table-header-font-weight);
+  fill: var(--sc3-primary);
+}
+
+.rar-heatmap-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: var(--sc3-border-radius);
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 1000;
+  max-width: 200px;
+  line-height: 1.4;
+}
+
+.rar-heatmap-legend-title {
+  font-size: 14px;
+  font-weight: var(--sc3-table-header-font-weight);
+  color: var(--sc3-primary);
+  margin-bottom: 10px;
+}
+
+.rar-heatmap-legend-gradient {
+  width: 20px;
+  height: 200px;
+  border: 1px solid #ddd;
+  border-radius: var(--sc3-border-radius);
+  margin-bottom: 10px;
+}
+
+.rar-heatmap-legend-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 200px;
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--sc3-gray);
+}
+
+.rar-heatmap-legend-contours {
+  margin-top: 20px;
+}
+
+.rar-heatmap-legend-contour-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--sc3-gray);
+}
+
+.rar-heatmap-legend-contour-line {
+  width: 20px;
+  height: 2px;
+  background: var(--sc3-primary);
+  margin-right: 8px;
+  opacity: 0.8;
+}
+
+.rar-heatmap-legend-section {
+  margin-bottom: 15px;
+}
+
+/* Responsive styles for heat map */
+@media (max-width: 768px) {
+  .rar-heatmap-main {
+    flex-direction: column;
+  }
+  
+  .rar-heatmap-legend {
+    width: 100%;
+    order: -1;
+  }
+  
+  .rar-heatmap-legend-gradient {
+    width: 100%;
+    height: 30px;
+  }
+  
+  .rar-heatmap-legend-labels {
+    flex-direction: row;
+    height: auto;
+    margin-left: 0;
+    margin-top: 8px;
+  }
+  
+  .rar-heatmap-svg {
+    height: 400px;
   }
 }

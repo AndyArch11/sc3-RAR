@@ -25,8 +25,9 @@ export function sampleDistribution(params) {
     case "poisson":
       return poisson(rest.lambda);
     case "exponential":
-      // Convert inter-arrival time to annual frequency
-      return Math.floor(365 / exponential(rest.lambda));
+      // For exponential distribution as annual frequency, sample directly
+      // lambda represents the rate parameter (average events per year)
+      return exponential(rest.lambda);
     default:
       return 0;
   }

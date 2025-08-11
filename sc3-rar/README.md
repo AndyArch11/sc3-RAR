@@ -38,6 +38,7 @@ sc3-rar
 │       └── DistributionChart.js    # logic for creating charts for the Monte Carlo algorithms
 │       └── distribution.js         # logic for the different Monte Carlo distribution algorithms
 │       └── montecarlo.js           # Monte Carlo simulations
+│       └── RiskHeatMap.js          # Creates the heatmaps used by this SPA
 │       └── ExcelExport.js          # Exports risks to an Excel file
 │       └── RAR.css                 # CSS for the components
 │       └── RARForm.js              # RAR SPA form
@@ -45,7 +46,7 @@ sc3-rar
 │       └── RARIntro.js             # Provides guidance on the use of the Risk Assessment Report
 │       └── RARReport.js            # Provides a summary of the Risk Assessments
 │       └── RARTable.js             # Lists the Risks, and their more relevant attributes
-├── package.json            # npm configuration file
+├── package.json           # npm configuration file
 └── README.md              # Project documentation
 ```
 
