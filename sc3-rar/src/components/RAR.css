@@ -1,9 +1,10 @@
 /* SC3 RAR Form Styles */
+
 /* SC3.com.au theme colors and variables */
 :root {
-  --sc3-primary: #003366;
-  --sc3-primary-shadow: #00336622;
-  --sc3-secondary: #0099cc;
+  --sc3-primary: #036;
+  --sc3-primary-shadow: #0362;
+  --sc3-secondary: #09c;
   --sc3-accent: #fbc02d;
   --sc3-bg: #f4f8fb;
   --sc3-green: #388e3c;
@@ -17,7 +18,6 @@
   --sc3-error: #d32f2f;
   --sc3-gray: #757575;
   --sc3-delete: #c00;
-
   --sc3-brown: #8B4513;
   --sc3-red-text: #dc3545;
 
@@ -29,7 +29,7 @@
   --sc3-heading-orange: #eb7325;
   --sc3-menu-current: #5c868e;
   --sc3-menu-other: #e2a027;
-  --sc3-white: #ffffff;  
+  --sc3-white: #fff;  
   
   /* Layout constants */
   --sc3-border-radius: 6px;  
@@ -47,6 +47,44 @@
   --sc3-table-transition: background 0.2s;
 }
 
+/* Global responsive wrapper styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  overflow-x: auto;
+  margin: 0;
+  padding: 0;
+  font-size: 16px;
+}
+
+/* Additional defensive CSS for elements with width 100% and padding */
+@media (max-width: 768px) {
+  /* Ensure all elements with width 100% don't cause overflow */
+  *[style*="width: 100%"],
+  *[style*="width:100%"],
+  .rar-form-table,
+  .rar-input:not(.rar-input-currency),
+  .rar-select:not(.rar-select-currency),
+  .rar-textarea,
+  .rar-tab-container,
+  .rar-tab-content,
+  .rar-distribution-chart-container {
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+  }
+  
+  /* Prevent any potential overflow from padded elements, but exclude currency inputs */
+  div:not(.rar-currency-input), 
+  section, 
+  fieldset, 
+  table {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
 /* Main container styles */
 .rar-main-container {
   max-width: 900px;
@@ -57,13 +95,37 @@
   padding: 24px;
   font-family: "Segoe UI", Arial, sans-serif;
   color: var(--sc3-primary);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 320px;
+}
+
+/* Responsive main container fixes */
+@media (max-width: 768px) {
+  .rar-main-container {
+    margin: 1rem;
+    padding: 16px;
+    max-width: none;
+    width: calc(100% - 2rem);
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .rar-main-container {
+    margin: 0.5rem;
+    padding: 12px;
+    width: calc(100% - 1rem);
+    border-radius: 4px;
+    overflow-x: auto;
+  }
 }
 
 .rar-main-heading {
   color: var(--sc3-primary);
   border-bottom: 3px solid var(--sc3-accent);
   padding-bottom: 8px;
-  margin: 0 0 1rem 0;
+  margin: 0 0 1rem;
 }
 
 /* Version footer */
@@ -90,11 +152,11 @@
 
 .donut-chart-segment {
   cursor: pointer;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+  filter: drop-shadow(0 1px 2px rgb(0,0,0,0.1));
 }
 
 .donut-chart-segment:hover {
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)) brightness(1.1);
+  filter: drop-shadow(0 2px 4px rgb(0,0,0,0.2)) brightness(1.1);
 }
 
 .donut-chart-center-circle {
@@ -118,7 +180,7 @@
 
 .donut-chart-tooltip {
   position: fixed;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgb(0, 0, 0, 0.9);
   color: white;
   padding: 0.5rem 0.75rem;
   border-radius: 4px;
@@ -127,8 +189,48 @@
   pointer-events: none;
   z-index: 1000;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 2px 8px rgb(0,0,0,0.3);
+  border: 1px solid rgb(255,255,255,0.1);
+}
+
+.rar-view-mode-container {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 15px;
+}
+
+.rar-view-mode-container > label:first-child {
+  font-weight: bold;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.rar-view-mode-options {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.rar-view-mode-options label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  margin-bottom: 0;
+  font-size: 14px;
+}
+
+.rar-view-mode-options input[type="radio"] {
+  margin-right: 8px;
+  margin-bottom: 0;
 }
 
 .rar-table-outer-container {
@@ -147,28 +249,45 @@
 
 /* Table Styles */
 .rar-table-container {
-  width: 95vw;
-  max-width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
+  width: 100%;
+  overflow-x: auto;
+  margin: 1rem 0;
   background: transparent;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
 }
 
 .rar-table {
-  width: 95vw;
-  min-width: 1200px;
+  width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
   background: var(--sc3-table-bg);
   border-radius: var(--sc3-table-border-radius);
   overflow: hidden;
-  margin: 0 auto;
+  margin: 0;
+}
+
+/* Responsive table fixes for portrait mode */
+@media (max-width: 768px) {
+  .rar-table-container {
+    margin: 0.5rem 0;
+  }
+  
+  .rar-table {
+    min-width: 500px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .rar-table {
+    min-width: 400px;
+    font-size: 0.8rem;
+  }
+  
+  .rar-table th,
+  .rar-table td {
+    padding: 0.5rem 0.25rem;
+  }
 }
 
 .rar-table-scroll {
@@ -435,7 +554,7 @@
 }
 
 .rar-td-assessment-badge.qualitative {
-  background: #0099cc; /* SC3_SECONDARY */
+  background: #09c; /* SC3_SECONDARY */
 }
 
 .rar-td-assessment-badge.quantitative {
@@ -463,15 +582,19 @@
 .rar-td-risk-badge.low {
   background: #4CAF50; /* Green */
 }
+
 .rar-td-risk-badge.medium {
   background: #FFC107; /* Yellow */
 }
+
 .rar-td-risk-badge.high {
   background: #FF9800; /* Orange */
 }
+
 .rar-td-risk-badge.extreme {
   background: #F44336; /* Red */
 }
+
 .rar-td-risk-badge.default {
   background: #ccc;
 }
@@ -488,15 +611,19 @@
 .rar-td-residual-badge.low {
   background: #4CAF50; /* Green */
 }
+
 .rar-td-residual-badge.medium {
   background: #FFC107; /* Yellow */
 }
+
 .rar-td-residual-badge.high {
   background: #FF9800; /* Orange */
 }
+
 .rar-td-residual-badge.extreme {
   background: #F44336; /* Red */
 }
+
 .rar-td-residual-badge.default {
   background: #ccc;
 }
@@ -513,15 +640,19 @@
 .rar-td-status-badge.open {
   background: #dc3545; /* Red */
 }
+
 .rar-td-status-badge.in-progress {
   background: #fd7e14; /* Orange */
 }
+
 .rar-td-status-badge.monitoring {
   background: #6f42c1; /* Purple */
 }
+
 .rar-td-status-badge.closed {
   background: #28a745; /* Green */
 }
+
 .rar-td-status-badge.default {
   background: #6c757d; /* Gray */
 }
@@ -640,7 +771,7 @@
 .rar-table-empty ul {
   text-align: left;
   display: inline-block;
-  margin: 0 0 1rem 0;
+  margin: 0 0 1rem;
   padding: 0;
   list-style: none;
 }
@@ -759,14 +890,14 @@
 .rar-btn.primary {
   background: var(--sc3-green);
   color: white;
-  box-shadow: 0 2px 6px rgba(56, 142, 60, 0.13);
+  box-shadow: 0 2px 6px rgb(56, 142, 60, 0.13);
 }
 
 .rar-btn-outline-primary {
   background: #fff;
   color: var(--sc3-primary);
   border: 2px solid var(--sc3-primary);
-  box-shadow: 0 2px 6px rgba(0, 51, 102, 0.13);
+  box-shadow: 0 2px 6px rgb(0, 51, 102, 0.13);
 }
 
 .rar-btn.primary:hover {
@@ -783,7 +914,7 @@
 .rar-btn.danger {
   background: #dc3545;
   color: white;
-  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.13);
+  box-shadow: 0 2px 6px rgb(220, 53, 69, 0.13);
 }
 
 .rar-btn.danger:hover {
@@ -793,14 +924,14 @@
 .rar-btn.secondary {
   background: var(--sc3-secondary);
   color: white;
-  box-shadow: 0 2px 6px rgba(0, 153, 204, 0.13);
+  box-shadow: 0 2px 6px rgb(0, 153, 204, 0.13);
 }
 
 .rar-btn-outline-secondary {
   background: #fff;
   color: var(--sc3-secondary);
   border: 2px solid var(--sc3-secondary);
-  box-shadow: 0 2px 6px rgba(0, 153, 204, 0.13);
+  box-shadow: 0 2px 6px rgb(0, 153, 204, 0.13);
 }
 
 .rar-btn.secondary:hover {
@@ -811,13 +942,13 @@
   background: var(--sc3-accent);
   color: #fff;
   border: none;
-  box-shadow: 0 2px 6px rgba(251, 192, 45, 0.13);
+  box-shadow: 0 2px 6px rgb(251, 192, 45, 0.13);
 }
 
 .rar-btn-warning {
   background: var(--sc3-accent);
   color: #000;
-  box-shadow: 0 2px 6px rgba(255, 193, 7, 0.13);
+  box-shadow: 0 2px 6px rgb(255, 193, 7, 0.13);
 }
 
 .rar-btn-warning:hover {
@@ -839,7 +970,7 @@
 .rar-btn-primary {
   background: var(--sc3-secondary);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(0, 153, 204, 0.13);
+  box-shadow: 0 2px 6px rgb(0, 153, 204, 0.13);
 }
 
 .rar-btn-primary:hover {
@@ -971,6 +1102,61 @@
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive Tab Styles */
+@media (max-width: 768px) {
+  .rar-qualitative-tabs {
+    flex-direction: column;
+    border-radius: var(--sc3-border-radius);
+    border-bottom: none;
+    gap: 1px;
+    background: #e0e0e0;
+  }
+  
+  .rar-qualitative-tab {
+    flex: none;
+    white-space: normal;
+    text-align: center;
+    padding: 14px 16px;
+    border-radius: 0;
+    border-bottom: none;
+    border-right: 3px solid transparent;
+  }
+  
+  .rar-qualitative-tab:first-child {
+    border-radius: var(--sc3-border-radius) var(--sc3-border-radius) 0 0;
+  }
+  
+  .rar-qualitative-tab:last-child {
+    border-radius: 0 0 var(--sc3-border-radius) var(--sc3-border-radius);
+  }
+  
+  .rar-qualitative-tab.active {
+    border-right-color: var(--sc3-secondary);
+    border-bottom-color: transparent;
+  }
+  
+  .rar-qualitative-tab.active::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: -3px;
+    width: 3px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--sc3-secondary), var(--sc3-accent));
+  }
+}
+
+@media (max-width: 480px) {
+  .rar-qualitative-tab {
+    font-size: 0.85rem;
+    padding: 12px 10px;
+  }
 }
 
 .rar-qualitative-tab:first-child {
@@ -991,7 +1177,7 @@
   color: var(--sc3-primary);
   border-bottom-color: var(--sc3-secondary);
   font-weight: 600;
-  box-shadow: 0 -2px 4px rgba(0, 51, 102, 0.1);
+  box-shadow: 0 -2px 4px rgb(0, 51, 102, 0.1);
 }
 
 .rar-qualitative-tab.active::after {
@@ -1024,7 +1210,7 @@
   color: var(--sc3-primary);
   border-bottom-color: var(--sc3-secondary);
   font-weight: 600;
-  box-shadow: 0 -2px 4px rgba(0, 51, 102, 0.1);
+  box-shadow: 0 -2px 4px rgb(0, 51, 102, 0.1);
   position: relative;
   z-index: 2;
 }
@@ -1308,12 +1494,13 @@
   border: 1px solid var(--sc3-secondary);
   font-size: 1rem;
   font-family: inherit;
+  min-width: 0;
 }
 
 .rar-input:focus {
   outline: none;
   border-color: var(--sc3-green);
-  box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+  box-shadow: 0 0 5px rgb(76, 175, 80, 0.3);
 }
 
 .rar-input.error {
@@ -1323,6 +1510,21 @@
 .rar-input-readonly {
   background-color: #f5f5f5;
   color: #666;
+}
+
+/* Responsive input adjustments */
+@media (max-width: 768px) {
+  .rar-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 0.6rem 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .rar-input {
+    padding: 0.5rem 0.6rem;
+    font-size: 16px;
+  }
 }
 
 .rar-help-text {
@@ -1343,10 +1545,60 @@
   width: auto;
   min-width: unset;
   flex: 0 0 auto;
+  max-width: none;
 }
 
 .rar-input-currency {
   flex: 1 1 0%;
+  max-width: none;
+}
+
+/* Mobile responsive fixes for currency input */
+@media (max-width: 768px) {
+  .rar-currency-input {
+    display: flex;
+    gap: 0.25rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .rar-select-currency {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 60px;
+    max-width: 80px;
+    font-size: 0.9rem;
+    padding: 0.4rem 0.2rem;
+  }
+  
+  .rar-input-currency {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+    max-width: none;
+    box-sizing: border-box;
+    font-size: 16px; /* Match standard input font size to prevent iOS zoom and maintain consistent height */
+    padding: 0.6rem 0.8rem; /* Match standard input padding for consistent height */
+  }
+}
+
+@media (max-width: 480px) {
+  .rar-currency-input {
+    gap: 0.2rem;
+  }
+  
+  .rar-select-currency {
+    min-width: 50px;
+    max-width: 70px;
+    font-size: 0.85rem;
+    padding: 0.35rem 0.15rem;
+  }
+  
+  .rar-input-currency {
+    font-size: 16px; /* Match standard input font size to prevent iOS zoom and maintain consistent height */
+    padding: 0.5rem 0.6rem; /* Match standard input padding for consistent height */
+  }
 }
 
 .rar-input-date {
@@ -1368,12 +1620,13 @@
   font-size: 1rem;
   font-family: inherit;
   background-color: white;
+  min-width: 0;
 }
 
 .rar-select:focus {
   outline: none;
   border-color: var(--sc3-green);
-  box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+  box-shadow: 0 0 5px rgb(76, 175, 80, 0.3);
 }
 
 .rar-textarea {
@@ -1385,12 +1638,39 @@
   font-size: 1rem;
   resize: vertical;
   font-family: inherit;
+  min-width: 0;
 }
 
 .rar-textarea:focus {
   outline: none;
   border-color: var(--sc3-green);
-  box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+  box-shadow: 0 0 5px rgb(76, 175, 80, 0.3);
+}
+
+/* Responsive form element adjustments */
+@media (max-width: 768px) {
+  .rar-select {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 0.6rem 0.8rem;
+    width: 100%;
+  }
+  
+  .rar-textarea {
+    font-size: 16px;
+    padding: 0.6rem 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .rar-select {
+    padding: 0.5rem 0.6rem;
+    font-size: 16px;
+  }
+  
+  .rar-textarea {
+    padding: 0.5rem 0.6rem;
+    font-size: 16px;
+  }
 }
 
 .rar-validation-error {
@@ -1513,98 +1793,134 @@
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--sc3-primary);
+  white-space: nowrap;
+}
+
+/* Responsive Radio Group Styles */
+@media (max-width: 768px) {
+  .rar-radio-group {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+  
+  .rar-radio-label {
+    width: 100%;
+    padding: 0.5rem;
+    background: var(--sc3-bg);
+    border-radius: var(--sc3-border-radius);
+    border: 1px solid #e0e0e0;
+    transition: all 0.2s ease;
+  }
+  
+  .rar-radio-label:hover {
+    background: var(--sc3-blue-light);
+    border-color: var(--sc3-secondary);
+  }
+}
+
+@media (max-width: 480px) {
+  .rar-radio-group {
+    gap: 0.5rem;
+  }
+  
+  .rar-radio-label {
+    font-size: 0.9rem;
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .rar-radio-label span {
+    line-height: 1.2;
+  }
 }
 
 .rar-radio {
   margin-right: 0.25rem;
 }
 
-/* Responsive Design */
+/* Form Table Responsive Styles */
+.rar-form-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
 @media (max-width: 768px) {
-  .rar-main-container {
-    margin: 1rem;
-    padding: 1rem;
-  }
-  
-  .rar-table-container {
-    padding: 1rem 0.5rem;
-  }
-  
-  .rar-table {
-    width: 98vw;
-    min-width: 800px;
-  }
-  
-  .rar-table-header th,
-  .rar-table-cell {
-    padding: 8px 4px;
-  }
-  
-  .rar-form-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .rar-report-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .rar-table-action-buttons,
-  .rar-form-actions {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .rar-btn {
+  .rar-form-table {
+    display: block;
     width: 100%;
-    max-width: 300px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  
+  .rar-form-table tbody {
+    display: block;
+    width: 100%;
+  }
+  
+  .rar-form-table tr {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: var(--sc3-bg);
+    border-radius: var(--sc3-border-radius);
+    border: 1px solid #e0e0e0;
+  }
+  
+  .rar-form-table td {
+    display: block;
+    width: 100% !important;
+    padding: 0.5rem 0;
+    border: none;
+    white-space: normal;
+  }
+  
+  .rar-form-label-cell {
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem !important;
+  }
+  
+  .rar-form-input-cell {
+    padding-top: 0 !important;
   }
 }
 
 @media (max-width: 480px) {
-  .rar-main-title {
-    font-size: 1.5rem;
+  .rar-form-table tr {
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
   }
   
-  .rar-table-statistics {
-    flex-direction: column;
+  .rar-form-table td {
+    padding: 0.25rem 0;
+  }
+}
+/* Assessment Type Selection Responsive Styles */
+@media (max-width: 768px) {
+  .rar-fieldset-assessment .rar-form-table tr:first-child {
+    position: relative;
+    z-index: 10;
   }
   
-  .rar-table-stat-item {
-    min-width: unset;
+  .rar-fieldset-assessment .rar-form-input-cell {
+    overflow: visible;
   }
 }
 
-/* Print Styles */
-@media print {
-  .rar-main-container {
-    box-shadow: none;
+@media (max-width: 480px) {
+  .rar-fieldset-assessment .rar-radio-group {
     margin: 0;
-    max-width: none;
+    padding: 0;
   }
   
-  .rar-table-container {
-    width: 100%;
-    margin-left: 0;
-    background: white;
-    border-top: none;
-  }
-  
-  .rar-table-action-buttons,
-  .rar-form-actions {
-    display: none;
-  }
-  
-  .rar-table-actions {
-    display: none;
-  }
-  
-  .rar-form-summary,
-  .rar-table-summary {
-    cursor: default;
+  .rar-fieldset-assessment .rar-radio-label span {
+    font-size: 0.85rem;
+    word-break: break-word;
   }
 }
 
-/* Monte Carlo simulation styles */
 .rar-simulation-header {
   background-color: var(--sc3-bg);
   padding: 1rem;
@@ -1640,7 +1956,7 @@
   font-weight: var(--sc3-btn-font-weight);
   font-size: 0.9rem;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgb(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
@@ -1659,11 +1975,213 @@
   text-transform: capitalize;
   text-align: center;
   color: #fff;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .rar-select-risk-level {
   font-weight: bold;
   text-align: center;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+/* Responsive risk level element fixes */
+@media (max-width: 768px) {
+  .rar-input-risk-level,
+  .rar-select-risk-level {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  /* Enhanced fixes for inline-styled risk level elements that cause viewport overflow */
+  input[style*="backgroundColor"][style*="border"].rar-input-risk-level,
+  input[style*="backgroundColor"][style*="getRiskColor"],
+  select[style*="backgroundColor"][style*="border"].rar-select-risk-level,
+  select[style*="backgroundColor"][style*="getRiskColor"] {
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  
+  /* Specific targeting for calculated risk level inputs (Qualitative & Quantitative) */
+  .rar-form-input-cell input[readonly][style*="backgroundColor"],
+  .rar-form-action-input-cell input[readonly][style*="backgroundColor"],
+  .rar-form-input-cell select[style*="backgroundColor"],
+  .rar-form-action-input-cell select[style*="backgroundColor"] {
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    font-size: 14px !important;
+    padding: 0.5rem !important;
+  }
+  
+  /* Risk level badge responsive fixes */
+  .rar-risk-level-badge,
+  span[style*="backgroundColor"][style*="getRiskColor"] {
+    max-width: 100% !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: inline-block !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Current risk reference responsive fixes */
+  .rar-current-risk-reference {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  
+  .rar-current-risk-reference .rar-risk-level-badge {
+    max-width: calc(100% - 20px);
+    word-break: break-word;
+    white-space: normal;
+    text-align: center;
+  }
+  
+  /* Help text responsive fixes */
+  .rar-help-text {
+    display: block;
+    margin-top: 0.5rem;
+    margin-left: 0 !important;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* Ensure colored select options don't overflow */
+  .rar-select-risk-level option {
+    background: white !important;
+    color: black !important;
+  }
+  
+  /* Form input cell responsive constraints */
+  .rar-form-input-cell,
+  .rar-form-action-input-cell {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  
+  /* Specific fixes for form input cells containing currency inputs */
+  .rar-form-input-cell .rar-currency-input {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* Ensure currency input components don't cause overflow */
+  .rar-form-input-cell .rar-select-currency {
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .rar-form-input-cell .rar-input-currency {
+    min-width: 0;
+    max-width: none;
+    flex: 1 1 auto;
+  }
+  
+  /* Specific targeting for risk level selects with inline styles */
+  select[name="manualRiskLevel"],
+  select[name="residualRisk"] {
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  
+  /* Specific targeting for risk level inputs with inline getRiskColor styles */
+  input[style*="backgroundColor"][style*="getRiskColor"],
+  select[style*="backgroundColor"][style*="getRiskColor"] {
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  
+  /* Override any inline width styles on risk level elements */
+  .rar-form-input-cell select[style*="border"][style*="backgroundColor"],
+  .rar-form-input-cell input[style*="border"][style*="backgroundColor"] {
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Ensure risk level badges with padding don't overflow */
+  span[style*="padding"][style*="backgroundColor"][style*="borderRadius"] {
+    max-width: calc(100% - 16px) !important;
+    word-wrap: break-word !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .rar-input-risk-level,
+  .rar-select-risk-level {
+    font-size: 14px;
+    padding: 0.5rem;
+  }
+  
+  /* Enhanced targeting for inline-styled risk level elements on very small screens */
+  input[style*="backgroundColor"][style*="border"].rar-input-risk-level,
+  input[style*="backgroundColor"][style*="getRiskColor"],
+  select[style*="backgroundColor"][style*="border"].rar-select-risk-level,
+  select[style*="backgroundColor"][style*="getRiskColor"] {
+    font-size: 13px !important;
+    padding: 0.4rem !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Specific targeting for calculated risk level inputs on very small screens */
+  .rar-form-input-cell input[readonly][style*="backgroundColor"],
+  .rar-form-action-input-cell input[readonly][style*="backgroundColor"],
+  .rar-form-input-cell select[style*="backgroundColor"],
+  .rar-form-action-input-cell select[style*="backgroundColor"] {
+    font-size: 13px !important;
+    padding: 0.4rem !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  
+  .rar-risk-level-badge {
+    font-size: 12px !important;
+    padding: 6px 8px !important;
+  }
+  
+  .rar-current-risk-reference .rar-risk-level-badge {
+    font-size: 12px !important;
+    padding: 6px 8px !important;
+  }
 }
 
 .rar-textarea-monospace {
@@ -1702,6 +2220,14 @@
   border-radius: var(--sc3-input-border-radius);
   border: 1px solid var(--sc3-secondary);
   font-size: 1rem;
+  font-family: inherit;
+  background-color: white;
+}
+
+.rar-select-action:focus {
+  outline: none;
+  border-color: var(--sc3-green);
+  box-shadow: 0 0 5px rgb(76, 175, 80, 0.3);
 }
 
 /* Status select with dynamic colors */
@@ -1717,6 +2243,13 @@
 /* Risk matrix visualization styling */
 .rar-risk-matrix-container {
   margin-top: 2rem;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Enhanced responsive containment */
+  max-width: 100%;
+  box-sizing: border-box;
+  contain: layout style;
 }
 
 .rar-risk-matrix-title {
@@ -1726,15 +2259,210 @@
 
 .rar-risk-matrix-wrapper {
   overflow-x: auto;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+  /* Enhanced responsive containment */
+  max-width: 100%;
+  box-sizing: border-box;
+  scrollbar-width: thin;
 }
 
 .rar-risk-matrix-table {
   width: 100%;
+  min-width: 500px;
   box-sizing: border-box;
   border-collapse: collapse;
   border: 2px solid var(--sc3-primary);
   border-radius: var(--sc3-border-radius);
   overflow: hidden;
+}
+
+/* Mobile specific override for risk matrix table - target any viewport where 500px would cause overflow */
+@media (max-width: 768px) {
+  .rar-risk-matrix-table {
+    min-width: 320px !important;
+    max-width: calc(100vw - 4rem) !important;
+    font-size: 0.85rem;
+    table-layout: fixed;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* Responsive risk matrix fixes */
+/* Mobile size (up to 768px) - general rules for smaller screens */
+@media (max-width: 768px) {
+  .rar-risk-matrix-container {
+    margin-top: 1rem;
+    overflow-x: auto;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    contain: layout style;
+  }
+  
+  .rar-risk-matrix-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    max-width: 100%;
+    scrollbar-width: thin;
+  }
+  
+  .rar-risk-matrix-table {
+    min-width: 400px;
+    font-size: 0.85rem;
+    table-layout: fixed;
+    width: 400px !important;
+  }
+  
+  .rar-matrix-cell {
+    padding: 6px 4px;
+    font-size: 0.8rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+}
+
+/* Tablet size (481px to 768px) - maximize available space - MUST come after general mobile rules */
+@media (min-width: 481px) and (max-width: 768px) {
+  .rar-risk-matrix-container {
+    margin-top: 1rem !important;
+    overflow-x: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+    contain: none !important;
+  }
+  
+  .rar-risk-matrix-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    max-width: none !important;
+    scrollbar-width: thin !important;
+  }
+  
+  .rar-risk-matrix-table {
+    min-width: 320px !important;
+    font-size: 0.9rem !important;
+    table-layout: fixed !important;
+    /* Constrain to prevent horizontal overflow */
+    width: calc(100vw - 8rem) !important;
+    max-width: calc(100vw - 8rem) !important;
+  }
+  
+  .rar-matrix-cell {
+    padding: 8px 6px !important;
+    font-size: 0.85rem !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    min-width: auto !important;
+    width: auto !important;
+  }
+  
+  /* Override the global max-width constraint specifically for risk matrix elements */
+  .rar-risk-matrix-container *,
+  .rar-risk-matrix-wrapper *,
+  .rar-risk-matrix-table * {
+    max-width: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .rar-risk-matrix-container {
+    /* Enhanced mobile containment */
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    max-width: calc(100vw - 2rem) !important;
+    width: 100% !important;
+  }
+  
+  .rar-risk-matrix-table {
+    min-width: 350px !important;
+    font-size: 0.75rem !important;
+    /* Force fixed width to prevent expansion */
+    width: 350px !important;
+    table-layout: fixed !important;
+  }
+  
+  .rar-matrix-cell {
+    padding: 4px 2px !important;
+    font-size: 0.7rem !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    /* Ensure cells don't expand beyond constraints */
+    min-width: 0;
+  }
+  
+  .rar-matrix-header {
+    font-size: 0.7rem !important;
+    padding: 4px 2px !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  /* Enhanced cumulative chart mobile containment */
+  .rar-quantitative-chart-container {
+    padding: 0.75rem;
+    margin: 1rem 0;
+    max-width: calc(100vw - 2rem);
+    /* Allow chart to render properly while preventing form expansion */
+    overflow: visible;
+  }
+  
+  /* Ensure chart text calculations don't expand beyond viewport */
+  .rar-quantitative-chart-container .rar-quantitative-chart-summary {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Allow ResponsiveContainer to properly size on mobile */
+  .rar-quantitative-chart-container .recharts-responsive-container {
+    width: 100% !important;
+    /* Remove min-width to let Recharts calculate natural sizing */
+  }
+  
+  .rar-calc-formula {
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: stretch;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .rar-calc-component {
+    font-size: 0.8em;
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+    white-space: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    word-break: keep-all;
+  }
+  
+  .rar-calc-operator {
+    transform: none;
+    margin: 0.1rem 0;
+    font-size: 1em;
+    text-align: center;
+  }
+  
+  .rar-cdf-chart-container {
+    padding: 0.75rem;
+    max-width: calc(100vw - 2rem);
+  }
+  
+  .rar-cumulative-breakdown {
+    padding: 0.75rem;
+  }
+  
+  .rar-cumulative-item {
+    padding: 0.4rem;
+  }
 }
 
 /* Form note styling */
@@ -1796,18 +2524,54 @@
   gap: 1rem;
   justify-content: center;
   font-size: 0.85em;
+  width: 100%;
+  overflow-x: auto;
 }
 
 .rar-matrix-color-item {
   display: flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .rar-risk-color-box {
   width: 16px;
   height: 16px;
   border: 1px solid #ccc;
+  flex-shrink: 0;
+}
+
+/* Responsive matrix legend fixes */
+@media (max-width: 768px) {
+  .rar-matrix-color-legend {
+    gap: 0.5rem;
+    font-size: 0.8em;
+    padding: 0 0.5rem;
+  }
+  
+  .rar-matrix-color-item {
+    gap: 3px;
+  }
+  
+  .rar-risk-color-box {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .rar-matrix-color-legend {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75em;
+  }
+  
+  .rar-matrix-color-item {
+    justify-content: center;
+  }
 }
 
 /* Risk matrix cell styling */
@@ -1837,11 +2601,12 @@
   font-weight: var(--sc3-btn-font-weight);
 }
 
-/* Guidance section styles */
+/* Assessment Guidance Styling */
 .rar-guidance-container {
   margin-top: 2rem;
   margin-bottom: 2rem;
 }
+
 
 .rar-guidance-header {
   background: linear-gradient(135deg, var(--sc3-primary), var(--sc3-secondary));
@@ -1882,7 +2647,7 @@
   background: var(--sc3-table-bg);
   border-radius: var(--sc3-table-border-radius);
   overflow: hidden;
-  box-shadow: 0 2px 8px #00336622;
+  box-shadow: 0 2px 8px #0362;
 }
 
 .rar-matrix-guidance-header {
@@ -2040,7 +2805,7 @@
   background: var(--sc3-table-bg);
   border-radius: var(--sc3-table-border-radius);
   overflow: hidden;
-  box-shadow: 0 2px 8px #00336622;
+  box-shadow: 0 2px 8px #0362;
 }
 
 .rar-threshold-table-header {
@@ -2343,11 +3108,6 @@
   transition: var(--sc3-table-transition);
 }
 
-/* Assessment Guidance Styling */
-.rar-guidance-container {
-  margin-top: 2rem;
-  margin-bottom: 2rem;
-}
 
 .rar-guidance-toggle {
   display: flex;
@@ -2381,7 +3141,7 @@
   background-color: #fff;
   border-radius: 8px;
   border: 1px solid var(--sc3-secondary);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgb(0,0,0,0.1);
 }
 
 .rar-assessment-overview {
@@ -2658,7 +3418,9 @@
 }
 
 /* =================================================================== */
+
 /* RAR REPORT COMPONENT STYLES */
+
 /* =================================================================== */
 
 /* Main report container */
@@ -2691,7 +3453,7 @@
   background-color: #f8f9fa;
   padding: 1.5rem;
   border-radius: 8px;
-  border: 1px solid rgba(0, 140, 186, 0.125);
+  border: 1px solid rgb(0, 140, 186, 0.125);
 }
 
 .rar-analytics-title {
@@ -2735,7 +3497,7 @@
   background-color: #fff;
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgb(0, 0, 0, 0.1);
   text-align: center;
 }
 
@@ -2799,7 +3561,7 @@
   background-color: #fff;
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgb(0, 0, 0, 0.1);
   margin-top: 1.5rem;
 }
 
@@ -2897,15 +3659,133 @@
 
 /* Heat map section */
 .rar-heatmap-container {
-  background-color: #fff;
+  background: var(--sc3-table-bg);
+  border: 1px solid #ddd;
+  border-radius: var(--sc3-table-border-radius);
   padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgb(0, 0, 0, 0.1);
   margin-top: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  /* Remove overflow from main container */
+}
+
+.rar-heatmap-chart-container {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  background: transparent;
+  -webkit-overflow-scrolling: touch;
+  margin: 1rem 0;
+}
+
+.rar-heatmap-chart {
+  min-width: 600px;
+  width: max-content;
+  margin: 0 auto;
+}
+
+/* Responsive heat map for small form factor devices */
+@media (max-width: 768px) {
+  .rar-heatmap-container {
+    padding: 0.75rem;
+    margin-top: 1rem;
+  }
+  
+  .rar-heatmap-chart-container {
+    margin: 0.5rem 0;
+    /* Add extra bottom margin to prevent x-axis labels from being covered by parameters */
+    margin-bottom: 2rem;
+    /* Ensure SVG content is not clipped */
+    overflow: visible;
+  }
+  
+  .rar-heatmap-chart {
+    /* Force horizontal scrolling on small devices within the chart container */
+    min-width: 700px;
+    /* Remove padding-bottom that could clip SVG content */
+  }
+  
+  /* Make the info section text wrap better */
+  .rar-heatmap-info {
+    font-size: 0.8rem;
+    line-height: 1.3;
+    /* Ensure text wraps within container */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    /* Add top margin to create separation from chart */
+    margin-top: 1rem;
+  }
+  
+  /* Make parameter grid stack on very small screens */
+  .rar-heatmap-info div[style*="grid-template-columns"] {
+    display: block !important;
+  }
+  
+  .rar-heatmap-info div[style*="grid-template-columns"] > div {
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Ensure SVG text elements are readable and don't overflow */
+  .rar-heatmap-chart svg text {
+    font-size: 10px;
+    /* Prevent text from overflowing */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+  }
+  
+  /* Y-axis labels - make them shorter on mobile */
+  .rar-heatmap-chart svg g text[text-anchor="end"] {
+    font-size: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .rar-heatmap-container {
+    padding: 0.5rem;
+  }
+  
+  .rar-heatmap-chart-container {
+    /* Increase bottom margin for very small screens */
+    margin-bottom: 2.5rem;
+    /* Ensure SVG content is not clipped */
+    overflow: visible;
+  }
+  
+  .rar-heatmap-chart {
+    /* Increase minimum width for very small screens */
+    min-width: 800px;
+    /* Remove padding-bottom that could clip SVG content */
+  }
+  
+  /* Stack all parameter information vertically */
+  .rar-heatmap-info div[style*="display: grid"] {
+    display: block !important;
+  }
+  
+  /* Reduce font sizes for better mobile readability */
+  .rar-heatmap-info {
+    font-size: 0.75rem;
+    /* Increase top margin for better separation */
+    margin-top: 1.5rem;
+  }
+  
+  .rar-heatmap-chart svg text {
+    font-size: 8px;
+  }
+  
+  /* Make title responsive */
+  .rar-heatmap-title {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
 }
 
 .rar-heatmap-title {
   color: var(--sc3-primary);
+  font-weight: var(--sc3-table-header-font-weight);
   margin-bottom: 1rem;
   font-size: 1rem;
   text-align: center;
@@ -2915,8 +3795,6 @@
   font-size: 0.85rem;
   color: #666;
   text-align: center;
-  margin-bottom: 1rem;
-  font-style: italic;
 }
 
 .rar-heatmap-note {
@@ -2929,6 +3807,272 @@
   margin-top: 8px;
   font-style: normal;
   text-align: left;
+}
+
+.rar-heatmap-matrix-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  position: relative;
+}
+
+.rar-heatmap-matrix {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.rar-heatmap-header {
+  padding: 0.75rem;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  font-weight: 600;
+  color: var(--sc3-primary);
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+.rar-heatmap-cell {
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+  text-align: center;
+  color: #333;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+
+.rar-heatmap-main {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Legacy heat map chart rule - this is now handled by the new structure above */
+/*.rar-heatmap-chart {
+  flex: 1;
+  min-width: 400px;
+  overflow: visible;
+}*/
+
+.rar-heatmap-legend {
+  width: 180px;
+  flex-shrink: 0;
+}
+
+.rar-heatmap-svg {
+  width: 100%;
+  min-width: 400px;
+  height: 500px;
+  border: 1px solid #e0e0e0;
+  border-radius: var(--sc3-border-radius);
+  background: #fafafa;
+}
+
+.rar-heatmap-cell {
+  stroke: #fff;
+  stroke-width: 0.5;
+  cursor: pointer;
+  transition: stroke-width 0.2s;
+}
+
+.rar-heatmap-cell:hover {
+  stroke: var(--sc3-primary);
+  stroke-width: 2;
+}
+
+.rar-heatmap-contour {
+  fill: none;
+  stroke: var(--sc3-primary);
+  stroke-width: 2;
+  opacity: 0.8;
+}
+
+.rar-heatmap-axis {
+  font-size: 12px;
+  fill: var(--sc3-gray);
+}
+
+.rar-heatmap-axis-label {
+  font-size: 14px;
+  font-weight: var(--sc3-table-header-font-weight);
+  fill: var(--sc3-primary);
+}
+
+.rar-heatmap-tooltip {
+  position: absolute;
+  background: rgb(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: var(--sc3-border-radius);
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 1000;
+  max-width: 200px;
+  line-height: 1.4;
+}
+
+.rar-heatmap-legend-title {
+  font-size: 14px;
+  font-weight: var(--sc3-table-header-font-weight);
+  color: var(--sc3-primary);
+  margin-bottom: 10px;
+}
+
+.rar-heatmap-legend-gradient {
+  width: 20px;
+  height: 200px;
+  border: 1px solid #ddd;
+  border-radius: var(--sc3-border-radius);
+  margin-bottom: 10px;
+}
+
+.rar-heatmap-legend-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 200px;
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--sc3-gray);
+}
+
+.rar-heatmap-legend-contours {
+  margin-top: 20px;
+}
+
+.rar-heatmap-legend-contour-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--sc3-gray);
+}
+
+/* Responsive heatmap styles for viewports under 710px */
+@media (max-width: 710px) {
+  /* Prevent page-level horizontal expansion */
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+  
+  .rar-main-container {
+    max-width: calc(100vw - 2rem) !important;
+    overflow-x: visible !important;
+  }
+  
+  .rar-heatmap-container {
+    padding: 1rem;
+    /* Prevent container from expanding beyond viewport */
+    max-width: 100vw !important;
+    overflow: hidden !important;
+  }
+  
+  .rar-heatmap-chart {
+    /* Constrain the chart container to viewport width */
+    max-width: calc(100vw - 2rem) !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+    /* Ensure it doesn't expand the page */
+    box-sizing: border-box !important;
+  }
+  
+  /* Keep SVG at its natural size to trigger horizontal scroll within container */
+  .rar-heatmap-chart svg {
+    min-width: 600px !important;
+    width: 600px !important;
+    flex-shrink: 0 !important;
+    display: block !important;
+  }
+  
+  /* Constrain distribution chart containers to prevent horizontal expansion */
+  .rar-distribution-chart-container {
+    max-width: calc(100vw - 4rem) !important;
+    overflow-x: auto !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Ensure all chart containers and wide elements are constrained */
+  .rar-quantitative-chart-container,
+  .rar-form-section-content,
+  .rar-form-table,
+  .rar-form-table-responsive,
+  .rar-tab-container,
+  .rar-tab-content,
+  .recharts-responsive-container {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Constrain any potentially wide form elements */
+  .rar-form-input-cell,
+  .rar-form-label-cell,
+  .rar-form-row {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
+@media (max-width: 580px) {
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+  
+  .rar-main-container {
+    max-width: calc(100vw - 1rem) !important;
+  }
+  
+  .rar-heatmap-container {
+    padding: 0.5rem;
+    max-width: 100vw !important;
+  }
+  
+  .rar-heatmap-chart {
+    max-width: calc(100vw - 1rem) !important;
+  }
+  
+  /* Smaller SVG for mobile but still wider than viewport to show scroll */
+  .rar-heatmap-chart svg {
+    min-width: 500px !important;
+    width: 500px !important;
+  }
+  
+  /* Mobile distribution chart constraints */
+  .rar-distribution-chart-container {
+    max-width: calc(100vw - 2rem) !important;
+    padding: 0.5rem !important;
+  }
+}
+
+.rar-heatmap-legend-contour-line {
+  width: 20px;
+  height: 2px;
+  background: var(--sc3-primary);
+  margin-right: 8px;
+  opacity: 0.8;
+}
+
+.rar-heatmap-legend-section {
+  margin-bottom: 15px;
+}
+
+
+.rar-heatmap-info {
+  font-size: 0.85rem;
+  color: #666;
+  text-align: center;
+  margin-bottom: 1rem;
+  font-style: italic;
 }
 
 .rar-heatmap-matrix-container {
@@ -2988,13 +4132,127 @@
   border: 1px solid #ccc;
 }
 
+/* Mobile Responsive Heatmap Styles */
+@media (max-width: 768px) {
+  .rar-heatmap-container {
+    padding: 1rem;
+    margin: 1rem 0;
+  }
+  
+  .rar-heatmap-main {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .rar-heatmap-chart {
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+  }
+  
+  .rar-heatmap-svg {
+    width: 100%;
+    min-width: 350px;
+    height: 350px;
+  }
+  
+  .rar-heatmap-legend {
+    width: 100%;
+    max-width: none;
+  }
+  
+  .rar-heatmap-matrix-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -1rem;
+    padding: 0 1rem;
+    max-width: calc(100vw - 2rem);
+    scroll-behavior: smooth;
+    display: block;
+    justify-content: flex-start;
+  }
+  
+  .rar-heatmap-matrix {
+    min-width: 500px;
+    font-size: 0.7rem;
+    width: auto !important;
+    max-width: none !important;
+  }
+  
+  .rar-heatmap-cell,
+  .rar-heatmap-header {
+    padding: 0.5rem 0.3rem !important;
+    font-size: 0.7rem !important;
+    min-width: 45px !important;
+    max-width: 60px;
+  }
+}
+
+@media (max-width: 480px) {
+  .rar-heatmap-container {
+    padding: 0.8rem;
+    margin: 0.8rem 0;
+  }
+  
+  .rar-heatmap-title {
+    font-size: 0.9rem;
+    margin-bottom: 0.8rem;
+  }
+  
+  .rar-heatmap-svg {
+    height: 300px;
+    min-width: 300px;
+  }
+  
+  .rar-heatmap-matrix-container {
+    margin: 0 -0.8rem;
+    padding: 0 0.8rem;
+    max-width: calc(100vw - 1.6rem);
+    overflow-x: auto;
+    display: block;
+    justify-content: flex-start;
+  }
+  
+  .rar-heatmap-matrix {
+    min-width: 450px;
+    font-size: 0.65rem;
+    width: auto !important;
+    max-width: none !important;
+  }
+  
+  .rar-heatmap-cell,
+  .rar-heatmap-header {
+    padding: 0.4rem 0.2rem !important;
+    font-size: 0.65rem !important;
+    min-width: 40px !important;
+    max-width: 50px;
+  }
+  
+  .rar-heatmap-legend {
+    gap: 0.8rem;
+  }
+  
+  .rar-heatmap-legend-item {
+    font-size: 0.75rem;
+  }
+  
+  .rar-heatmap-info {
+    font-size: 0.8rem;
+  }
+  
+  .rar-heatmap-note {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+  }
+}
+
 /* Financial exposure sections */
 .rar-financial-exposure-container {
   background-color: #f8f9fa;
   padding: 2rem;
   border-radius: 12px;
   border: 2px solid var(--sc3-primary);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgb(0, 0, 0, 0.1);
 }
 
 .rar-financial-cards-grid {
@@ -3009,7 +4267,7 @@
   padding: 1.5rem;
   border-radius: 8px;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgb(0, 0, 0, 0.1);
 }
 
 .rar-financial-card-primary {
@@ -3062,76 +4320,12 @@
   color: #666;
 }
 
-/* Heat map styles */
-.rar-heatmap-container {
-  background-color: #fff;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-top: 1.5rem;
-}
-
-.rar-heatmap-title {
-  color: var(--sc3-primary);
-  margin-bottom: 1rem;
-  font-size: 1rem;
-  text-align: center;
-}
-
-.rar-heatmap-info {
-  font-size: 0.85rem;
-  color: #666;
-  text-align: center;
-}
-
-.rar-heatmap-note {
-  font-size: 0.8rem;
-  color: #7a7a7a;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
-  padding: 8px 12px;
-  margin-top: 8px;
-  font-style: normal;
-  text-align: left;
-}
-
-.rar-heatmap-matrix-container {
-  overflow-x: auto;
-  display: flex;
-  justify-content: center;
-}
-
-.rar-heatmap-matrix {
-  border-collapse: collapse;
-  font-size: 0.8rem;
-}
-
-.rar-heatmap-header {
-  padding: 0.75rem;
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  font-weight: 600;
-  color: var(--sc3-primary);
-  text-align: center;
-  font-size: 0.75rem;
-}
-
-.rar-heatmap-cell {
-  padding: 0.75rem;
-  border: 1px solid #dee2e6;
-  text-align: center;
-  color: #333;
-  font-weight: 600;
-  font-size: 0.8rem;
-}
-
 /* Additional report sections */
 .rar-report-section {
   background-color: #fff;
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgb(0, 0, 0, 0.1);
   margin-top: 1.5rem;
 }
 
@@ -3274,24 +4468,6 @@
   font-style: italic;
 }
 
-/* Print Media Styles */
-@media print {
-  .rar-report-container {
-    padding: 0;
-  }
-  
-  .rar-report-section,
-  .rar-financial-cards-grid,
-  .rar-report-table {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-  
-  .rar-chart-container {
-    break-inside: avoid;
-  }
-}
-
 /* Refresh Button Hover Effects */
 .rar-btn-refresh:hover {
   background: #007bb5 !important;
@@ -3311,7 +4487,7 @@
 }
 
 .rar-distribution-chart-title {
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.5rem;
   color: var(--sc3-primary);
   font-size: 1rem;
   font-weight: bold;
@@ -3365,13 +4541,13 @@
 
 .rar-treatment-strategies-title {
   color: var(--sc3-primary);
-  margin: 0 0 1rem 0;
+  margin: 0 0 1rem;
   font-size: 1.3em;
   font-weight: bold;
 }
 
 .rar-treatment-strategies-intro {
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 1.5rem;
   font-size: 1.05em;
   line-height: 1.5;
 }
@@ -3382,11 +4558,11 @@
   border-left: 4px solid var(--sc3-secondary);
   background: white;
   border-radius: 0 6px 6px 0;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgb(0,0,0,0.1);
 }
 
 .rar-treatment-strategy-header {
-  margin: 0 0 0.8rem 0;
+  margin: 0 0 0.8rem;
   color: var(--sc3-primary);
   font-size: 1.2em;
   display: flex;
@@ -3407,7 +4583,7 @@
 
 .rar-treatment-strategy-examples-header,
 .rar-treatment-strategy-types-header {
-  margin: 0.8rem 0 0.4rem 0;
+  margin: 0.8rem 0 0.4rem;
   font-weight: bold;
 }
 
@@ -3424,7 +4600,7 @@
 }
 
 .rar-treatment-strategy-note {
-  margin: 1.5rem 0 0 0;
+  margin: 1.5rem 0 0;
   padding: 1rem;
   background: #e3f2fd;
   border: 1px solid var(--sc3-secondary);
@@ -3448,13 +4624,13 @@
 
 .rar-quantitative-guidance-title {
   color: var(--sc3-primary);
-  margin: 0 0 1rem 0;
+  margin: 0 0 1rem;
   font-size: 1.3em;
   font-weight: bold;
 }
 
 .rar-quantitative-guidance-intro {
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 1.5rem;
   font-size: 1.05em;
   line-height: 1.5;
 }
@@ -3469,13 +4645,13 @@
   background: white;
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgb(0,0,0,0.1);
   text-align: center;
   border: 2px solid var(--sc3-secondary);
 }
 
 .rar-formula-title {
-  margin: 0 0 1rem 0;
+  margin: 0 0 1rem;
   color: var(--sc3-primary);
   font-weight: bold;
 }
@@ -3501,7 +4677,7 @@
 }
 
 .rar-formula-description {
-  margin: 1rem 0 0 0;
+  margin: 1rem 0 0;
   font-style: italic;
   color: #666;
 }
@@ -3521,7 +4697,7 @@
   background: white;
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 6px rgb(0,0,0,0.1);
   border-left: 4px solid;
 }
 
@@ -3538,7 +4714,7 @@
 }
 
 .rar-definition-title {
-  margin: 0 0 1rem 0;
+  margin: 0 0 1rem;
   color: var(--sc3-primary);
   font-size: 1.1em;
   display: flex;
@@ -3557,7 +4733,7 @@
 }
 
 .rar-definition-examples {
-  margin: 1rem 0 0 0;
+  margin: 1rem 0 0;
 }
 
 .rar-definition-examples ul {
@@ -3576,7 +4752,7 @@
 
 .rar-quantitative-examples-title {
   color: var(--sc3-primary);
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 1.5rem;
   font-size: 1.2em;
   font-weight: bold;
 }
@@ -3591,7 +4767,7 @@
   background: white;
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 6px rgb(0,0,0,0.1);
   border-top: 4px solid;
 }
 
@@ -3608,13 +4784,13 @@
 }
 
 .rar-example-card-title {
-  margin: 0 0 1rem 0;
+  margin: 0 0 1rem;
   color: var(--sc3-primary);
   font-weight: bold;
 }
 
 .rar-example-scenario {
-  margin: 0 0 1rem 0;
+  margin: 0 0 1rem;
   font-style: italic;
   color: #666;
 }
@@ -3668,7 +4844,7 @@
 
 .rar-quantitative-best-practices-title {
   color: var(--sc3-primary);
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 1.5rem;
   font-size: 1.2em;
   font-weight: bold;
 }
@@ -3683,12 +4859,12 @@
   background: white;
   padding: 1.3rem;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgb(0,0,0,0.1);
   border-left: 4px solid var(--sc3-secondary);
 }
 
 .rar-best-practice-title {
-  margin: 0 0 1rem 0;
+  margin: 0 0 1rem;
   color: var(--sc3-primary);
   font-size: 1em;
   font-weight: bold;
@@ -3710,12 +4886,21 @@
   background: #f8f9fa;
   border-radius: 8px;
   border: 1px solid #e9ecef;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgb(0,0,0,0.1);
+  /* Enhanced responsive containment - but ensure chart visibility */
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 400px;
+  position: relative;
+  /* Ensure Recharts has space to render */
+  display: block;
+  overflow: visible;
 }
 
 .rar-quantitative-chart-title {
   color: var(--sc3-primary);
-  margin: 0 0 1rem 0;
+  margin: 0 0 1rem;
   font-size: 1.1em;
   font-weight: bold;
   text-align: center;
@@ -3740,6 +4925,12 @@
   gap: 1rem;
   margin-bottom: 1rem;
   flex-wrap: wrap;
+  /* Enhanced responsive containment */
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .rar-calc-component {
@@ -3748,23 +4939,29 @@
   font-weight: bold;
   font-size: 0.9em;
   white-space: nowrap;
+  /* Enhanced responsive containment */
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .rar-calc-sle {
-  background: rgba(54, 162, 235, 0.1);
-  border: 2px solid rgba(54, 162, 235, 0.5);
+  background: rgb(54, 162, 235, 0.1);
+  border: 2px solid rgb(54, 162, 235, 0.5);
   color: #2196f3;
 }
 
 .rar-calc-aro {
-  background: rgba(255, 206, 86, 0.1);
-  border: 2px solid rgba(255, 206, 86, 0.5);
+  background: rgb(255, 206, 86, 0.1);
+  border: 2px solid rgb(255, 206, 86, 0.5);
   color: #ff9800;
 }
 
 .rar-calc-ale {
-  background: rgba(255, 99, 132, 0.1);
-  border: 2px solid rgba(255, 99, 132, 0.5);
+  background: rgb(255, 99, 132, 0.1);
+  border: 2px solid rgb(255, 99, 132, 0.5);
   color: #f44336;
   font-size: 1em;
 }
@@ -3791,7 +4988,7 @@
 }
 
 .rar-cumulative-breakdown h5 {
-  margin: 0 0 0.75rem 0;
+  margin: 0 0 0.75rem;
   color: var(--sc3-primary);
   font-size: 0.95em;
   font-weight: bold;
@@ -3842,8 +5039,8 @@
 }
 
 .rar-calc-base {
-  background: rgba(33, 150, 243, 0.1);
-  border: 2px solid rgba(33, 150, 243, 0.3);
+  background: rgb(33, 150, 243, 0.1);
+  border: 2px solid rgb(33, 150, 243, 0.3);
   color: #2196f3;
   padding: 0.75rem;
   border-radius: 6px;
@@ -3851,10 +5048,15 @@
   display: block;
   text-align: center;
   margin-bottom: 1rem;
+  /* Allow text to wrap naturally */
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+  min-width: 0;
 }
 
 .rar-tooltip-description {
-  margin: 0.25rem 0 0 0;
+  margin: 0.25rem 0 0;
   font-size: 0.85em;
   color: #666;
   font-style: italic;
@@ -3871,43 +5073,6 @@
   font-size: 0.8em;
 }
 
-@media (max-width: 768px) {
-  .rar-cumulative-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
-  }
-  
-  .rar-cumulative-period {
-    min-width: auto;
-  }
-  
-  .rar-calc-base {
-    font-size: 0.85em;
-    padding: 0.5rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .rar-quantitative-chart-container {
-    padding: 1rem;
-  }
-  
-  .rar-calc-formula {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
-  .rar-calc-operator {
-    transform: rotate(90deg);
-    margin: 0.2rem 0;
-  }
-  
-  .rar-calc-component {
-    font-size: 0.8em;
-  }
-}
-
 /* Cumulative Distribution Chart Styles */
 .rar-cdf-chart-container {
   margin: 1rem 0;
@@ -3915,10 +5080,17 @@
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   background: #fafafa;
+  /* Enhanced responsive containment */
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  contain: layout style;
 }
 
 .rar-cdf-chart-title {
-  margin: 0 0 1rem 0;
+  margin: 0 0 1rem;
   color: var(--sc3-primary);
   font-size: 1rem;
   font-weight: bold;
@@ -3964,7 +5136,7 @@
   background: #ddd;
   outline: none;
   margin: 0.5rem 0;
-  -webkit-appearance: none;
+  appearance: none;
   appearance: none;
 }
 
@@ -3975,7 +5147,7 @@
   border-radius: 50%;
   background: var(--sc3-primary);
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgb(0,0,0,0.2);
 }
 
 .rar-percentile-slider::-moz-range-thumb {
@@ -3985,7 +5157,7 @@
   background: var(--sc3-primary);
   cursor: pointer;
   border: none;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgb(0,0,0,0.2);
 }
 
 .rar-percentile-markers {
@@ -4032,9 +5204,299 @@
   margin-top: 0.5rem;
 }
 
+/* Tornado Graph Styles */
+.rar-tornado-container {
+  background-color: var(--sc3-white);
+  padding: 1.5rem;
+  border-radius: var(--sc3-border-radius);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 10%);
+  margin-top: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+}
+
+.rar-tornado-description {
+  color: var(--sc3-gray);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.rar-tornado-placeholder {
+  text-align: center;
+  padding: 2rem;
+  background-color: var(--sc3-bg);
+  border-radius: var(--sc3-border-radius);
+  border: 2px dashed #ddd;
+}
+
+.rar-tornado-placeholder p {
+  margin: 0.5rem 0;
+  color: var(--sc3-gray);
+}
+
+.rar-tornado-note {
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.rar-tornado-legend {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.rar-tornado-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.rar-tornado-legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+}
+
+.rar-tornado-insights {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: var(--sc3-bg);
+  border-radius: var(--sc3-border-radius);
+  border-left: 4px solid var(--sc3-primary);
+}
+
+.rar-tornado-insights h6 {
+  margin: 0 0 0.5rem 0;
+  color: var(--sc3-primary);
+  font-size: 0.95rem;
+}
+
+.rar-tornado-insights ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.rar-tornado-insights li {
+  margin-bottom: 0.3rem;
+  font-size: 0.9rem;
+  color: var(--sc3-gray);
+}
+
+/* Tornado scroll container styles */
+.tornado-scroll-container {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.tornado-svg {
+  width: auto;
+  max-width: none;
+}
+
+/* Responsive tornado scroll behavior */
 @media (max-width: 768px) {
+  .tornado-scroll-container {
+    max-width: calc(100vw - 4rem);
+    margin: 0 auto;
+  }
+  
+  .tornado-svg {
+    width: auto !important;
+    max-width: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .tornado-scroll-container {
+    max-width: calc(100vw - 2rem);
+  }
+  
+  .tornado-svg {
+    width: auto !important;
+    max-width: none !important;
+  }
+}
+
+/* Back to Top Button Styles */
+.rar-back-to-top-container {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+  padding: 1rem 0;
+}
+
+.rar-back-to-top-btn {
+  background: var(--sc3-primary);
+  color: white;
+  border: none;
+  border-radius: var(--sc3-border-radius);
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: var(--sc3-btn-font-weight);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rar-back-to-top-btn:hover {
+  background: var(--sc3-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.rar-back-to-top-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+
+
+@media (width <= 768px) {
+  .rar-main-container {
+    margin: 1rem;
+    padding: 1rem;
+  }
+  
+  .rar-table-container {
+    padding: 1rem 0.5rem;
+  }
+  
+  .rar-table {
+    width: 98vw;
+    min-width: 800px;
+  }
+  
+  .rar-table-header th,
+  .rar-table-cell {
+    padding: 8px 4px;
+  }
+  
+  .rar-form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .rar-report-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .rar-table-action-buttons,
+  .rar-form-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .rar-btn {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .rar-view-mode-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+  }
+  
+  .rar-view-mode-container > label:first-child {
+    margin-bottom: 5px;
+  }
+  
+  .rar-view-mode-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    width: 100%;
+  }
+
+  .rar-cumulative-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  
+  .rar-cumulative-period {
+    min-width: auto;
+  }
+  
+  .rar-calc-base {
+    font-size: 0.8em;
+    padding: 0.5rem;
+    text-align: left;
+    word-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+    /* Ensure full text is visible */
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .rar-quantitative-chart-container {
+    padding: 1rem;
+    /* Allow chart to render properly while preventing form expansion */
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: visible !important;
+    min-height: 400px;
+    position: relative;
+    -webkit-overflow-scrolling: touch;
+    /* Remove CSS containment for Recharts compatibility */
+    /* contain: layout style; */
+  }
+  
+  /* Apply overflow control only to text summary sections */
+  .rar-quantitative-chart-container .rar-quantitative-chart-summary {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Specific fixes for Recharts on tablet */
+  .rar-quantitative-chart-container .recharts-responsive-container {
+    width: 100% !important;
+    /* Remove min-width to let Recharts calculate natural sizing */
+  }
+  
+  .rar-calc-formula {
+    flex-direction: column;
+    gap: 0.5rem;
+    /* Ensure formula doesn't overflow */
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .rar-calc-operator {
+    transform: rotate(90deg);
+    margin: 0.2rem 0;
+  }
+  
+  .rar-calc-component {
+    font-size: 0.8em;
+    /* Prevent components from forcing width */
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+  
   .rar-cdf-chart-container {
     padding: 1rem;
+    /* Prevent CDF chart from expanding form */
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    contain: layout style;
   }
   
   .rar-percentile-result {
@@ -4046,144 +5508,7 @@
   .rar-percentile-value {
     font-size: 1em;
   }
-}
-
-/* Heat Map Styles */
-.rar-heatmap-container {
-  background: var(--sc3-table-bg);
-  border: 1px solid #ddd;
-  border-radius: var(--sc3-table-border-radius);
-  padding: 20px;
-  margin: 20px 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.rar-heatmap-title {
-  color: var(--sc3-primary);
-  font-size: 1.2em;
-  font-weight: var(--sc3-table-header-font-weight);
-  margin-bottom: 15px;
-  text-align: center;
-}
-
-.rar-heatmap-main {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-}
-
-.rar-heatmap-chart {
-  flex: 1;
-  min-width: 0;
-}
-
-.rar-heatmap-legend {
-  width: 180px;
-  flex-shrink: 0;
-}
-
-.rar-heatmap-svg {
-  width: 100%;
-  height: 500px;
-  border: 1px solid #e0e0e0;
-  border-radius: var(--sc3-border-radius);
-  background: #fafafa;
-}
-
-.rar-heatmap-cell {
-  stroke: #ffffff;
-  stroke-width: 0.5;
-  cursor: pointer;
-  transition: stroke-width 0.2s;
-}
-
-.rar-heatmap-cell:hover {
-  stroke: var(--sc3-primary);
-  stroke-width: 2;
-}
-
-.rar-heatmap-contour {
-  fill: none;
-  stroke: var(--sc3-primary);
-  stroke-width: 2;
-  opacity: 0.8;
-}
-
-.rar-heatmap-axis {
-  font-size: 12px;
-  fill: var(--sc3-gray);
-}
-
-.rar-heatmap-axis-label {
-  font-size: 14px;
-  font-weight: var(--sc3-table-header-font-weight);
-  fill: var(--sc3-primary);
-}
-
-.rar-heatmap-tooltip {
-  position: absolute;
-  background: rgba(0, 0, 0, 0.9);
-  color: white;
-  padding: 8px 12px;
-  border-radius: var(--sc3-border-radius);
-  font-size: 12px;
-  pointer-events: none;
-  z-index: 1000;
-  max-width: 200px;
-  line-height: 1.4;
-}
-
-.rar-heatmap-legend-title {
-  font-size: 14px;
-  font-weight: var(--sc3-table-header-font-weight);
-  color: var(--sc3-primary);
-  margin-bottom: 10px;
-}
-
-.rar-heatmap-legend-gradient {
-  width: 20px;
-  height: 200px;
-  border: 1px solid #ddd;
-  border-radius: var(--sc3-border-radius);
-  margin-bottom: 10px;
-}
-
-.rar-heatmap-legend-labels {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 200px;
-  margin-left: 8px;
-  font-size: 12px;
-  color: var(--sc3-gray);
-}
-
-.rar-heatmap-legend-contours {
-  margin-top: 20px;
-}
-
-.rar-heatmap-legend-contour-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-  font-size: 12px;
-  color: var(--sc3-gray);
-}
-
-.rar-heatmap-legend-contour-line {
-  width: 20px;
-  height: 2px;
-  background: var(--sc3-primary);
-  margin-right: 8px;
-  opacity: 0.8;
-}
-
-.rar-heatmap-legend-section {
-  margin-bottom: 15px;
-}
-
-/* Responsive styles for heat map */
-@media (max-width: 768px) {
+  
   .rar-heatmap-main {
     flex-direction: column;
   }
@@ -4207,5 +5532,386 @@
   
   .rar-heatmap-svg {
     height: 400px;
+  }
+  
+  .rar-tornado-container {
+    padding: 1rem;
+    max-width: calc(100vw - 2rem);
+    overflow-x: visible;
+    box-sizing: border-box;
+  }
+  
+  .rar-tornado-legend {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  
+  .rar-tornado-insights {
+    padding: 0.8rem;
+  }
+  
+  .rar-back-to-top-container {
+    margin: 1.5rem 0;
+    padding: 0.75rem 0;
+  }
+  
+  .rar-back-to-top-btn {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (width <= 480px) {
+  .rar-main-title {
+    font-size: 1.5rem;
+  }
+  
+  .rar-table-statistics {
+    flex-direction: column;
+  }
+  
+  .rar-table-stat-item {
+    min-width: unset;
+  }
+  
+  .rar-view-mode-container {
+    padding: 10px;
+    gap: 8px;
+  }
+  
+  .rar-view-mode-options label {
+    font-size: 13px;
+  }
+  
+  .rar-view-mode-options {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .rar-main-container {
+    box-shadow: none;
+    margin: 0;
+    max-width: none;
+  }
+  
+  .rar-table-container {
+    width: 100%;
+    margin-left: 0;
+    background: white;
+    border-top: none;
+  }
+  
+  .rar-table-action-buttons,
+  .rar-form-actions {
+    display: none;
+  }
+  
+  .rar-table-actions {
+    display: none;
+  }
+  
+  .rar-form-summary,
+  .rar-table-summary {
+    cursor: default;
+  }
+  
+  .rar-report-container {
+    padding: 0;
+  }
+  
+  .rar-report-section,
+  .rar-financial-cards-grid,
+  .rar-report-table {
+    break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  .rar-chart-container {
+    break-inside: avoid;
+  }
+}
+
+/* Enhanced visualization component containment for all mobile devices */
+@media (max-width: 768px) {
+  /* Force all visualization components to respect viewport boundaries */
+  .rar-risk-matrix-container,
+  .rar-cdf-chart-container {
+    max-width: calc(100vw - 2rem) !important;
+    overflow-x: auto !important;
+    box-sizing: border-box !important;
+    contain: layout style !important;
+  }
+  
+  /* Special handling for quantitative chart container - no CSS containment for Recharts */
+  .rar-quantitative-chart-container {
+    max-width: calc(100vw - 2rem) !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+    min-height: 400px !important;
+    position: relative !important;
+    /* Do NOT use contain: layout style as it breaks Recharts ResponsiveContainer */
+    /* Do NOT use overflow-x: auto as it prevents Recharts from rendering */
+  }
+  
+  /* Ensure chart elements don't force horizontal expansion - but preserve chart rendering */
+  .rar-risk-matrix-wrapper {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Chart text sections - allow overflow for text but not the container */
+  .rar-quantitative-chart-container .rar-calc-formula,
+  .rar-quantitative-chart-container .rar-cumulative-breakdown {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    /* No overflow restrictions on chart text to prevent interference */
+  }
+  
+  /* Force table layouts to be constrained - but NOT on tablets */
+
+  /* Break long words in calculation components */
+  .rar-calc-component,
+  .rar-cumulative-value,
+  .rar-matrix-cell {
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    hyphens: auto !important;
+  }
+}
+
+/* Mobile-only constraints (exclude tablets) */
+@media (max-width: 480px) {
+  .rar-risk-matrix-table {
+    table-layout: fixed !important;
+    max-width: 400px !important;
+  }
+}/* Comprehensive Responsive Utilities */
+@media (max-width: 768px) {
+  /* Force all content to stay within viewport, but exclude elements that need their own width constraints */
+  .rar-main-container *:not(.rar-risk-matrix-table):not(.rar-simulation-description):not(.rar-input-currency):not(.rar-select-currency):not(.rar-currency-input):not(.rar-heatmap-chart-container):not(.rar-heatmap-chart):not(.rar-tornado-container) {
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  /* Ensure all form elements are properly sized */
+  .rar-form-table td {
+    min-width: 0;
+  }
+  
+  /* Fix any remaining table overflow issues */
+  .rar-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Button responsiveness */
+  .rar-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  /* Fix inline styled elements with risk colors */
+  span[style*="backgroundColor"]:not([style*="display: none"]),
+  input[style*="backgroundColor"]:not([style*="display: none"]),
+  select[style*="backgroundColor"]:not([style*="display: none"]),
+  div[style*="backgroundColor"]:not([style*="display: none"]) {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Specific fixes for risk level elements */
+  input[style*="getRiskColor"],
+  select[style*="getRiskColor"],
+  span[style*="getRiskColor"] {
+    max-width: 100% !important;
+    word-wrap: break-word !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  
+  /* Global Recharts responsive fixes - ensure visibility and proper sizing */
+  .recharts-responsive-container {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+    position: relative !important;
+    font-size: 14px;
+  }
+  
+  .recharts-surface {
+    overflow: visible !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  
+  .recharts-wrapper {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  
+  /* Ensure SVG elements render properly */
+  .recharts-cartesian-grid line,
+  .recharts-cartesian-axis line,
+  .recharts-cartesian-axis text {
+    display: block !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Extra small device optimizations */
+  .rar-main-container {
+    font-size: 14px;
+  }
+  
+  .rar-button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+  
+  /* Ensure tap targets are large enough */
+  button, select, input[type="radio"], input[type="checkbox"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Radio button touch targets */
+  .rar-radio-label {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+  
+  /* Risk level badge mobile sizing */
+  span[style*="padding"][style*="backgroundColor"] {
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+  }
+  
+  /* Base calculation mobile optimization */
+  .rar-calc-base {
+    font-size: 0.75em;
+    padding: 0.4rem;
+    text-align: left;
+    word-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* Fallback for any remaining overflow issues */
+@media (max-width: 768px) {
+  body {
+    overflow-x: auto;
+  }
+  
+  #root {
+    overflow-x: auto;
+    min-width: 320px;
+  }
+  
+  /* Force any absolutely positioned or inline-styled elements to stay within bounds */
+  * {
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+  
+  /* Exception for Recharts components - allow natural sizing */
+  .recharts-responsive-container,
+  .recharts-responsive-container *,
+  .recharts-surface,
+  .recharts-wrapper,
+  .rar-quantitative-chart-container .recharts-responsive-container,
+  .rar-quantitative-chart-container .recharts-surface,
+  .rar-quantitative-chart-container .recharts-wrapper {
+    max-width: none !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+  
+  /* Specific chart container fixes for 768px viewport */
+  .rar-quantitative-chart-container {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-height: 450px !important;
+    height: auto !important;
+  }
+  
+  /* Ensure the chart wrapper div has proper dimensions */
+  .rar-quantitative-chart-container > div[style*="height"] {
+    height: 300px !important;
+    min-height: 300px !important;
+    display: block !important;
+  }
+  
+  /* FINAL OVERRIDE - Ensure chart container and all children render properly at 768px */
+  .rar-quantitative-chart-container,
+  .rar-quantitative-chart-container *,
+  .rar-quantitative-chart-container .recharts-responsive-container,
+  .rar-quantitative-chart-container .recharts-surface,
+  .rar-quantitative-chart-container .recharts-wrapper {
+    overflow: visible !important;
+    max-width: none !important;
+    visibility: visible !important;
+    display: block !important;
+  }
+}
+
+/* CRITICAL FIX: Override 768px chart rendering issues - MUST BE LAST */
+@media (max-width: 768px) {
+  /* Force chart container to render properly at exactly 768px */
+  .rar-quantitative-chart-container {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    contain: none !important;
+    isolation: auto !important;
+    transform: none !important;
+    filter: none !important;
+    clip-path: none !important;
+    mask: none !important;
+  }
+  
+  /* Force all Recharts components to render */
+  .rar-quantitative-chart-container .recharts-responsive-container,
+  .rar-quantitative-chart-container .recharts-wrapper,
+  .rar-quantitative-chart-container .recharts-surface,
+  .rar-quantitative-chart-container svg,
+  .rar-quantitative-chart-container .recharts-layer,
+  .rar-quantitative-chart-container .recharts-bar,
+  .rar-quantitative-chart-container .recharts-cartesian-grid,
+  .rar-quantitative-chart-container .recharts-xAxis,
+  .rar-quantitative-chart-container .recharts-yAxis {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    max-width: none !important;
+    max-height: none !important;
+    width: auto !important;
+    height: auto !important;
+    position: relative !important;
+    transform: none !important;
+    filter: none !important;
+    clip-path: none !important;
+    contain: none !important;
+  }
+  
+  /* Ensure SVG elements specifically render */
+  .rar-quantitative-chart-container svg {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
   }
 }

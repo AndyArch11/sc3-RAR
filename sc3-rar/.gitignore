@@ -21,3 +21,13 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# CSS lint generated working files
+.stylelintcache
+.sass-cache/
+*.css.map
+*.purged.css
+.postcssrc.js
+.csslintrc
+stylelint-config-*
+.stylelint-*

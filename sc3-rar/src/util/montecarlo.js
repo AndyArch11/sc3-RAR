@@ -1,11 +1,19 @@
 import {
   triangular,
+  pert,
   normal,
   logNormal,
   uniform,
   beta,
   poisson,
-  exponential
+  exponential,
+  gamma,
+  pareto,
+  weibull,
+  negativeBinomial,
+  binomial,
+  geometric,
+  discreteUniform
 } from "./distributions";
 
 // Dynamically sample any distribution
@@ -14,6 +22,8 @@ export function sampleDistribution(params) {
   switch (type) {
     case "triangular":
       return triangular(rest.min, rest.mode, rest.max);
+    case "pert":
+      return pert(rest.min, rest.mode, rest.max, rest.gamma || 4);
     case "normal":
       return normal(rest.mean, rest.stdDev);
     case "logNormal":
@@ -28,6 +38,20 @@ export function sampleDistribution(params) {
       // For exponential distribution as annual frequency, sample directly
       // lambda represents the rate parameter (average events per year)
       return exponential(rest.lambda);
+    case "gamma":
+      return gamma(rest.shape, rest.scale);
+    case "pareto":
+      return pareto(rest.xMin, rest.alpha);
+    case "weibull":
+      return weibull(rest.k, rest.lambda);
+    case "negative-binomial":
+      return negativeBinomial(rest.r, rest.p);
+    case "binomial":
+      return binomial(rest.n, rest.p);
+    case "geometric":
+      return geometric(rest.p);
+    case "discrete-uniform":
+      return discreteUniform(rest.min, rest.max);
     default:
       return 0;
   }

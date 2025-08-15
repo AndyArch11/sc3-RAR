@@ -1,17 +1,60 @@
 import React, { useState } from "react";
-import DistributionChart, { CumulativeDistributionChart } from './DistributionChart';
-import RiskHeatMap from './RiskHeatMap';
+import DistributionChart, { CumulativeDistributionChart } from '../util/DistributionChart';
+import RiskHeatMap from '../util/RiskHeatMap';
+import TornadoGraphCustom, { isSensitivityAnalysisAvailable } from '../util/TornadoGraphCustom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import "./RAR.css";
 
 // SC3.com.au theme colours
 const SC3_SECONDARY = "#0099cc"; // Bright blue
 
+// Scroll to top function for Risk Assessment section
+const scrollToRiskAssessment = () => {
+  const element = document.getElementById('risk-assessment-section');
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth' });
+  }
+};
+
+// Back to Top Button Component
+const BackToTopButton = () => (
+  <div className="rar-back-to-top-container">
+    <button 
+      type="button"
+      className="rar-back-to-top-btn"
+      onClick={scrollToRiskAssessment}
+      title="Back to top of Risk Assessment section"
+    >
+      ↑ Back to Top
+    </button>
+  </div>
+);
+
 // Simple chart component for SLE/ARO/ALE visualization with cumulative risk cost
 const QuantitativeValuesChart = ({ sle, aro, ale, formatCurrency }) => {
-  const sleValue = parseFloat(sle) || 0;
-  const aroValue = parseFloat(aro) || 0;
-  const aleValue = parseFloat(ale) || 0;
+  const sleValue = (sle !== undefined && sle !== null && sle !== '') ? parseFloat(sle) : 0;
+  const aroValue = (aro !== undefined && aro !== null && aro !== '') ? parseFloat(aro) : 0;
+  const aleValue = (ale !== undefined && ale !== null && ale !== '') ? parseFloat(ale) : 0;
+  
+  // Force chart dimensions for 768px viewport
+  const [chartDimensions, setChartDimensions] = React.useState({ width: 0, height: 300 });
+  const chartRef = React.useRef(null);
+  
+  React.useEffect(() => {
+    const updateDimensions = () => {
+      if (chartRef.current) {
+        const containerWidth = chartRef.current.offsetWidth;
+        setChartDimensions({ 
+          width: Math.max(containerWidth - 60, 250), // Ensure minimum width
+          height: 300 
+        });
+      }
+    };
+    
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
 
   // Calculate cumulative risk costs over time (1, 5, 10 years)
   const chartData = [
@@ -62,40 +105,90 @@ const QuantitativeValuesChart = ({ sle, aro, ale, formatCurrency }) => {
       <h4 className="rar-quantitative-chart-title">
         📊 Cumulative Risk Cost Over Time
       </h4>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart
-          data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis 
-            dataKey="period" 
-            tick={{ fontSize: 12 }}
-          />
-          <YAxis 
-            tick={{ fontSize: 12 }}
-            tickFormatter={(value) => {
-              if (value >= 1000000) {
-                return '$' + (value / 1000000).toFixed(1) + 'M';
-              } else if (value >= 1000) {
-                return '$' + (value / 1000).toFixed(0) + 'K';
-              }
-              return '$' + value.toLocaleString();
-            }}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Bar 
-            dataKey="value" 
-            fill="#2196f3"
-            stroke="#333"
-            strokeWidth={1}
+      
+      <div 
+        ref={chartRef}
+        style={{ 
+          width: '100%', 
+          height: '300px', 
+          position: 'relative',
+          minHeight: '300px',
+          overflow: 'visible'
+        }}
+      >
+        {/* Chart with viewport-specific rendering */}
+        {window.innerWidth <= 768 ? (
+          <BarChart
+            width={Math.max(chartDimensions.width, 300)}
+            height={chartDimensions.height}
+            data={chartData}
+            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
-            {chartData.map((entry, index) => (
-              <Bar key={`cell-${index}`} fill={entry.color} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="period" 
+              tick={{ fontSize: 12 }}
+            />
+            <YAxis 
+              tick={{ fontSize: 12 }}
+              tickFormatter={(value) => {
+                if (value >= 1000000) {
+                  return '$' + (value / 1000000).toFixed(1) + 'M';
+                } else if (value >= 1000) {
+                  return '$' + (value / 1000).toFixed(0) + 'K';
+                }
+                return '$' + value.toLocaleString();
+              }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar 
+              dataKey="value" 
+              fill="#2196f3"
+              stroke="#333"
+              strokeWidth={1}
+            >
+              {chartData.map((entry, index) => (
+                <Bar key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Bar>
+          </BarChart>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="period" 
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis 
+                tick={{ fontSize: 12 }}
+                tickFormatter={(value) => {
+                  if (value >= 1000000) {
+                    return '$' + (value / 1000000).toFixed(1) + 'M';
+                  } else if (value >= 1000) {
+                    return '$' + (value / 1000).toFixed(0) + 'K';
+                  }
+                  return '$' + value.toLocaleString();
+                }}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar 
+                dataKey="value" 
+                fill="#2196f3"
+                stroke="#333"
+                strokeWidth={1}
+              >
+                {chartData.map((entry, index) => (
+                  <Bar key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
       
       <div className="rar-quantitative-chart-summary">
         <div className="rar-chart-calculation-display">
@@ -207,6 +300,9 @@ const InputForm = ({
   const [showVaR, setShowVaR] = useState(true);
   const [showEAL, setShowEAL] = useState(true);
   const [showPercentiles, setShowPercentiles] = useState(true);
+  
+  // State for Basic/Extended view mode
+  const [viewMode, setViewMode] = useState('Basic');
 
   return (
     <form onSubmit={handleSubmitRisk}>
@@ -221,6 +317,33 @@ const InputForm = ({
               Complete the following fields to document the risk assessment
               details.
             </p>
+            
+            {/* View Mode Toggle */}
+            <div className="rar-view-mode-container">
+              <label>
+                View Mode:
+              </label>
+              <div className="rar-view-mode-options">
+                <label>
+                  <input
+                    type="radio"
+                    value="Basic"
+                    checked={viewMode === 'Basic'}
+                    onChange={(e) => setViewMode(e.target.value)}
+                  />
+                  Basic (Essential fields only)
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    value="Extended"
+                    checked={viewMode === 'Extended'}
+                    onChange={(e) => setViewMode(e.target.value)}
+                  />
+                  Extended (All fields)
+                </label>
+              </div>
+            </div>
 
             {/* Risk Details Section */}
             <fieldset className="rar-fieldset">
@@ -278,83 +401,85 @@ const InputForm = ({
                     </td>
                   </tr>
 
-                  <tr title="Risk assessment framework used for assessing this risk"> 
-                    <td className="rar-form-label-cell">
-                      <label className="rar-form-label">
-                        Risk Assessment Framework:
-                      </label>
-                    </td>
-                    <td className="rar-form-input-cell">
-                      <select
-                        name="framework"
-                        value={form.framework}
-                        onChange={handleChange}
-                        className="rar-select"
-                      >
-                        <option value="">Select Framework</option>
-                        <option value="iso-31000">
-                          ISO 31000 - Risk Management Guidelines
-                        </option>
-                        <option value="iso-31010">
-                          ISO 31010 - Risk Assessment Techniques
-                        </option>
-                        <option value="iso-27005">
-                          ISO 27005 - Information Security Risk Management
-                        </option>
-                        <option value="nist-sp-800-30">
-                          NIST SP 800-30 - Guide for Conducting Risk Assessments
-                        </option>
-                        <option value="nist-csf">
-                          NIST Cybersecurity Framework
-                        </option>
-                        <option value="coso-erm">
-                          COSO Enterprise Risk Management Framework
-                        </option>
-                        <option value="octave">
-                          OCTAVE (Operationally Critical Threat, Asset, and
-                          Vulnerability Evaluation)
-                        </option>
-                        <option value="fair">
-                          FAIR (Factor Analysis of Information Risk)
-                        </option>
-                        <option value="dread">
-                          DREAD (Damage, Reproducibility, Exploitability,
-                          Affected Users, and Discoverability)
-                        </option>
-                        <option value="bs-31100">
-                          BS 31100 - Risk Management Code of Practice
-                        </option>
-                        <option value="as-nzs-4360">
-                          AS/NZS 4360 - Risk Management
-                        </option>
-                        <option value="custom">
-                          Custom/Organizational Framework
-                        </option>
-                        <option value="other">Other</option>
-                      </select>
-                    </td>
-                  </tr>
+                  {viewMode === 'Extended' && (
+                    <>
+                      <tr title="Risk assessment framework used for assessing this risk"> 
+                        <td className="rar-form-label-cell">
+                          <label className="rar-form-label">
+                            Risk Assessment Framework:
+                          </label>
+                        </td>
+                        <td className="rar-form-input-cell">
+                          <select
+                            name="framework"
+                            value={form.framework}
+                            onChange={handleChange}
+                            className="rar-select"
+                          >
+                            <option value="">Select Framework</option>
+                            <option value="iso-31000">
+                              ISO 31000 - Risk Management Guidelines
+                            </option>
+                            <option value="iso-31010">
+                              ISO 31010 - Risk Assessment Techniques
+                            </option>
+                            <option value="iso-27005">
+                              ISO 27005 - Information Security Risk Management
+                            </option>
+                            <option value="nist-sp-800-30">
+                              NIST SP 800-30 - Guide for Conducting Risk Assessments
+                            </option>
+                            <option value="nist-csf">
+                              NIST Cybersecurity Framework
+                            </option>
+                            <option value="coso-erm">
+                              COSO Enterprise Risk Management Framework
+                            </option>
+                            <option value="octave">
+                              OCTAVE (Operationally Critical Threat, Asset, and
+                              Vulnerability Evaluation)
+                            </option>
+                            <option value="fair">
+                              FAIR (Factor Analysis of Information Risk)
+                            </option>
+                            <option value="dread">
+                              DREAD (Damage, Reproducibility, Exploitability,
+                              Affected Users, and Discoverability)
+                            </option>
+                            <option value="bs-31100">
+                              BS 31100 - Risk Management Code of Practice
+                            </option>
+                            <option value="as-nzs-4360">
+                              AS/NZS 4360 - Risk Management
+                            </option>
+                            <option value="custom">
+                              Custom/Organizational Framework
+                            </option>
+                            <option value="other">Other</option>
+                          </select>
+                        </td>
+                      </tr>
 
-                  <tr title="Category of risk being assessed (e.g. People, Process, Technology, etc.). There could be multiple categories that this risk falls under. Select the most impactful category and list the other categories in the description field.">
-                    <td className="rar-form-label-cell">
-                      <label className="rar-form-label">
-                        Risk Category:
-                      </label>
-                    </td>
-                    <td className="rar-form-input-cell">
-                      <select
-                        name="riskCategory"
-                        value={form.riskCategory}
-                        onChange={handleChange}
-                        className="rar-select"
-                      >
-                        <option value="">Select Risk Category</option>
-                        <option value="people">People</option>
-                        <option value="process">Process</option>
-                        <option value="assets-technology">
-                          Assets & Technology/Systems
-                        </option>
-                        <option value="environment">Environment</option>
+                      <tr title="Category of risk being assessed (e.g. People, Process, Technology, etc.). There could be multiple categories that this risk falls under. Select the most impactful category and list the other categories in the description field.">
+                        <td className="rar-form-label-cell">
+                          <label className="rar-form-label">
+                            Risk Category:
+                          </label>
+                        </td>
+                        <td className="rar-form-input-cell">
+                          <select
+                            name="riskCategory"
+                            value={form.riskCategory}
+                            onChange={handleChange}
+                            className="rar-select"
+                          >
+                            <option value="">Select Risk Category</option>
+                            <option value="people">People</option>
+                            <option value="process">Process</option>
+                            <option value="assets-technology">
+                              Assets & Technology/Systems
+                            </option>
+                            <option value="environment">Environment</option>
                         <option value="reputation-customer">
                           Reputation & Customer Impact
                         </option>
@@ -524,12 +649,14 @@ const InputForm = ({
                       </select>
                     </td>
                   </tr>
+                    </>
+                  )}
                 </tbody>
               </table>
             </fieldset>
 
             {/* Risk Assessment Section */}
-            <fieldset className="rar-fieldset rar-fieldset-assessment">
+            <fieldset id="risk-assessment-section" className="rar-fieldset rar-fieldset-assessment">
               <legend className="rar-legend rar-legend-assessment">
                 Risk Assessment
               </legend>
@@ -575,7 +702,7 @@ const InputForm = ({
                             onChange={handleChange}
                             className="rar-radio"
                           />
-                          <span>Advanced Quantitative (Monte Carlo)</span>
+                          <span>Advanced Quantitative</span>
                         </label>
                       </div>
                     </td>
@@ -592,7 +719,7 @@ const InputForm = ({
                               className={`rar-qualitative-tab ${activeQualitativeTab === 'risk' ? 'active' : ''}`}
                               onClick={() => setActiveQualitativeTab('risk')}
                             >
-                              Risk
+                              Inherent Risk
                             </button>
                             <button
                               type="button"
@@ -711,46 +838,53 @@ const InputForm = ({
                         <>
                           <tr title="Current risk level for comparison reference" className="rar-tab-specific-content">
                             <td className="rar-form-label-cell">
-                              <label className="rar-form-label">Current Risk Level:</label>
+                              <label className="rar-form-label">Current Risk Level (Reference):</label>
                             </td>
                             <td className="rar-form-input-cell">
-                              <input
-                                type="text"
-                                value={riskLevel || 'Not set'}
-                                readOnly
-                                className="rar-input rar-input-readonly rar-input-risk-level"
-                                style={{
-                                  border: `2px solid ${riskLevel ? getRiskColor(riskLevel.charAt(0).toUpperCase() + riskLevel.slice(1)) : '#ddd'}`,
-                                  backgroundColor: riskLevel ? getRiskColor(
-                                    riskLevel.charAt(0).toUpperCase() +
-                                      riskLevel.slice(1),
-                                  ) : '#f8f9fa',
-                                  color: riskLevel ? '#fff' : '#6c757d',
-                                }}
-                              />
-                              <small className="rar-help-text">
-                                Reference: Current risk level from Risk tab for comparison
-                              </small>
+                              <div className="rar-current-risk-reference">
+                                <span 
+                                  className="rar-risk-level-badge"
+                                  style={{
+                                    backgroundColor: riskLevel ? 
+                                      getRiskColor(riskLevel.charAt(0).toUpperCase() + riskLevel.slice(1)) : 
+                                      '#cccccc',
+                                    color: '#fff',
+                                    padding: '8px 16px',
+                                    borderRadius: '4px',
+                                    fontWeight: 'bold',
+                                    fontSize: '14px',
+                                    textTransform: 'uppercase',
+                                    display: 'inline-block'
+                                  }}
+                                >
+                                  {riskLevel || 'Not Calculated'}
+                                </span>
+                                <small className="rar-help-text" style={{ marginLeft: '12px' }}>
+                                  From main Risk tab for comparison
+                                </small>
+                              </div>
                             </td>
                           </tr>
 
-                          <tr title="Strategy for treating the identified risk" className="rar-tab-specific-content">
-                            <td className="rar-form-label-cell">
-                              <label className="rar-form-label">Treatment Strategy:</label>
-                            </td>
-                            <td className="rar-form-input-cell">
-                              <select
-                                name="treatmentStrategy"
-                                value={form.treatmentStrategy}
-                                onChange={handleChange}
-                                className="rar-select"
-                              >
-                                <option value="">Select Treatment Strategy</option>
-                                <option value="avoid">Avoid</option>
-                                <option value="mitigate">Mitigate</option>
-                                <option value="transfer">Transfer</option>
-                                <option value="accept">Accept</option>
-                              </select>
+                          {viewMode === 'Extended' && (
+                            <>
+                              <tr title="Strategy for treating the identified risk" className="rar-tab-specific-content">
+                                <td className="rar-form-label-cell">
+                                  <label className="rar-form-label">Treatment Strategy:</label>
+                                </td>
+                                <td className="rar-form-input-cell">
+                                  <select
+                                    name="treatmentStrategy"
+                                    value={form.treatmentStrategy}
+                                    onChange={handleChange}
+                                    className="rar-select"
+                                  >
+                                    <option value="">Select Treatment Strategy</option>
+                                    <option value="avoid">Avoid</option>
+                                    <option value="mitigate">Mitigate</option>
+                                    <option value="transfer">Transfer</option>
+                                    <option value="accept">Accept</option>
+                                  </select>
                             </td>
                           </tr>
 
@@ -800,6 +934,8 @@ const InputForm = ({
                               />
                             </td>
                           </tr>
+                            </>
+                          )}
 
                           <tr title="Likelihood of the risk occurring after implementing controls" className="rar-tab-specific-content">
                             <td className="rar-form-label-cell">
@@ -921,7 +1057,7 @@ const InputForm = ({
                               className={`rar-qualitative-tab ${activeQuantitativeTab === 'risk' ? 'active' : ''}`}
                               onClick={() => setActiveQuantitativeTab('risk')}
                             >
-                              Risk
+                              Inherent Risk
                             </button>
                             <button
                               type="button"
@@ -938,125 +1074,125 @@ const InputForm = ({
                       {activeQuantitativeTab === 'risk' && (
                         <>
                           <tr title="Single Loss Expectancy (SLE) - expected loss from a single incident" className="rar-tab-specific-content">
-                        <td className="rar-form-label-cell">
-                          <label className="rar-form-label">
-                            Single Loss Expectancy (SLE):
-                          </label>
-                        </td>
-                        <td className="rar-form-input-cell">
-                          <div className="rar-currency-input">
-                            <select
-                              name="sleCurrency"
-                              value={form.sleCurrency}
-                              onChange={handleChange}
-                              className="rar-select rar-select-currency"
-                            >
-                              <option value="dollar">$ (dollar)</option>
-                              <option value="euro">€ (euro)</option>
-                              <option value="pound">£ (pound)</option>
-                              <option value="yen">¥ (yen)</option>
-                              <option value="rupee">₹ (rupee)</option>
-                              <option value="peso">₱ (peso)</option>
-                              <option value="won">₩ (won)</option>
-                              <option value="lira">₺ (lira)</option>
-                              <option value="franc">₣ (franc)</option>
-                              <option value="shekel">₪ (shekel)</option>
-                              <option value="other">¤ (other)</option>
-                            </select>
-                            <input
-                              type="number"
-                              placeholder="Auto-populated from Impact, or enter manually"
-                              name="sle"
-                              value={form.sle}
-                              onChange={handleChange}
-                              className="rar-input rar-input-currency"
-                            />
-                          </div>
-                        </td>
-                      </tr>
+                            <td className="rar-form-label-cell">
+                              <label className="rar-form-label">
+                                Single Loss Expectancy (SLE):
+                              </label>
+                            </td>
+                            <td className="rar-form-input-cell">
+                              <div className="rar-currency-input">
+                                <select
+                                  name="sleCurrency"
+                                  value={form.sleCurrency}
+                                  onChange={handleChange}
+                                  className="rar-select rar-select-currency"
+                                >
+                                  <option value="dollar">$ (dollar)</option>
+                                  <option value="euro">€ (euro)</option>
+                                  <option value="pound">£ (pound)</option>
+                                  <option value="yen">¥ (yen)</option>
+                                  <option value="rupee">₹ (rupee)</option>
+                                  <option value="peso">₱ (peso)</option>
+                                  <option value="won">₩ (won)</option>
+                                  <option value="lira">₺ (lira)</option>
+                                  <option value="franc">₣ (franc)</option>
+                                  <option value="shekel">₪ (shekel)</option>
+                                  <option value="other">¤ (other)</option>
+                                </select>
+                                <input
+                                  type="number"
+                                  placeholder=""
+                                  name="sle"
+                                  value={form.sle}
+                                  onChange={handleChange}
+                                  className="rar-input rar-input-currency"
+                                />
+                              </div>
+                            </td>
+                          </tr>
 
-                      <tr title="Annual Rate of Occurrence (ARO) - expected frequency of incidents per year" className="rar-tab-specific-content">
-                        <td className="rar-form-label-cell">
-                          <label className="rar-form-label">
-                            Annual Rate of Occurrence (ARO):
-                          </label>
-                        </td>
-                        <td className="rar-form-input-cell">
-                          <input
-                            type="number"
-                            step="0.1"
-                            placeholder="Auto-populated from Likelihood, or enter manually"
-                            name="aro"
-                            value={form.aro}
-                            onChange={handleChange}
-                            className="rar-input"
-                          />
-                        </td>
-                      </tr>
+                          <tr title="Annual Rate of Occurrence (ARO) - expected frequency of incidents per year" className="rar-tab-specific-content">
+                            <td className="rar-form-label-cell">
+                              <label className="rar-form-label">
+                                Annual Rate of Occurrence (ARO):
+                              </label>
+                            </td>
+                            <td className="rar-form-input-cell">
+                              <input
+                                type="number"
+                                step="0.1"
+                                placeholder=""
+                                name="aro"
+                                value={form.aro}
+                                onChange={handleChange}
+                                className="rar-input"
+                              />
+                            </td>
+                          </tr>
 
-                      <tr title="Annual Loss Expectancy (ALE) - expected loss per year" className="rar-tab-specific-content">
-                        <td className="rar-form-label-cell">
-                          <label className="rar-form-label">
-                            Annual Loss Expectancy (ALE):
-                          </label>
-                        </td>
-                        <td className="rar-form-input-cell">
-                          <input
-                            type="text"
-                            name="ale"
-                            value={formatCurrency(calculateALE(form), form.sleCurrency)}
-                            readOnly
-                            className="rar-input rar-input-readonly"
-                          />
-                          <small className="rar-help-text">
-                            Calculated as: SLE × ARO ={" "}
-                            {formatCurrency(calculateALE(form), form.sleCurrency)}
-                          </small>
-                        </td>
-                      </tr>
-                      {form.sle && form.aro && calculateALE(form) > 0 && (
-                        <tr className="rar-tab-specific-content">
-                          <td colSpan="2" className="rar-form-input-cell">
-                            <QuantitativeValuesChart
-                              sle={form.sle}
-                              aro={form.aro}
-                              ale={calculateALE(form)}
-                              formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
-                            />
-                          </td>
-                        </tr>
-                      )}
+                          <tr title="Annual Loss Expectancy (ALE) - expected loss per year" className="rar-tab-specific-content">
+                            <td className="rar-form-label-cell">
+                              <label className="rar-form-label">
+                                Annual Loss Expectancy (ALE):
+                              </label>
+                            </td>
+                            <td className="rar-form-input-cell">
+                              <input
+                                type="text"
+                                name="ale"
+                                value={formatCurrency(calculateALE(form), form.sleCurrency)}
+                                readOnly
+                                className="rar-input rar-input-readonly"
+                              />
+                              <small className="rar-help-text">
+                                Calculated as: SLE × ARO ={" "}
+                                {formatCurrency(calculateALE(form), form.sleCurrency)}
+                              </small>
+                            </td>
+                          </tr>
+                          {form.sle && form.aro && calculateALE(form) > 0 && (
+                            <tr className="rar-tab-specific-content">
+                              <td colSpan="2" className="rar-form-input-cell">
+                                <QuantitativeValuesChart
+                                  sle={form.sle}
+                                  aro={form.aro}
+                                  ale={calculateALE(form)}
+                                  formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                />
+                              </td>
+                            </tr>
+                          )}
 
-                      <tr title="Risk level based on quantitative assessment" className="rar-tab-specific-content">
-                        <td className="rar-form-label-cell">
-                          <label className="rar-form-label">Risk Level:</label>
-                        </td>
-                        <td className="rar-form-input-cell">
-                          <select
-                            name="manualRiskLevel"
-                            value={form.manualRiskLevel}
-                            onChange={handleChange}
-                            className="rar-select rar-select-risk-level"
-                            style={{
-                              border: `2px solid ${getRiskColor(form.manualRiskLevel.charAt(0).toUpperCase() + form.manualRiskLevel.slice(1))}`,
-                              backgroundColor: getRiskColor(
-                                form.manualRiskLevel.charAt(0).toUpperCase() +
-                                  form.manualRiskLevel.slice(1),
-                              ),
-                              color: form.manualRiskLevel ? "#fff" : "#333",
-                            }}
-                          >
-                            <option value="">Select Risk Level</option>
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                            <option value="extreme">Extreme</option>
-                          </select>
-                          <small className="rar-help-text">
-                            Automatically calculated based on ALE and threshold values
-                          </small>
-                        </td>
-                      </tr>
+                          <tr title="Risk level based on quantitative assessment" className="rar-tab-specific-content">
+                            <td className="rar-form-label-cell">
+                              <label className="rar-form-label">Risk Level:</label>
+                            </td>
+                            <td className="rar-form-input-cell">
+                              <select
+                                name="manualRiskLevel"
+                                value={form.manualRiskLevel}
+                                onChange={handleChange}
+                                className="rar-select rar-select-risk-level"
+                                style={{
+                                  border: `2px solid ${getRiskColor(form.manualRiskLevel.charAt(0).toUpperCase() + form.manualRiskLevel.slice(1))}`,
+                                  backgroundColor: getRiskColor(
+                                    form.manualRiskLevel.charAt(0).toUpperCase() +
+                                      form.manualRiskLevel.slice(1),
+                                  ),
+                                  color: form.manualRiskLevel ? "#fff" : "#333",
+                                }}
+                              >
+                                <option value="">Select Risk Level</option>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="extreme">Extreme</option>
+                              </select>
+                              <small className="rar-help-text">
+                                Automatically calculated based on ALE and threshold values
+                              </small>
+                            </td>
+                          </tr>
                         </>
                       )}
 
@@ -1065,29 +1201,36 @@ const InputForm = ({
                         <>
                           <tr title="Current risk level for comparison reference" className="rar-tab-specific-content">
                             <td className="rar-form-label-cell">
-                              <label className="rar-form-label">Current Risk Level:</label>
+                              <label className="rar-form-label">Current Risk Level (Reference):</label>
                             </td>
                             <td className="rar-form-input-cell">
-                              <input
-                                type="text"
-                                value={form.manualRiskLevel || 'Not set'}
-                                readOnly
-                                className="rar-input rar-input-readonly rar-input-risk-level"
-                                style={{
-                                  border: `2px solid ${form.manualRiskLevel ? getRiskColor(form.manualRiskLevel.charAt(0).toUpperCase() + form.manualRiskLevel.slice(1)) : '#ddd'}`,
-                                  backgroundColor: form.manualRiskLevel ? getRiskColor(
-                                    form.manualRiskLevel.charAt(0).toUpperCase() +
-                                      form.manualRiskLevel.slice(1),
-                                  ) : '#f8f9fa',
-                                  color: form.manualRiskLevel ? '#fff' : '#6c757d',
-                                }}
-                              />
-                              <small className="rar-help-text">
-                                Reference: Current risk level from Risk tab for comparison
-                              </small>
+                              <div className="rar-current-risk-reference">
+                                <span 
+                                  className="rar-risk-level-badge"
+                                  style={{
+                                    backgroundColor: form.manualRiskLevel ? 
+                                      getRiskColor(form.manualRiskLevel.charAt(0).toUpperCase() + form.manualRiskLevel.slice(1)) : 
+                                      '#cccccc',
+                                    color: '#fff',
+                                    padding: '8px 16px',
+                                    borderRadius: '4px',
+                                    fontWeight: 'bold',
+                                    fontSize: '14px',
+                                    textTransform: 'uppercase',
+                                    display: 'inline-block'
+                                  }}
+                                >
+                                  {form.manualRiskLevel || 'Not Calculated'}
+                                </span>
+                                <small className="rar-help-text" style={{ marginLeft: '12px' }}>
+                                  From main Risk tab for comparison
+                                </small>
+                              </div>
                             </td>
                           </tr>
 
+                          {viewMode === 'Extended' && (
+                          <>
                           <tr title="Strategy for treating the identified risk" className="rar-tab-specific-content">
                             <td className="rar-form-label-cell">
                               <label className="rar-form-label">Treatment Strategy:</label>
@@ -1154,6 +1297,8 @@ const InputForm = ({
                               />
                             </td>
                           </tr>
+                          </>
+                          )}
 
                           <tr title="Residual Single Loss Expectancy (SLE) after implementing controls" className="rar-tab-specific-content">
                             <td className="rar-form-label-cell">
@@ -1183,7 +1328,7 @@ const InputForm = ({
                                 </select>
                                 <input
                                   type="number"
-                                  placeholder="Auto-populated from Residual Impact, or enter manually"
+                                  placeholder=""
                                   name="residualSle"
                                   value={form.residualSle}
                                   onChange={handleChange}
@@ -1203,7 +1348,7 @@ const InputForm = ({
                               <input
                                 type="number"
                                 step="0.1"
-                                placeholder="Auto-populated from Residual Likelihood, or enter manually"
+                                placeholder=""
                                 name="residualAro"
                                 value={form.residualAro}
                                 onChange={handleChange}
@@ -1313,7 +1458,7 @@ const InputForm = ({
                               className={`rar-qualitative-tab ${activeAdvancedQuantitativeTab === 'risk' ? 'active' : ''}`}
                               onClick={() => setActiveAdvancedQuantitativeTab('risk')}
                             >
-                              Risk
+                              Inherent Risk
                             </button>
                             <button
                               type="button"
@@ -1321,6 +1466,34 @@ const InputForm = ({
                               onClick={() => setActiveAdvancedQuantitativeTab('residualRisk')}
                             >
                               Residual Risk
+                            </button>
+                            <button
+                              type="button"
+                              className={`rar-qualitative-tab ${activeAdvancedQuantitativeTab === 'tornado' ? 'active' : ''}`}
+                              onClick={() => setActiveAdvancedQuantitativeTab('tornado')}
+                            >
+                              Sensitivity Analysis
+                              {isSensitivityAnalysisAvailable(form) && (
+                                <span 
+                                  style={{
+                                    display: 'inline-block',
+                                    width: '8px',
+                                    height: '8px',
+                                    backgroundColor: '#28a745',
+                                    borderRadius: '50%',
+                                    marginLeft: '6px',
+                                    verticalAlign: 'middle'
+                                  }}
+                                  title="Supported distribution combination available for analysis"
+                                />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              className={`rar-qualitative-tab ${activeAdvancedQuantitativeTab === 'heatmap' ? 'active' : ''}`}
+                              onClick={() => setActiveAdvancedQuantitativeTab('heatmap')}
+                            >
+                              Heat Map
                             </button>
                           </div>
                         </td>
@@ -1359,16 +1532,22 @@ const InputForm = ({
                               className="rar-select"
                             >
                               <option value="triangular">Triangular</option>
+                              <option value="pert">Modified PERT</option>
                               <option value="normal">Normal</option>
                               <option value="lognormal">Log-Normal</option>
                               <option value="uniform">Uniform</option>
                               <option value="beta">Beta</option>
+                              <option value="gamma">Gamma</option>
+                              <option value="pareto">Pareto</option>
+                              <option value="weibull">Weibull</option>
                             </select>
                             {form.lossDistribution && (
                               <small className="rar-help-text rar-distribution-info">
                                 <strong>Use case:</strong>{" "}
                                 {form.lossDistribution === "triangular" && 
                                   "Commonly used when you have minimum, most likely, and maximum loss estimates. Ideal for expert judgment scenarios where three-point estimates are available."}
+                                {form.lossDistribution === "pert" && 
+                                  "Modified PERT (Program Evaluation and Review Technique) provides more refined estimates than triangular. Uses minimum, most likely, maximum values, and a gamma parameter (γ) controlling the weight given to the most likely value. Standard PERT uses γ=4. Higher gamma values increase mode emphasis. Particularly useful for project risk analysis and expert estimation scenarios."}
                                 {form.lossDistribution === "normal" && 
                                   "Used for losses that cluster around a mean value with symmetric spread. Suitable for well-understood risks with historical data showing bell-curve patterns."}
                                 {form.lossDistribution === "lognormal" && 
@@ -1377,6 +1556,12 @@ const InputForm = ({
                                   "Used when all loss values within a range are equally likely. Appropriate when there's complete uncertainty about loss magnitude within known bounds."}
                                 {form.lossDistribution === "beta" && 
                                   "Flexible distribution for bounded losses (between min/max) with various shapes. Useful for modeling expert opinions with different confidence levels."}
+                                {form.lossDistribution === "gamma" && 
+                                  "Right-skewed distribution ideal for modeling positive losses with lower bound. Uses shape (α) and scale (β) parameters. Common for financial losses, claim amounts, and time-to-event data. Shape parameter controls skewness: α<1 highly right-skewed, α>1 less skewed."}
+                                {form.lossDistribution === "pareto" && 
+                                  "Heavy-tailed distribution following the 80/20 principle - most losses are small, but extreme losses have significant probability. Uses minimum value (xₘ) and shape parameter (α). Ideal for modeling catastrophic losses, cyber incidents, and operational risk scenarios."}
+                                {form.lossDistribution === "weibull" && 
+                                  "Versatile distribution for modeling failure rates and reliability. Uses shape (k) and scale (λ) parameters. Shape parameter controls distribution behavior: k<1 decreasing failure rate, k=1 constant (exponential), k>1 increasing failure rate. Common for equipment failures and life data analysis."}
                               </small>
                             )}
                           </td>
@@ -1497,9 +1682,9 @@ const InputForm = ({
                                 <DistributionChart
                                   distributionType="triangular"
                                   parameters={{
-                                    min: parseFloat(form.minLoss) || 0,
-                                    mode: parseFloat(form.mostLikelyLoss) || 0,
-                                    max: parseFloat(form.maxLoss) || 0
+                                    min: (form.minLoss !== undefined && form.minLoss !== null && form.minLoss !== '') ? parseFloat(form.minLoss) : 0,
+                                    mode: (form.mostLikelyLoss !== undefined && form.mostLikelyLoss !== null && form.mostLikelyLoss !== '') ? parseFloat(form.mostLikelyLoss) : 0,
+                                    max: (form.maxLoss !== undefined && form.maxLoss !== null && form.maxLoss !== '') ? parseFloat(form.maxLoss) : 0
                                   }}
                                   title="Loss Distribution - Triangular"
                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
@@ -1511,11 +1696,176 @@ const InputForm = ({
                                 <CumulativeDistributionChart
                                   distributionType="triangular"
                                   parameters={{
-                                    min: parseFloat(form.minLoss) || 0,
-                                    mode: parseFloat(form.mostLikelyLoss) || 0,
-                                    max: parseFloat(form.maxLoss) || 0
+                                    min: (form.minLoss !== undefined && form.minLoss !== null && form.minLoss !== '') ? parseFloat(form.minLoss) : 0,
+                                    mode: (form.mostLikelyLoss !== undefined && form.mostLikelyLoss !== null && form.mostLikelyLoss !== '') ? parseFloat(form.mostLikelyLoss) : 0,
+                                    max: (form.maxLoss !== undefined && form.maxLoss !== null && form.maxLoss !== '') ? parseFloat(form.maxLoss) : 0
                                   }}
                                   title="Loss Distribution - Triangular"
+                                  formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                />
+                              </td>
+                            </tr>
+                          </>
+                        )}
+
+                        {(form.lossDistribution === "pert") && (
+                          <>
+                            <tr title="Minimum loss value for the PERT distribution" className="rar-tab-specific-content">
+                              <td className="rar-form-label-cell">
+                                <label className="rar-form-label">Minimum Loss:</label>
+                              </td>
+                              <td className="rar-form-input-cell">
+                                <div className="rar-currency-input">
+                                  <select
+                                    name="sleCurrency"
+                                    value={form.sleCurrency}
+                                    onChange={handleChange}
+                                    className="rar-select rar-select-currency"
+                                  >
+                                    <option value="dollar">$ (dollar)</option>
+                                    <option value="euro">€ (euro)</option>
+                                    <option value="pound">£ (pound)</option>
+                                    <option value="yen">¥ (yen)</option>
+                                    <option value="rupee">₹ (rupee)</option>
+                                    <option value="peso">₱ (peso)</option>
+                                    <option value="won">₩ (won)</option>
+                                    <option value="lira">₺ (lira)</option>
+                                    <option value="franc">₣ (franc)</option>
+                                    <option value="shekel">₪ (shekel)</option>
+                                    <option value="other">¤ (other)</option>
+                                  </select>
+                                  <input
+                                    type="number"
+                                    placeholder="Minimum loss value"
+                                    name="minLoss"
+                                    value={form.minLoss}
+                                    onChange={handleChange}
+                                    className="rar-input rar-input-currency"
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+
+                            <tr title="Most likely loss value for the PERT distribution (mode with higher weight)" className="rar-tab-specific-content">
+                              <td className="rar-form-label-cell">
+                                <label className="rar-form-label">Most Likely Loss (mode):</label>
+                              </td>
+                              <td className="rar-form-input-cell">
+                                <div className="rar-currency-input">
+                                  <select
+                                    name="sleCurrency"
+                                    value={form.sleCurrency}
+                                    onChange={handleChange}
+                                    className="rar-select rar-select-currency"
+                                  >
+                                    <option value="dollar">$ (dollar)</option>
+                                    <option value="euro">€ (euro)</option>
+                                    <option value="pound">£ (pound)</option>
+                                    <option value="yen">¥ (yen)</option>
+                                    <option value="rupee">₹ (rupee)</option>
+                                    <option value="peso">₱ (peso)</option>
+                                    <option value="won">₩ (won)</option>
+                                    <option value="lira">₺ (lira)</option>
+                                    <option value="franc">₣ (franc)</option>
+                                    <option value="shekel">₪ (shekel)</option>
+                                    <option value="other">¤ (other)</option>
+                                  </select>
+                                  <input
+                                    type="number"
+                                    placeholder="Most likely loss value"
+                                    name="mostLikelyLoss"
+                                    value={form.mostLikelyLoss}
+                                    onChange={handleChange}
+                                    className="rar-input rar-input-currency"
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+
+                            <tr title="Maximum loss value for the PERT distribution" className="rar-tab-specific-content">
+                              <td className="rar-form-label-cell">
+                                <label className="rar-form-label">Maximum Loss:</label>
+                              </td>
+                              <td className="rar-form-input-cell">
+                                <div className="rar-currency-input">
+                                  <select
+                                    name="sleCurrency"
+                                    value={form.sleCurrency}
+                                    onChange={handleChange}
+                                    className="rar-select rar-select-currency"
+                                  >
+                                    <option value="dollar">$ (dollar)</option>
+                                    <option value="euro">€ (euro)</option>
+                                    <option value="pound">£ (pound)</option>
+                                    <option value="yen">¥ (yen)</option>
+                                    <option value="rupee">₹ (rupee)</option>
+                                    <option value="peso">₱ (peso)</option>
+                                    <option value="won">₩ (won)</option>
+                                    <option value="lira">₺ (lira)</option>
+                                    <option value="franc">₣ (franc)</option>
+                                    <option value="shekel">₪ (shekel)</option>
+                                    <option value="other">¤ (other)</option>
+                                  </select>
+                                  <input
+                                    type="number"
+                                    placeholder="Maximum loss value"
+                                    name="maxLoss"
+                                    value={form.maxLoss}
+                                    onChange={handleChange}
+                                    className="rar-input rar-input-currency"
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+
+                            <tr title="Gamma parameter controls the shape and weight given to the mode value (typically 2-6, default 4)" className="rar-tab-specific-content">
+                              <td className="rar-form-label-cell">
+                                <label className="rar-form-label">Gamma (γ) Parameter:</label>
+                              </td>
+                              <td className="rar-form-input-cell">
+                                <input
+                                  type="number"
+                                  placeholder="Gamma parameter (default: 4)"
+                                  name="pertGamma"
+                                  value={form.pertGamma || 4}
+                                  onChange={handleChange}
+                                  className="rar-input"
+                                  min="1"
+                                  max="10"
+                                  step="0.1"
+                                />
+                                <small className="rar-help-text">
+                                  Controls shape and mode emphasis. Higher values give more weight to the mode. 
+                                  Standard PERT uses γ=4. Range: 1-10 (typical: 2-6).
+                                </small>
+                              </td>
+                            </tr>
+                            <tr className="rar-tab-specific-content">
+                              <td colSpan="2" className="rar-form-input-cell">
+                                <DistributionChart
+                                  distributionType="pert"
+                                  parameters={{
+                                    min: (form.minLoss !== undefined && form.minLoss !== null && form.minLoss !== '') ? parseFloat(form.minLoss) : 0,
+                                    mode: (form.mostLikelyLoss !== undefined && form.mostLikelyLoss !== null && form.mostLikelyLoss !== '') ? parseFloat(form.mostLikelyLoss) : 0,
+                                    max: (form.maxLoss !== undefined && form.maxLoss !== null && form.maxLoss !== '') ? parseFloat(form.maxLoss) : 0,
+                                    gamma: (form.pertGamma !== undefined && form.pertGamma !== null && form.pertGamma !== '') ? parseFloat(form.pertGamma) : 4
+                                  }}
+                                  title="Loss Distribution - Modified PERT"
+                                  formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                />
+                              </td>
+                            </tr>
+                            <tr className="rar-tab-specific-content">
+                              <td colSpan="2" className="rar-form-input-cell">
+                                <CumulativeDistributionChart
+                                  distributionType="pert"
+                                  parameters={{
+                                    min: (form.minLoss !== undefined && form.minLoss !== null && form.minLoss !== '') ? parseFloat(form.minLoss) : 0,
+                                    mode: (form.mostLikelyLoss !== undefined && form.mostLikelyLoss !== null && form.mostLikelyLoss !== '') ? parseFloat(form.mostLikelyLoss) : 0,
+                                    max: (form.maxLoss !== undefined && form.maxLoss !== null && form.maxLoss !== '') ? parseFloat(form.maxLoss) : 0,
+                                    gamma: (form.pertGamma !== undefined && form.pertGamma !== null && form.pertGamma !== '') ? parseFloat(form.pertGamma) : 4
+                                  }}
+                                  title="Loss Distribution - Modified PERT"
                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
                                 />
                               </td>
@@ -1622,8 +1972,8 @@ const InputForm = ({
                                       <div>
                                         <strong>Actual Mean:</strong><br/>
                                         {(() => {
-                                          const mu = parseFloat(form.lossMean) || 0;
-                                          const sigma = parseFloat(form.lossStdDev) || 1;
+                                          const mu = (form.lossMean !== undefined && form.lossMean !== null && form.lossMean !== '') ? parseFloat(form.lossMean) : 0;
+                                          const sigma = (form.lossStdDev !== undefined && form.lossStdDev !== null && form.lossStdDev !== '') ? parseFloat(form.lossStdDev) : 1;
                                           const actualMean = Math.exp(mu + (sigma * sigma) / 2);
                                           return formatCurrency(actualMean, form.sleCurrency);
                                         })()}
@@ -1631,26 +1981,29 @@ const InputForm = ({
                                       <div>
                                         <strong>Actual Std Dev:</strong><br/>
                                         {(() => {
-                                          const mu = parseFloat(form.lossMean) || 0;
-                                          const sigma = parseFloat(form.lossStdDev) || 1;
+                                          const mu = (form.lossMean !== undefined && form.lossMean !== null && form.lossMean !== '') ? parseFloat(form.lossMean) : 0;
+                                          const sigma = (form.lossStdDev !== undefined && form.lossStdDev !== null && form.lossStdDev !== '') ? parseFloat(form.lossStdDev) : 1;
                                           const actualVariance = (Math.exp(sigma * sigma) - 1) * Math.exp(2 * mu + sigma * sigma);
                                           const actualStdDev = Math.sqrt(actualVariance);
                                           return formatCurrency(actualStdDev, form.sleCurrency);
                                         })()}
                                       </div>
                                       <div>
-                                        <strong>Median:</strong><br/>
+                                        <strong>Median (e<sup>μ</sup>):</strong><br/>
                                         {(() => {
-                                          const mu = parseFloat(form.lossMean) || 0;
+                                          const mu = (form.lossMean !== undefined && form.lossMean !== null && form.lossMean !== '') ? parseFloat(form.lossMean) : 0;
                                           const median = Math.exp(mu);
                                           return formatCurrency(median, form.sleCurrency);
                                         })()}
+                                        <br/><small style={{ color: '#6c757d' }}>
+                                          e<sup>μ</sup> = e<sup>{(form.lossMean !== undefined && form.lossMean !== null && form.lossMean !== '') ? parseFloat(form.lossMean) : 0}</sup> = {formatCurrency(Math.exp((form.lossMean !== undefined && form.lossMean !== null && form.lossMean !== '') ? parseFloat(form.lossMean) : 0), form.sleCurrency)}
+                                        </small>
                                       </div>
                                       <div>
                                         <strong>Mode:</strong><br/>
                                         {(() => {
-                                          const mu = parseFloat(form.lossMean) || 0;
-                                          const sigma = parseFloat(form.lossStdDev) || 1;
+                                          const mu = (form.lossMean !== undefined && form.lossMean !== null && form.lossMean !== '') ? parseFloat(form.lossMean) : 0;
+                                          const sigma = (form.lossStdDev !== undefined && form.lossStdDev !== null && form.lossStdDev !== '') ? parseFloat(form.lossStdDev) : 1;
                                           const mode = Math.exp(mu - sigma * sigma);
                                           return formatCurrency(mode, form.sleCurrency);
                                         })()}
@@ -1674,14 +2027,14 @@ const InputForm = ({
                                     fontSize: '12px',
                                     color: '#0066cc'
                                   }}>
-                                    <strong>Graph Range Info:</strong> The chart shows the 1st to 99th percentile range of your log-normal distribution. With μ={parseFloat(form.lossMean) || 0} and σ={parseFloat(form.lossStdDev) || 1}, this covers roughly {formatCurrency(Math.exp((parseFloat(form.lossMean) || 0) + (parseFloat(form.lossStdDev) || 1) * (-2.326)), form.sleCurrency)} to {formatCurrency(Math.exp((parseFloat(form.lossMean) || 0) + (parseFloat(form.lossStdDev) || 1) * 2.326), form.sleCurrency)}.
+                                    <strong>Graph Range Info:</strong> The chart shows the 1st to 99th percentile range of your log-normal distribution. With μ={(form.lossMean !== undefined && form.lossMean !== null && form.lossMean !== '') ? parseFloat(form.lossMean) : 0} and σ={(form.lossStdDev !== undefined && form.lossStdDev !== null && form.lossStdDev !== '') ? parseFloat(form.lossStdDev) : 1}, this covers roughly {formatCurrency(Math.exp(((form.lossMean !== undefined && form.lossMean !== null && form.lossMean !== '') ? parseFloat(form.lossMean) : 0) + ((form.lossStdDev !== undefined && form.lossStdDev !== null && form.lossStdDev !== '') ? parseFloat(form.lossStdDev) : 1) * (-2.326)), form.sleCurrency)} to {formatCurrency(Math.exp(((form.lossMean !== undefined && form.lossMean !== null && form.lossMean !== '') ? parseFloat(form.lossMean) : 0) + ((form.lossStdDev !== undefined && form.lossStdDev !== null && form.lossStdDev !== '') ? parseFloat(form.lossStdDev) : 1) * 2.326), form.sleCurrency)}.
                                   </div>
                                 )}
                                 <DistributionChart
                                   distributionType={form.lossDistribution}
                                   parameters={{
-                                    mean: parseFloat(form.lossMean) || 0,
-                                    stdDev: parseFloat(form.lossStdDev) || 1
+                                    mean: (form.lossMean !== undefined && form.lossMean !== null && form.lossMean !== '') ? parseFloat(form.lossMean) : 0,
+                                    stdDev: (form.lossStdDev !== undefined && form.lossStdDev !== null && form.lossStdDev !== '') ? parseFloat(form.lossStdDev) : 1
                                   }}
                                   title={`Loss Distribution - ${form.lossDistribution === 'lognormal' ? 'Log-Normal (1st-99th percentile)' : 'Normal'}`}
                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
@@ -1693,8 +2046,8 @@ const InputForm = ({
                                 <CumulativeDistributionChart
                                   distributionType={form.lossDistribution}
                                   parameters={{
-                                    mean: parseFloat(form.lossMean) || 0,
-                                    stdDev: parseFloat(form.lossStdDev) || 1
+                                    mean: (form.lossMean !== undefined && form.lossMean !== null && form.lossMean !== '') ? parseFloat(form.lossMean) : 0,
+                                    stdDev: (form.lossStdDev !== undefined && form.lossStdDev !== null && form.lossStdDev !== '') ? parseFloat(form.lossStdDev) : 1
                                   }}
                                   title={`Cumulative Loss Distribution - ${form.lossDistribution === 'lognormal' ? 'Log-Normal (1st-99th percentile)' : 'Normal'}`}
                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
@@ -1782,8 +2135,8 @@ const InputForm = ({
                                 <DistributionChart
                                   distributionType="uniform"
                                   parameters={{
-                                    minVal: parseFloat(form.minLoss) || 0,
-                                    maxVal: parseFloat(form.maxLoss) || 1
+                                    minVal: (form.minLoss !== undefined && form.minLoss !== null && form.minLoss !== '') ? parseFloat(form.minLoss) : 0,
+                                    maxVal: (form.maxLoss !== undefined && form.maxLoss !== null && form.maxLoss !== '') ? parseFloat(form.maxLoss) : 1
                                   }}
                                   title="Loss Distribution - Uniform"
                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
@@ -1795,8 +2148,8 @@ const InputForm = ({
                                 <CumulativeDistributionChart
                                   distributionType="uniform"
                                   parameters={{
-                                    minVal: parseFloat(form.minLoss) || 0,
-                                    maxVal: parseFloat(form.maxLoss) || 1
+                                    minVal: (form.minLoss !== undefined && form.minLoss !== null && form.minLoss !== '') ? parseFloat(form.minLoss) : 0,
+                                    maxVal: (form.maxLoss !== undefined && form.maxLoss !== null && form.maxLoss !== '') ? parseFloat(form.maxLoss) : 1
                                   }}
                                   title="Loss Distribution - Uniform"
                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
@@ -1919,10 +2272,10 @@ const InputForm = ({
                                 <DistributionChart
                                   distributionType="beta"
                                   parameters={{
-                                    alpha: parseFloat(form.lossAlpha) || 2,
-                                    beta: parseFloat(form.lossBeta) || 5,
-                                    minBeta: parseFloat(form.minLoss) || 0,
-                                    maxBeta: parseFloat(form.maxLoss) || 1
+                                    alpha: (form.lossAlpha !== undefined && form.lossAlpha !== null && form.lossAlpha !== '') ? parseFloat(form.lossAlpha) : 2,
+                                    beta: (form.lossBeta !== undefined && form.lossBeta !== null && form.lossBeta !== '') ? parseFloat(form.lossBeta) : 5,
+                                    minBeta: (form.minLoss !== undefined && form.minLoss !== null && form.minLoss !== '') ? parseFloat(form.minLoss) : 0,
+                                    maxBeta: (form.maxLoss !== undefined && form.maxLoss !== null && form.maxLoss !== '') ? parseFloat(form.maxLoss) : 1
                                   }}
                                   title="Loss Distribution - Beta"
                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
@@ -1930,12 +2283,252 @@ const InputForm = ({
                                 <CumulativeDistributionChart
                                   distributionType="beta"
                                   parameters={{
-                                    alpha: parseFloat(form.lossAlpha) || 2,
-                                    beta: parseFloat(form.lossBeta) || 5,
-                                    minBeta: parseFloat(form.minLoss) || 0,
-                                    maxBeta: parseFloat(form.maxLoss) || 1
+                                    alpha: (form.lossAlpha !== undefined && form.lossAlpha !== null && form.lossAlpha !== '') ? parseFloat(form.lossAlpha) : 2,
+                                    beta: (form.lossBeta !== undefined && form.lossBeta !== null && form.lossBeta !== '') ? parseFloat(form.lossBeta) : 5,
+                                    minBeta: (form.minLoss !== undefined && form.minLoss !== null && form.minLoss !== '') ? parseFloat(form.minLoss) : 0,
+                                    maxBeta: (form.maxLoss !== undefined && form.maxLoss !== null && form.maxLoss !== '') ? parseFloat(form.maxLoss) : 1
                                   }}
                                   title="Loss Distribution - Beta"
+                                  formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                />
+                              </td>
+                            </tr>
+                          </>
+                        )}
+
+                        {form.lossDistribution === "gamma" && (
+                          <>
+                            <tr title="Shape parameter (alpha) for gamma distribution. Higher values reduce skewness." className="rar-tab-specific-content">
+                              <td className="rar-form-label-cell">
+                                <label className="rar-form-label">Shape Parameter (α):</label>
+                              </td>
+                              <td className="rar-form-input-cell">
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  placeholder="Shape parameter (e.g., 2.0)"
+                                  name="lossGammaShape"
+                                  value={form.lossGammaShape}
+                                  onChange={handleChange}
+                                  className="rar-input"
+                                />
+                              </td>
+                            </tr>
+
+                            <tr title="Scale parameter (beta) for gamma distribution. Higher values spread the distribution." className="rar-tab-specific-content">
+                              <td className="rar-form-label-cell">
+                                <label className="rar-form-label">Scale Parameter (β):</label>
+                              </td>
+                              <td className="rar-form-input-cell">
+                                <div className="rar-currency-input">
+                                  <select
+                                    name="sleCurrency"
+                                    value={form.sleCurrency}
+                                    onChange={handleChange}
+                                    className="rar-select rar-select-currency"
+                                  >
+                                    <option value="dollar">$ (dollar)</option>
+                                    <option value="euro">€ (euro)</option>
+                                    <option value="pound">£ (pound)</option>
+                                    <option value="yen">¥ (yen)</option>
+                                    <option value="rupee">₹ (rupee)</option>
+                                    <option value="peso">₱ (peso)</option>
+                                    <option value="won">₩ (won)</option>
+                                    <option value="lira">₺ (lira)</option>
+                                    <option value="franc">₣ (franc)</option>
+                                    <option value="shekel">₪ (shekel)</option>
+                                    <option value="other">¤ (other)</option>
+                                  </select>
+                                  <input
+                                    type="number"
+                                    placeholder="Scale parameter (e.g., 1000)"
+                                    name="lossGammaScale"
+                                    value={form.lossGammaScale}
+                                    onChange={handleChange}
+                                    className="rar-input rar-input-currency"
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+
+                            <tr className="rar-tab-specific-content">
+                              <td colSpan="2" className="rar-form-input-cell">
+                                <DistributionChart
+                                  distributionType="gamma"
+                                  parameters={{
+                                    shape: (form.lossGammaShape !== undefined && form.lossGammaShape !== null && form.lossGammaShape !== '') ? parseFloat(form.lossGammaShape) : 2,
+                                    scale: (form.lossGammaScale !== undefined && form.lossGammaScale !== null && form.lossGammaScale !== '') ? parseFloat(form.lossGammaScale) : 1000
+                                  }}
+                                  title="Loss Distribution - Gamma"
+                                  formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                />
+                                <CumulativeDistributionChart
+                                  distributionType="gamma"
+                                  parameters={{
+                                    shape: (form.lossGammaShape !== undefined && form.lossGammaShape !== null && form.lossGammaShape !== '') ? parseFloat(form.lossGammaShape) : 2,
+                                    scale: (form.lossGammaScale !== undefined && form.lossGammaScale !== null && form.lossGammaScale !== '') ? parseFloat(form.lossGammaScale) : 1000
+                                  }}
+                                  title="Loss Distribution - Gamma"
+                                  formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                />
+                              </td>
+                            </tr>
+                          </>
+                        )}
+
+                        {form.lossDistribution === "pareto" && (
+                          <>
+                            <tr title="Minimum value (xm) for Pareto distribution. All losses will be at least this amount." className="rar-tab-specific-content">
+                              <td className="rar-form-label-cell">
+                                <label className="rar-form-label">Minimum Value (xₘ):</label>
+                              </td>
+                              <td className="rar-form-input-cell">
+                                <div className="rar-currency-input">
+                                  <select
+                                    name="sleCurrency"
+                                    value={form.sleCurrency}
+                                    onChange={handleChange}
+                                    className="rar-select rar-select-currency"
+                                  >
+                                    <option value="dollar">$ (dollar)</option>
+                                    <option value="euro">€ (euro)</option>
+                                    <option value="pound">£ (pound)</option>
+                                    <option value="yen">¥ (yen)</option>
+                                    <option value="rupee">₹ (rupee)</option>
+                                    <option value="peso">₱ (peso)</option>
+                                    <option value="won">₩ (won)</option>
+                                    <option value="lira">₺ (lira)</option>
+                                    <option value="franc">₣ (franc)</option>
+                                    <option value="shekel">₪ (shekel)</option>
+                                    <option value="other">¤ (other)</option>
+                                  </select>
+                                  <input
+                                    type="number"
+                                    placeholder="Minimum value (e.g., 1000)"
+                                    name="lossParetoMin"
+                                    value={form.lossParetoMin}
+                                    onChange={handleChange}
+                                    className="rar-input rar-input-currency"
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+
+                            <tr title="Shape parameter (alpha) for Pareto distribution. Lower values create heavier tails (more extreme losses)." className="rar-tab-specific-content">
+                              <td className="rar-form-label-cell">
+                                <label className="rar-form-label">Shape Parameter (α):</label>
+                              </td>
+                              <td className="rar-form-input-cell">
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  placeholder="Shape parameter (e.g., 1.5)"
+                                  name="lossParetoShape"
+                                  value={form.lossParetoShape}
+                                  onChange={handleChange}
+                                  className="rar-input"
+                                />
+                              </td>
+                            </tr>
+
+                            <tr className="rar-tab-specific-content">
+                              <td colSpan="2" className="rar-form-input-cell">
+                                <DistributionChart
+                                  distributionType="pareto"
+                                  parameters={{
+                                    xMin: (form.lossParetoMin !== undefined && form.lossParetoMin !== null && form.lossParetoMin !== '') ? parseFloat(form.lossParetoMin) : 1000,
+                                    alpha: (form.lossParetoShape !== undefined && form.lossParetoShape !== null && form.lossParetoShape !== '') ? parseFloat(form.lossParetoShape) : 1.5
+                                  }}
+                                  title="Loss Distribution - Pareto"
+                                  formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                />
+                                <CumulativeDistributionChart
+                                  distributionType="pareto"
+                                  parameters={{
+                                    xMin: (form.lossParetoMin !== undefined && form.lossParetoMin !== null && form.lossParetoMin !== '') ? parseFloat(form.lossParetoMin) : 1000,
+                                    alpha: (form.lossParetoShape !== undefined && form.lossParetoShape !== null && form.lossParetoShape !== '') ? parseFloat(form.lossParetoShape) : 1.5
+                                  }}
+                                  title="Loss Distribution - Pareto"
+                                  formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                />
+                              </td>
+                            </tr>
+                          </>
+                        )}
+
+                        {form.lossDistribution === "weibull" && (
+                          <>
+                            <tr title="Shape parameter (k) for Weibull distribution. Controls distribution behavior: k<1 decreasing failure rate, k=1 exponential, k>1 increasing failure rate." className="rar-tab-specific-content">
+                              <td className="rar-form-label-cell">
+                                <label className="rar-form-label">Shape Parameter (k):</label>
+                              </td>
+                              <td className="rar-form-input-cell">
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  placeholder="Shape parameter (e.g., 2.0)"
+                                  name="lossWeibullShape"
+                                  value={form.lossWeibullShape}
+                                  onChange={handleChange}
+                                  className="rar-input"
+                                />
+                              </td>
+                            </tr>
+
+                            <tr title="Scale parameter (lambda) for Weibull distribution. Determines the scale of the distribution." className="rar-tab-specific-content">
+                              <td className="rar-form-label-cell">
+                                <label className="rar-form-label">Scale Parameter (λ):</label>
+                              </td>
+                              <td className="rar-form-input-cell">
+                                <div className="rar-currency-input">
+                                  <select
+                                    name="sleCurrency"
+                                    value={form.sleCurrency}
+                                    onChange={handleChange}
+                                    className="rar-select rar-select-currency"
+                                  >
+                                    <option value="dollar">$ (dollar)</option>
+                                    <option value="euro">€ (euro)</option>
+                                    <option value="pound">£ (pound)</option>
+                                    <option value="yen">¥ (yen)</option>
+                                    <option value="rupee">₹ (rupee)</option>
+                                    <option value="peso">₱ (peso)</option>
+                                    <option value="won">₩ (won)</option>
+                                    <option value="lira">₺ (lira)</option>
+                                    <option value="franc">₣ (franc)</option>
+                                    <option value="shekel">₪ (shekel)</option>
+                                    <option value="other">¤ (other)</option>
+                                  </select>
+                                  <input
+                                    type="number"
+                                    placeholder="Scale parameter (e.g., 5000)"
+                                    name="lossWeibullScale"
+                                    value={form.lossWeibullScale}
+                                    onChange={handleChange}
+                                    className="rar-input rar-input-currency"
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+
+                            <tr className="rar-tab-specific-content">
+                              <td colSpan="2" className="rar-form-input-cell">
+                                <DistributionChart
+                                  distributionType="weibull"
+                                  parameters={{
+                                    k: (form.lossWeibullShape !== undefined && form.lossWeibullShape !== null && form.lossWeibullShape !== '') ? parseFloat(form.lossWeibullShape) : 2,
+                                    lambda: (form.lossWeibullScale !== undefined && form.lossWeibullScale !== null && form.lossWeibullScale !== '') ? parseFloat(form.lossWeibullScale) : 5000
+                                  }}
+                                  title="Loss Distribution - Weibull"
+                                  formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                />
+                                <CumulativeDistributionChart
+                                  distributionType="weibull"
+                                  parameters={{
+                                    k: (form.lossWeibullShape !== undefined && form.lossWeibullShape !== null && form.lossWeibullShape !== '') ? parseFloat(form.lossWeibullShape) : 2,
+                                    lambda: (form.lossWeibullScale !== undefined && form.lossWeibullScale !== null && form.lossWeibullScale !== '') ? parseFloat(form.lossWeibullScale) : 5000
+                                  }}
+                                  title="Loss Distribution - Weibull"
                                   formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
                                 />
                               </td>
@@ -1955,16 +2548,23 @@ const InputForm = ({
                               className="rar-select"
                             >
                               <option value="triangular">Triangular</option>
+                              <option value="pert">Modified PERT</option>
                               <option value="poisson">Poisson</option>
                               <option value="normal">Normal</option>
                               <option value="uniform">Uniform</option>
                               <option value="exponential">Exponential</option>
+                              <option value="negative-binomial">Negative Binomial</option>
+                              <option value="binomial">Binomial</option>
+                              <option value="geometric">Geometric</option>
+                              <option value="discrete-uniform">Discrete Uniform</option>
                             </select>
                             {form.frequencyDistribution && (
                               <small className="rar-help-text rar-distribution-info">
                                 <strong>Use case:</strong>{" "}
                                 {form.frequencyDistribution === "triangular" && 
                                   "Used when you can estimate minimum, most likely, and maximum frequencies based on expert judgment or limited historical data."}
+                                {form.frequencyDistribution === "pert" && 
+                                  "Enhanced version of triangular distribution with gamma parameter for better shape control. Provides more realistic modeling of frequency estimates with adjustable confidence in the mode value."}
                                 {form.frequencyDistribution === "poisson" && 
                                   "Ideal for modeling discrete event counts (e.g., number of incidents per year) when events occur independently at a constant average rate."}
                                 {form.frequencyDistribution === "normal" && 
@@ -1973,6 +2573,14 @@ const InputForm = ({
                                   "Used when any frequency within a range is equally likely. Appropriate when there's complete uncertainty about event frequency within known bounds."}
                                 {form.frequencyDistribution === "exponential" && 
                                   "Models time between events or frequency of rare events. Common for reliability analysis and modeling time to failure scenarios."}
+                                {form.frequencyDistribution === "negative-binomial" && 
+                                  "Models the number of failures before achieving a specified number of successes. Ideal for overdispersed count data where variance exceeds the mean. Common in reliability testing and quality control scenarios."}
+                                {form.frequencyDistribution === "binomial" && 
+                                  "Models the number of successes in a fixed number of independent trials. Perfect for scenarios with a known number of opportunities and constant success probability (e.g., number of successful attacks out of total attempts)."}
+                                {form.frequencyDistribution === "geometric" && 
+                                  "Models the number of trials needed to achieve the first success. Ideal for time-to-first-event scenarios or modeling intervals between occurrences with constant probability."}
+                                {form.frequencyDistribution === "discrete-uniform" && 
+                                  "All integer values within a range are equally likely. Used when frequency can only take specific discrete values and there's no preference for any particular value within the range."}
                               </small>
                             )}
                           </td>
@@ -2036,8 +2644,8 @@ const InputForm = ({
                                 <DistributionChart
                                   distributionType="triangular"
                                   parameters={{
-                                    min: parseFloat(form.minFrequency) || 0,
-                                    mode: parseFloat(form.mostLikelyFrequency) || 0,
+                                    min: (form.minFrequency !== undefined && form.minFrequency !== null && form.minFrequency !== '') ? parseFloat(form.minFrequency) : 0,
+                                    mode: (form.mostLikelyFrequency !== undefined && form.mostLikelyFrequency !== null && form.mostLikelyFrequency !== '') ? parseFloat(form.mostLikelyFrequency) : 0,
                                     max: parseFloat(form.maxFrequency) || 1
                                   }}
                                   title="Frequency Distribution - Triangular"
@@ -2045,11 +2653,115 @@ const InputForm = ({
                                 <CumulativeDistributionChart
                                   distributionType="triangular"
                                   parameters={{
-                                    min: parseFloat(form.minFrequency) || 0,
-                                    mode: parseFloat(form.mostLikelyFrequency) || 0,
+                                    min: (form.minFrequency !== undefined && form.minFrequency !== null && form.minFrequency !== '') ? parseFloat(form.minFrequency) : 0,
+                                    mode: (form.mostLikelyFrequency !== undefined && form.mostLikelyFrequency !== null && form.mostLikelyFrequency !== '') ? parseFloat(form.mostLikelyFrequency) : 0,
                                     max: parseFloat(form.maxFrequency) || 1
                                   }}
                                   title="Frequency Distribution - Triangular"
+                                  formatCurrency={null}
+                                />
+                              </td>
+                            </tr>
+                          </>
+                        )}
+
+                        {form.frequencyDistribution === "pert" && (
+                          <>
+                            <tr title="Minimum frequency of occurrence per year" className="rar-tab-specific-content">
+                              <td className="rar-form-label-cell">
+                                <label className="rar-form-label">Minimum Frequency:</label>
+                              </td>
+                              <td className="rar-form-input-cell">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="Minimum frequency per year (e.g., 0.1)"
+                                  name="minFrequency"
+                                  value={form.minFrequency}
+                                  onChange={handleChange}
+                                  className="rar-input"
+                                />
+                              </td>
+                            </tr>
+
+                            <tr title="Most likely frequency of occurrence per year" className="rar-tab-specific-content">
+                              <td className="rar-form-label-cell">
+                                <label className="rar-form-label">Most Likely Frequency (mode):</label>
+                              </td>
+                              <td className="rar-form-input-cell">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="Most likely frequency per year (e.g., 0.5)"
+                                  name="mostLikelyFrequency"
+                                  value={form.mostLikelyFrequency}
+                                  onChange={handleChange}
+                                  className="rar-input"
+                                />
+                              </td>
+                            </tr>
+
+                            <tr title="Maximum frequency of occurrence per year" className="rar-tab-specific-content">
+                              <td className="rar-form-label-cell">
+                                <label className="rar-form-label">Maximum Frequency:</label>
+                              </td>
+                              <td className="rar-form-input-cell">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="Maximum frequency per year (e.g., 2.0)"
+                                  name="maxFrequency"
+                                  value={form.maxFrequency}
+                                  onChange={handleChange}
+                                  className="rar-input"
+                                />
+                              </td>
+                            </tr>
+
+                            <tr title="Gamma parameter controls the shape and weight given to the mode value (typically 2-6, default 4)" className="rar-tab-specific-content">
+                              <td className="rar-form-label-cell">
+                                <label className="rar-form-label">Gamma (γ) Parameter:</label>
+                              </td>
+                              <td className="rar-form-input-cell">
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  min="1"
+                                  max="10"
+                                  placeholder="Gamma parameter (e.g., 4)"
+                                  name="frequencyGamma"
+                                  value={form.frequencyGamma || 4}
+                                  onChange={handleChange}
+                                  className="rar-input"
+                                />
+                                <small className="rar-help-text">
+                                  Controls shape and mode emphasis for frequency. Higher values give more weight to the mode. 
+                                  Typically ranges from 1-10, with 4 being a common default.
+                                </small>
+                              </td>
+                            </tr>
+
+                            <tr className="rar-tab-specific-content">
+                              <td colSpan="2" className="rar-form-input-cell">
+                                <DistributionChart
+                                  distributionType="pert"
+                                  parameters={{
+                                    min: (form.minFrequency !== undefined && form.minFrequency !== null && form.minFrequency !== '') ? parseFloat(form.minFrequency) : 0,
+                                    mode: (form.mostLikelyFrequency !== undefined && form.mostLikelyFrequency !== null && form.mostLikelyFrequency !== '') ? parseFloat(form.mostLikelyFrequency) : 0,
+                                    max: parseFloat(form.maxFrequency) || 1,
+                                    gamma: parseFloat(form.frequencyGamma) || 4
+                                  }}
+                                  title="Frequency Distribution - Modified PERT"
+                                />
+                                <CumulativeDistributionChart
+                                  distributionType="pert"
+                                  parameters={{
+                                    min: (form.minFrequency !== undefined && form.minFrequency !== null && form.minFrequency !== '') ? parseFloat(form.minFrequency) : 0,
+                                    mode: (form.mostLikelyFrequency !== undefined && form.mostLikelyFrequency !== null && form.mostLikelyFrequency !== '') ? parseFloat(form.mostLikelyFrequency) : 0,
+                                    max: parseFloat(form.maxFrequency) || 1,
+                                    gamma: parseFloat(form.frequencyGamma) || 4
+                                  }}
+                                  title="Frequency Distribution - Modified PERT"
                                   formatCurrency={null}
                                 />
                               </td>
@@ -2097,7 +2809,7 @@ const InputForm = ({
                                 <DistributionChart
                                   distributionType="normal"
                                   parameters={{
-                                    mean: parseFloat(form.frequencyMean) || 0,
+                                    mean: (form.frequencyMean !== undefined && form.frequencyMean !== null && form.frequencyMean !== '') ? parseFloat(form.frequencyMean) : 0,
                                     stdDev: parseFloat(form.frequencyStdDev) || 0
                                   }}
                                   title="Frequency Distribution - Normal"
@@ -2105,7 +2817,7 @@ const InputForm = ({
                                 <CumulativeDistributionChart
                                   distributionType="normal"
                                   parameters={{
-                                    mean: parseFloat(form.frequencyMean) || 0,
+                                    mean: (form.frequencyMean !== undefined && form.frequencyMean !== null && form.frequencyMean !== '') ? parseFloat(form.frequencyMean) : 0,
                                     stdDev: parseFloat(form.frequencyStdDev) || 0
                                   }}
                                   title="Frequency Distribution - Normal"
@@ -2156,7 +2868,7 @@ const InputForm = ({
                                 <DistributionChart
                                   distributionType="uniform"
                                   parameters={{
-                                    minVal: parseFloat(form.minFrequency) || 0,
+                                    minVal: (form.minFrequency !== undefined && form.minFrequency !== null && form.minFrequency !== '') ? parseFloat(form.minFrequency) : 0,
                                     maxVal: parseFloat(form.maxFrequency) || 1
                                   }}
                                   title="Frequency Distribution - Uniform"
@@ -2164,7 +2876,7 @@ const InputForm = ({
                                 <CumulativeDistributionChart
                                   distributionType="uniform"
                                   parameters={{
-                                    minVal: parseFloat(form.minFrequency) || 0,
+                                    minVal: (form.minFrequency !== undefined && form.minFrequency !== null && form.minFrequency !== '') ? parseFloat(form.minFrequency) : 0,
                                     maxVal: parseFloat(form.maxFrequency) || 1
                                   }}
                                   title="Frequency Distribution - Uniform"
@@ -2198,14 +2910,14 @@ const InputForm = ({
                               <DistributionChart
                                 distributionType="poisson"
                                 parameters={{
-                                  frequencyLambda: parseFloat(form.frequencyLambda) || 0
+                                  frequencyLambda: (form.frequencyLambda !== undefined && form.frequencyLambda !== null && form.frequencyLambda !== '') ? parseFloat(form.frequencyLambda) : 0
                                 }}
                                 title="Frequency Distribution - Poisson"
                               />
                               <CumulativeDistributionChart
                                 distributionType="poisson"
                                 parameters={{
-                                  frequencyLambda: parseFloat(form.frequencyLambda) || 0
+                                  frequencyLambda: (form.frequencyLambda !== undefined && form.frequencyLambda !== null && form.frequencyLambda !== '') ? parseFloat(form.frequencyLambda) : 0
                                 }}
                                 title="Frequency Distribution - Poisson"
                                 formatCurrency={null}
@@ -2238,16 +2950,238 @@ const InputForm = ({
                               <DistributionChart
                                 distributionType="exponential"
                                 parameters={{
-                                  frequencyLambdaExp: parseFloat(form.frequencyLambdaExp) || 0
+                                  frequencyLambdaExp: (form.frequencyLambdaExp !== undefined && form.frequencyLambdaExp !== null && form.frequencyLambdaExp !== '') ? parseFloat(form.frequencyLambdaExp) : 0
                                 }}
                                 title="Frequency Distribution - Exponential"
                               />
                               <CumulativeDistributionChart
                                 distributionType="exponential"
                                 parameters={{
-                                  frequencyLambdaExp: parseFloat(form.frequencyLambdaExp) || 0
+                                  frequencyLambdaExp: (form.frequencyLambdaExp !== undefined && form.frequencyLambdaExp !== null && form.frequencyLambdaExp !== '') ? parseFloat(form.frequencyLambdaExp) : 0
                                 }}
                                 title="Frequency Distribution - Exponential"
+                                formatCurrency={null}
+                              />
+                            </td>
+                          </tr>
+                          </>
+                        )}
+
+                        {form.frequencyDistribution === "negative-binomial" && (
+                          <>
+                          <tr title="Number of successes (r) for negative binomial distribution" className="rar-tab-specific-content">
+                            <td className="rar-form-label-cell">
+                              <label className="rar-form-label">Number of Successes (r):</label>
+                            </td>
+                            <td className="rar-form-input-cell">
+                              <input
+                                type="number"
+                                min="1"
+                                step="1"
+                                placeholder="Number of successes (e.g., 5)"
+                                name="frequencyNegBinomialR"
+                                value={form.frequencyNegBinomialR}
+                                onChange={handleChange}
+                                className="rar-input"
+                              />
+                            </td>
+                          </tr>
+                          <tr title="Probability of success (p) for negative binomial distribution" className="rar-tab-specific-content">
+                            <td className="rar-form-label-cell">
+                              <label className="rar-form-label">Success Probability (p):</label>
+                            </td>
+                            <td className="rar-form-input-cell">
+                              <input
+                                type="number"
+                                min="0"
+                                max="1"
+                                step="0.01"
+                                placeholder="Probability (e.g., 0.3)"
+                                name="frequencyNegBinomialP"
+                                value={form.frequencyNegBinomialP}
+                                onChange={handleChange}
+                                className="rar-input"
+                              />
+                            </td>
+                          </tr>
+                          <tr className="rar-tab-specific-content">
+                            <td colSpan="2" className="rar-form-input-cell">
+                              <DistributionChart
+                                distributionType="negative-binomial"
+                                parameters={{
+                                  r: parseFloat(form.frequencyNegBinomialR) || 5,
+                                  p: parseFloat(form.frequencyNegBinomialP) || 0.3
+                                }}
+                                title="Frequency Distribution - Negative Binomial"
+                              />
+                              <CumulativeDistributionChart
+                                distributionType="negative-binomial"
+                                parameters={{
+                                  r: parseFloat(form.frequencyNegBinomialR) || 5,
+                                  p: parseFloat(form.frequencyNegBinomialP) || 0.3
+                                }}
+                                title="Frequency Distribution - Negative Binomial"
+                                formatCurrency={null}
+                              />
+                            </td>
+                          </tr>
+                          </>
+                        )}
+
+                        {form.frequencyDistribution === "binomial" && (
+                          <>
+                          <tr title="Number of trials (n) for binomial distribution" className="rar-tab-specific-content">
+                            <td className="rar-form-label-cell">
+                              <label className="rar-form-label">Number of Trials (n):</label>
+                            </td>
+                            <td className="rar-form-input-cell">
+                              <input
+                                type="number"
+                                min="1"
+                                step="1"
+                                placeholder="Number of trials (e.g., 20)"
+                                name="frequencyBinomialN"
+                                value={form.frequencyBinomialN}
+                                onChange={handleChange}
+                                className="rar-input"
+                              />
+                            </td>
+                          </tr>
+                          <tr title="Probability of success (p) for binomial distribution" className="rar-tab-specific-content">
+                            <td className="rar-form-label-cell">
+                              <label className="rar-form-label">Success Probability (p):</label>
+                            </td>
+                            <td className="rar-form-input-cell">
+                              <input
+                                type="number"
+                                min="0"
+                                max="1"
+                                step="0.01"
+                                placeholder="Probability (e.g., 0.1)"
+                                name="frequencyBinomialP"
+                                value={form.frequencyBinomialP}
+                                onChange={handleChange}
+                                className="rar-input"
+                              />
+                            </td>
+                          </tr>
+                          <tr className="rar-tab-specific-content">
+                            <td colSpan="2" className="rar-form-input-cell">
+                              <DistributionChart
+                                distributionType="binomial"
+                                parameters={{
+                                  n: parseFloat(form.frequencyBinomialN) || 20,
+                                  p: parseFloat(form.frequencyBinomialP) || 0.1
+                                }}
+                                title="Frequency Distribution - Binomial"
+                              />
+                              <CumulativeDistributionChart
+                                distributionType="binomial"
+                                parameters={{
+                                  n: parseFloat(form.frequencyBinomialN) || 20,
+                                  p: parseFloat(form.frequencyBinomialP) || 0.1
+                                }}
+                                title="Frequency Distribution - Binomial"
+                                formatCurrency={null}
+                              />
+                            </td>
+                          </tr>
+                          </>
+                        )}
+
+                        {form.frequencyDistribution === "geometric" && (
+                          <>
+                          <tr title="Probability of success (p) for geometric distribution" className="rar-tab-specific-content">
+                            <td className="rar-form-label-cell">
+                              <label className="rar-form-label">Success Probability (p):</label>
+                            </td>
+                            <td className="rar-form-input-cell">
+                              <input
+                                type="number"
+                                min="0"
+                                max="1"
+                                step="0.01"
+                                placeholder="Probability (e.g., 0.2)"
+                                name="frequencyGeometricP"
+                                value={form.frequencyGeometricP}
+                                onChange={handleChange}
+                                className="rar-input"
+                              />
+                            </td>
+                          </tr>
+                          <tr className="rar-tab-specific-content">
+                            <td colSpan="2" className="rar-form-input-cell">
+                              <DistributionChart
+                                distributionType="geometric"
+                                parameters={{
+                                  p: parseFloat(form.frequencyGeometricP || "0.2") || 0.2
+                                }}
+                                title="Frequency Distribution - Geometric"
+                              />
+                              <CumulativeDistributionChart
+                                distributionType="geometric"
+                                parameters={{
+                                  p: parseFloat(form.frequencyGeometricP || "0.2") || 0.2
+                                }}
+                                title="Frequency Distribution - Geometric"
+                                formatCurrency={null}
+                              />
+                            </td>
+                          </tr>
+                          </>
+                        )}
+
+                        {form.frequencyDistribution === "discrete-uniform" && (
+                          <>
+                          <tr title="Minimum value for discrete uniform distribution" className="rar-tab-specific-content">
+                            <td className="rar-form-label-cell">
+                              <label className="rar-form-label">Minimum Value:</label>
+                            </td>
+                            <td className="rar-form-input-cell">
+                              <input
+                                type="number"
+                                step="1"
+                                placeholder="Minimum value (e.g., 1)"
+                                name="frequencyDiscreteUniformMin"
+                                value={form.frequencyDiscreteUniformMin}
+                                onChange={handleChange}
+                                className="rar-input"
+                              />
+                            </td>
+                          </tr>
+                          <tr title="Maximum value for discrete uniform distribution" className="rar-tab-specific-content">
+                            <td className="rar-form-label-cell">
+                              <label className="rar-form-label">Maximum Value:</label>
+                            </td>
+                            <td className="rar-form-input-cell">
+                              <input
+                                type="number"
+                                step="1"
+                                placeholder="Maximum value (e.g., 10)"
+                                name="frequencyDiscreteUniformMax"
+                                value={form.frequencyDiscreteUniformMax}
+                                onChange={handleChange}
+                                className="rar-input"
+                              />
+                            </td>
+                          </tr>
+                          <tr className="rar-tab-specific-content">
+                            <td colSpan="2" className="rar-form-input-cell">
+                              <DistributionChart
+                                distributionType="discrete-uniform"
+                                parameters={{
+                                  min: (form.frequencyDiscreteUniformMin !== undefined && form.frequencyDiscreteUniformMin !== null && form.frequencyDiscreteUniformMin !== '') ? parseFloat(form.frequencyDiscreteUniformMin) : 1,
+                                  max: parseFloat(form.frequencyDiscreteUniformMax) || 10
+                                }}
+                                title="Frequency Distribution - Discrete Uniform"
+                              />
+                              <CumulativeDistributionChart
+                                distributionType="discrete-uniform"
+                                parameters={{
+                                  min: (form.frequencyDiscreteUniformMin !== undefined && form.frequencyDiscreteUniformMin !== null && form.frequencyDiscreteUniformMin !== '') ? parseFloat(form.frequencyDiscreteUniformMin) : 1,
+                                  max: parseFloat(form.frequencyDiscreteUniformMax) || 10
+                                }}
+                                title="Frequency Distribution - Discrete Uniform"
                                 formatCurrency={null}
                               />
                             </td>
@@ -2328,110 +3262,9 @@ const InputForm = ({
                           </td>
                         </tr>
 
-                        <tr title="Heat map display options" className="rar-tab-specific-content">
-                          <td className="rar-form-label-cell">
-                            <label className="rar-form-label">Heat Map Display Options:</label>
-                          </td>
-                          <td className="rar-form-input-cell">
-                            <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={showVaR}
-                                  onChange={(e) => setShowVaR(e.target.checked)}
-                                />
-                                <span style={{ color: '#0066ff', fontWeight: 'bold' }}>VaR Line</span>
-                              </label>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={showEAL}
-                                  onChange={(e) => setShowEAL(e.target.checked)}
-                                />
-                                <span style={{ color: '#00cc66', fontWeight: 'bold' }}>EAL Line</span>
-                              </label>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={showPercentiles}
-                                  onChange={(e) => setShowPercentiles(e.target.checked)}
-                                />
-                                <span>Percentile Lines</span>
-                              </label>
-                            </div>
-                            <small className="rar-help-text">
-                              Toggle visibility of different contour lines on the heat maps
-                            </small>
-                          </td>
-                        </tr>
+                        {/* Heat Map moved to separate Heat Map tab */}
 
-                        <tr title="Joint unit cost and frequency heat map with probability density" className="rar-tab-specific-content">
-                          <td colSpan="2" className="rar-form-input-cell">
-                            {(() => {
-                              const results = getMonteCarloResults(form);
-                              const varValue = results.valueAtRisk || 0;
-                              const ealValue = results.expectedAnnualLoss || 0;
-                              const varStdDev = results.valueAtRiskStdDev || results.varStandardDeviation || (varValue * 0.15); // Default to 15% if not available
-                              const ealStdDev = results.expectedAnnualLossStdDev || results.ealStandardDeviation || (ealValue * 0.15); // Default to 15% if not available
-                              
-                              console.log('VaR & EAL Calculation Debug:', {
-                                varValue,
-                                ealValue,
-                                varStdDev,
-                                ealStdDev,
-                                resultsValueAtRisk: results.valueAtRisk,
-                                resultsExpectedAnnualLoss: results.expectedAnnualLoss,
-                                fullResults: results,
-                                formValues: {
-                                  minFrequency: form.minFrequency,
-                                  mostLikelyFrequency: form.mostLikelyFrequency,
-                                  maxFrequency: form.maxFrequency,
-                                  minLoss: form.minLoss,
-                                  mostLikelyLoss: form.mostLikelyLoss,
-                                  maxLoss: form.maxLoss
-                                }
-                              });
-                              
-                              return (
-                                <RiskHeatMap
-                                  frequencyDistribution={form.frequencyDistribution || 'triangular'}
-                                  frequencyParams={{
-                                    min: parseFloat(form.minFrequency) || parseFloat(form.frequencyMean) - parseFloat(form.frequencyStdDev) || parseFloat(form.frequencyLambdaExp) * 0.1 || 0.1,
-                                    mode: parseFloat(form.mostLikelyFrequency) || parseFloat(form.frequencyMean) || parseFloat(form.frequencyLambda) || parseFloat(form.frequencyLambdaExp) || 1,
-                                    max: parseFloat(form.maxFrequency) || parseFloat(form.frequencyMean) + parseFloat(form.frequencyStdDev) || parseFloat(form.frequencyLambdaExp) * 10 || 10,
-                                    mean: parseFloat(form.frequencyMean) || parseFloat(form.frequencyLambda) || undefined,
-                                    std: parseFloat(form.frequencyStdDev) || undefined,
-                                    lambda: parseFloat(form.frequencyLambda) || parseFloat(form.frequencyLambdaExp) || undefined
-                                  }}
-                                  lossDistribution={form.lossDistribution || 'triangular'}
-                                  lossParams={{
-                                    min: parseFloat(form.minLoss) || parseFloat(form.lossMean) - parseFloat(form.lossStdDev) || 1000,
-                                    mode: parseFloat(form.mostLikelyLoss) || parseFloat(form.lossMean) || 50000,
-                                    max: parseFloat(form.maxLoss) || parseFloat(form.lossMean) + parseFloat(form.lossStdDev) || 500000,
-                                    mean: parseFloat(form.lossMean) || undefined,
-                                    std: parseFloat(form.lossStdDev) || undefined,
-                                    mu: parseFloat(form.lognormalMuLoss) || undefined,
-                                    sigma: parseFloat(form.lognormalSigmaLoss) || undefined,
-                                    alpha: parseFloat(form.lossAlpha) || undefined,
-                                    beta: parseFloat(form.lossBeta) || undefined
-                                  }}
-                                  formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
-                                  title="Risk Assessment: Unit Cost × Frequency Heat Map"
-                                  iterations={form.monteCarloIterations || 10000}
-                                  valueAtRisk={varValue || null}
-                                  expectedAnnualLoss={ealValue || null}
-                                  valueAtRiskStdDev={varStdDev || null}
-                                  expectedAnnualLossStdDev={ealStdDev || null}
-                                  showVaR={showVaR}
-                                  showEAL={showEAL}
-                                  showPercentiles={showPercentiles}
-                                />
-                              );
-                            })()}
-                          </td>
-                        </tr>                        
-
-                          <tr title="Risk level based on the assessment type" className="rar-tab-specific-content">
+                        <tr title="Risk level based on the assessment type" className="rar-tab-specific-content">
                             <td className="rar-form-label-cell">
                               <label className="rar-form-label">Risk Level:</label>
                             </td>
@@ -2459,6 +3292,13 @@ const InputForm = ({
                               <small className="rar-help-text">
                                 Automatically calculated based on Expected Loss and threshold values
                               </small>
+                            </td>
+                          </tr>
+                          
+                          {/* Back to Top Button for Inherent Risk Tab */}
+                          <tr>
+                            <td colSpan="2">
+                              <BackToTopButton />
                             </td>
                           </tr>
                         </>
@@ -2516,6 +3356,8 @@ const InputForm = ({
                          </tr>
 
                          {/* Treatment Strategy */}
+                         {viewMode === 'Extended' && (
+                         <>
                          <tr title="Overall strategy for treating this risk" className="rar-tab-specific-content">
                            <td className="rar-form-label-cell">
                              <label className="rar-form-label">Treatment Strategy:</label>
@@ -2598,6 +3440,8 @@ const InputForm = ({
                              </small>
                            </td>
                          </tr>
+                         </>
+                         )}
 
                          <tr title="Number of simulation iterations for residual risk (typically 10,000 or more)" className="rar-tab-specific-content">
                            <td className="rar-form-label-cell">
@@ -2635,15 +3479,21 @@ const InputForm = ({
                              >
                                <option value="">Select Distribution</option>
                                <option value="triangular">Triangular</option>
+                               <option value="pert">Modified PERT</option>
                                <option value="normal">Normal</option>
                                <option value="lognormal">Log-Normal</option>
                                <option value="uniform">Uniform</option>
                                <option value="beta">Beta</option>
+                               <option value="gamma">Gamma</option>
+                               <option value="pareto">Pareto</option>
+                               <option value="weibull">Weibull</option>
                              </select>
                              <small className="rar-help-text">
                                <strong>Residual Risk Distribution:</strong>{" "}
                                {(form.residualLossDistribution || form.lossDistribution) === "triangular" && 
                                  "Three-point estimates for post-control residual losses."}
+                               {(form.residualLossDistribution || form.lossDistribution) === "pert" && 
+                                 "Program Evaluation and Review Technique with gamma parameter controlling weighted emphasis on most likely outcome for residual losses after controls."}
                                {(form.residualLossDistribution || form.lossDistribution) === "normal" && 
                                  "Bell-curve pattern for residual losses after controls."}
                                {(form.residualLossDistribution || form.lossDistribution) === "lognormal" && 
@@ -2652,6 +3502,12 @@ const InputForm = ({
                                  "Equally likely residual loss values within range."}
                                {(form.residualLossDistribution || form.lossDistribution) === "beta" && 
                                  "Flexible bounded residual loss distribution."}
+                               {(form.residualLossDistribution || form.lossDistribution) === "gamma" && 
+                                 "Right-skewed residual losses with shape and scale parameters. Ideal for positive post-control losses with lower bound."}
+                               {(form.residualLossDistribution || form.lossDistribution) === "pareto" && 
+                                 "Heavy-tailed residual losses following 80/20 principle. Most residual losses small, but extreme losses have significant probability."}
+                               {(form.residualLossDistribution || form.lossDistribution) === "weibull" && 
+                                 "Versatile residual loss distribution for reliability modeling. Shape parameter controls failure rate behavior."}
                                {!form.residualLossDistribution && form.lossDistribution && (
                                  <>
                                    <br />
@@ -2803,6 +3659,171 @@ const InputForm = ({
                            </>
                          )}
 
+                         {((form.residualLossDistribution || form.lossDistribution) === "pert") && (
+                           <>
+                             <tr title="Minimum residual loss value for the PERT distribution" className="rar-tab-specific-content">
+                               <td className="rar-form-label-cell">
+                                 <label className="rar-form-label">Residual Minimum Loss:</label>
+                               </td>
+                               <td className="rar-form-input-cell">
+                                 <div className="rar-currency-input">
+                                   <select
+                                     name="residualSleCurrency"
+                                     value={form.residualSleCurrency || form.sleCurrency}
+                                     onChange={handleChange}
+                                     className="rar-select rar-select-currency"
+                                   >
+                                     <option value="dollar">$ (dollar)</option>
+                                     <option value="euro">€ (euro)</option>
+                                     <option value="pound">£ (pound)</option>
+                                     <option value="yen">¥ (yen)</option>
+                                     <option value="rupee">₹ (rupee)</option>
+                                     <option value="peso">₱ (peso)</option>
+                                     <option value="won">₩ (won)</option>
+                                     <option value="lira">₺ (lira)</option>
+                                     <option value="franc">₣ (franc)</option>
+                                     <option value="shekel">₪ (shekel)</option>
+                                     <option value="other">¤ (other)</option>
+                                   </select>
+                                   <input
+                                     type="number"
+                                     placeholder="Minimum residual loss value"
+                                     name="residualMinLoss"
+                                     value={form.residualMinLoss}
+                                     onChange={handleChange}
+                                     className="rar-input rar-input-currency"
+                                   />
+                                 </div>
+                               </td>
+                             </tr>
+
+                             <tr title="Most likely residual loss value for the PERT distribution (mode with higher weight)" className="rar-tab-specific-content">
+                               <td className="rar-form-label-cell">
+                                 <label className="rar-form-label">Residual Most Likely Loss (mode):</label>
+                               </td>
+                               <td className="rar-form-input-cell">
+                                 <div className="rar-currency-input">
+                                   <select
+                                     name="residualSleCurrency"
+                                     value={form.residualSleCurrency || form.sleCurrency}
+                                     onChange={handleChange}
+                                     className="rar-select rar-select-currency"
+                                   >
+                                     <option value="dollar">$ (dollar)</option>
+                                     <option value="euro">€ (euro)</option>
+                                     <option value="pound">£ (pound)</option>
+                                     <option value="yen">¥ (yen)</option>
+                                     <option value="rupee">₹ (rupee)</option>
+                                     <option value="peso">₱ (peso)</option>
+                                     <option value="won">₩ (won)</option>
+                                     <option value="lira">₺ (lira)</option>
+                                     <option value="franc">₣ (franc)</option>
+                                     <option value="shekel">₪ (shekel)</option>
+                                     <option value="other">¤ (other)</option>
+                                   </select>
+                                   <input
+                                     type="number"
+                                     placeholder="Most likely residual loss value"
+                                     name="residualMostLikelyLoss"
+                                     value={form.residualMostLikelyLoss}
+                                     onChange={handleChange}
+                                     className="rar-input rar-input-currency"
+                                   />
+                                 </div>
+                               </td>
+                             </tr>
+
+                             <tr title="Maximum residual loss value for the PERT distribution" className="rar-tab-specific-content">
+                               <td className="rar-form-label-cell">
+                                 <label className="rar-form-label">Residual Maximum Loss:</label>
+                               </td>
+                               <td className="rar-form-input-cell">
+                                 <div className="rar-currency-input">
+                                   <select
+                                     name="residualSleCurrency"
+                                     value={form.residualSleCurrency || form.sleCurrency}
+                                     onChange={handleChange}
+                                     className="rar-select rar-select-currency"
+                                   >
+                                     <option value="dollar">$ (dollar)</option>
+                                     <option value="euro">€ (euro)</option>
+                                     <option value="pound">£ (pound)</option>
+                                     <option value="yen">¥ (yen)</option>
+                                     <option value="rupee">₹ (rupee)</option>
+                                     <option value="peso">₱ (peso)</option>
+                                     <option value="won">₩ (won)</option>
+                                     <option value="lira">₺ (lira)</option>
+                                     <option value="franc">₣ (franc)</option>
+                                     <option value="shekel">₪ (shekel)</option>
+                                     <option value="other">¤ (other)</option>
+                                   </select>
+                                   <input
+                                     type="number"
+                                     placeholder="Maximum residual loss value"
+                                     name="residualMaxLoss"
+                                     value={form.residualMaxLoss}
+                                     onChange={handleChange}
+                                     className="rar-input rar-input-currency"
+                                   />
+                                 </div>
+                               </td>
+                             </tr>
+
+                             <tr title="Gamma parameter controls the shape and weight given to the mode value for residual risk (typically 2-6, default 4)" className="rar-tab-specific-content">
+                               <td className="rar-form-label-cell">
+                                 <label className="rar-form-label">Residual Gamma (γ) Parameter:</label>
+                               </td>
+                               <td className="rar-form-input-cell">
+                                 <input
+                                   type="number"
+                                   placeholder="Gamma parameter (default: 4)"
+                                   name="residualPertGamma"
+                                   value={form.residualPertGamma || 4}
+                                   onChange={handleChange}
+                                   className="rar-input"
+                                   min="1"
+                                   max="10"
+                                   step="0.1"
+                                 />
+                                 <small className="rar-help-text">
+                                   Controls shape and mode emphasis for residual risk. Higher values give more weight to the mode. 
+                                   Standard PERT uses γ=4. Range: 1-10 (typical: 2-6).
+                                 </small>
+                               </td>
+                             </tr>
+                             <tr className="rar-tab-specific-content">
+                               <td colSpan="2" className="rar-form-input-cell">
+                                 <DistributionChart
+                                   distributionType="pert"
+                                   parameters={{
+                                     min: parseFloat(form.residualMinLoss) || 0,
+                                     mode: parseFloat(form.residualMostLikelyLoss) || 0,
+                                     max: parseFloat(form.residualMaxLoss) || 0,
+                                     gamma: parseFloat(form.residualPertGamma) || 4
+                                   }}
+                                   title="Residual Loss Distribution - Modified PERT"
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
+                                 />
+                               </td>
+                             </tr>
+                             <tr className="rar-tab-specific-content">
+                               <td colSpan="2" className="rar-form-input-cell">
+                                 <CumulativeDistributionChart
+                                   distributionType="pert"
+                                   parameters={{
+                                     min: parseFloat(form.residualMinLoss) || 0,
+                                     mode: parseFloat(form.residualMostLikelyLoss) || 0,
+                                     max: parseFloat(form.residualMaxLoss) || 0,
+                                     gamma: parseFloat(form.residualPertGamma) || 4
+                                   }}
+                                   title="Cumulative Residual Loss Distribution - Modified PERT"
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
+                                 />
+                               </td>
+                             </tr>
+                           </>
+                         )}
+
                          {((form.residualLossDistribution || form.lossDistribution) === "normal" || (form.residualLossDistribution || form.lossDistribution) === "lognormal") && (
                            <>
                              <tr title="Mean (average) residual loss value for the distribution" className="rar-tab-specific-content">
@@ -2920,12 +3941,15 @@ const InputForm = ({
                                          })()}
                                        </div>
                                        <div>
-                                         <strong>Median:</strong><br/>
+                                         <strong>Median (e<sup>μ</sup>):</strong><br/>
                                          {(() => {
                                            const mu = parseFloat(form.residualLossMean || form.lossMean) || 0;
                                            const median = Math.exp(mu);
                                            return formatCurrency(median, form.residualSleCurrency || form.sleCurrency);
                                          })()}
+                                         <br/><small style={{ color: '#6c757d' }}>
+                                           e<sup>μ</sup> = e<sup>{parseFloat(form.residualLossMean || form.lossMean) || 0}</sup> = {formatCurrency(Math.exp(parseFloat(form.residualLossMean || form.lossMean) || 0), form.residualSleCurrency || form.sleCurrency)}
+                                         </small>
                                        </div>
                                        <div>
                                          <strong>Mode:</strong><br/>
@@ -3229,6 +4253,246 @@ const InputForm = ({
                            </>
                          )}
 
+                         {((form.residualLossDistribution || form.lossDistribution) === "gamma") && (
+                           <>
+                             <tr title="Residual shape parameter (alpha) for gamma distribution. Higher values reduce skewness." className="rar-tab-specific-content">
+                               <td className="rar-form-label-cell">
+                                 <label className="rar-form-label">Residual Shape Parameter (α):</label>
+                               </td>
+                               <td className="rar-form-input-cell">
+                                 <input
+                                   type="number"
+                                   step="0.1"
+                                   placeholder="Shape parameter (e.g., 2.0)"
+                                   name="residualGammaShape"
+                                   value={form.residualGammaShape}
+                                   onChange={handleChange}
+                                   className="rar-input"
+                                 />
+                               </td>
+                             </tr>
+
+                             <tr title="Residual scale parameter (beta) for gamma distribution. Higher values spread the distribution." className="rar-tab-specific-content">
+                               <td className="rar-form-label-cell">
+                                 <label className="rar-form-label">Residual Scale Parameter (β):</label>
+                               </td>
+                               <td className="rar-form-input-cell">
+                                 <div className="rar-currency-input">
+                                   <select
+                                     name="residualSleCurrency"
+                                     value={form.residualSleCurrency || form.sleCurrency}
+                                     onChange={handleChange}
+                                     className="rar-select rar-select-currency"
+                                   >
+                                     <option value="dollar">$ (dollar)</option>
+                                     <option value="euro">€ (euro)</option>
+                                     <option value="pound">£ (pound)</option>
+                                     <option value="yen">¥ (yen)</option>
+                                     <option value="rupee">₹ (rupee)</option>
+                                     <option value="peso">₱ (peso)</option>
+                                     <option value="won">₩ (won)</option>
+                                     <option value="lira">₺ (lira)</option>
+                                     <option value="franc">₣ (franc)</option>
+                                     <option value="shekel">₪ (shekel)</option>
+                                     <option value="other">¤ (other)</option>
+                                   </select>
+                                   <input
+                                     type="number"
+                                     placeholder="Scale parameter (e.g., 500)"
+                                     name="residualGammaScale"
+                                     value={form.residualGammaScale}
+                                     onChange={handleChange}
+                                     className="rar-input rar-input-currency"
+                                   />
+                                 </div>
+                               </td>
+                             </tr>
+
+                             <tr className="rar-tab-specific-content">
+                               <td colSpan="2" className="rar-form-input-cell">
+                                 <DistributionChart
+                                   distributionType="gamma"
+                                   parameters={{
+                                     shape: parseFloat(form.residualGammaShape) || 2,
+                                     scale: parseFloat(form.residualGammaScale) || 500
+                                   }}
+                                   title="Residual Loss Distribution - Gamma"
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
+                                 />
+                                 <CumulativeDistributionChart
+                                   distributionType="gamma"
+                                   parameters={{
+                                     shape: parseFloat(form.residualGammaShape) || 2,
+                                     scale: parseFloat(form.residualGammaScale) || 500
+                                   }}
+                                   title="Cumulative Residual Loss Distribution - Gamma"
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
+                                 />
+                               </td>
+                             </tr>
+                           </>
+                         )}
+
+                         {((form.residualLossDistribution || form.lossDistribution) === "pareto") && (
+                           <>
+                             <tr title="Residual minimum value (xm) for Pareto distribution. All residual losses will be at least this amount." className="rar-tab-specific-content">
+                               <td className="rar-form-label-cell">
+                                 <label className="rar-form-label">Residual Minimum Value (xₘ):</label>
+                               </td>
+                               <td className="rar-form-input-cell">
+                                 <div className="rar-currency-input">
+                                   <select
+                                     name="residualSleCurrency"
+                                     value={form.residualSleCurrency || form.sleCurrency}
+                                     onChange={handleChange}
+                                     className="rar-select rar-select-currency"
+                                   >
+                                     <option value="dollar">$ (dollar)</option>
+                                     <option value="euro">€ (euro)</option>
+                                     <option value="pound">£ (pound)</option>
+                                     <option value="yen">¥ (yen)</option>
+                                     <option value="rupee">₹ (rupee)</option>
+                                     <option value="peso">₱ (peso)</option>
+                                     <option value="won">₩ (won)</option>
+                                     <option value="lira">₺ (lira)</option>
+                                     <option value="franc">₣ (franc)</option>
+                                     <option value="shekel">₪ (shekel)</option>
+                                     <option value="other">¤ (other)</option>
+                                   </select>
+                                   <input
+                                     type="number"
+                                     placeholder="Minimum value (e.g., 500)"
+                                     name="residualParetoMin"
+                                     value={form.residualParetoMin}
+                                     onChange={handleChange}
+                                     className="rar-input rar-input-currency"
+                                   />
+                                 </div>
+                               </td>
+                             </tr>
+
+                             <tr title="Residual shape parameter (alpha) for Pareto distribution. Lower values create heavier tails (more extreme residual losses)." className="rar-tab-specific-content">
+                               <td className="rar-form-label-cell">
+                                 <label className="rar-form-label">Residual Shape Parameter (α):</label>
+                               </td>
+                               <td className="rar-form-input-cell">
+                                 <input
+                                   type="number"
+                                   step="0.1"
+                                   placeholder="Shape parameter (e.g., 2.0)"
+                                   name="residualParetoShape"
+                                   value={form.residualParetoShape}
+                                   onChange={handleChange}
+                                   className="rar-input"
+                                 />
+                               </td>
+                             </tr>
+
+                             <tr className="rar-tab-specific-content">
+                               <td colSpan="2" className="rar-form-input-cell">
+                                 <DistributionChart
+                                   distributionType="pareto"
+                                   parameters={{
+                                     xMin: parseFloat(form.residualParetoMin) || 500,
+                                     alpha: parseFloat(form.residualParetoShape) || 2
+                                   }}
+                                   title="Residual Loss Distribution - Pareto"
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
+                                 />
+                                 <CumulativeDistributionChart
+                                   distributionType="pareto"
+                                   parameters={{
+                                     xMin: parseFloat(form.residualParetoMin) || 500,
+                                     alpha: parseFloat(form.residualParetoShape) || 2
+                                   }}
+                                   title="Cumulative Residual Loss Distribution - Pareto"
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
+                                 />
+                               </td>
+                             </tr>
+                           </>
+                         )}
+
+                         {((form.residualLossDistribution || form.lossDistribution) === "weibull") && (
+                           <>
+                             <tr title="Residual shape parameter (k) for Weibull distribution. Controls distribution behavior: k<1 decreasing failure rate, k=1 exponential, k>1 increasing failure rate." className="rar-tab-specific-content">
+                               <td className="rar-form-label-cell">
+                                 <label className="rar-form-label">Residual Shape Parameter (k):</label>
+                               </td>
+                               <td className="rar-form-input-cell">
+                                 <input
+                                   type="number"
+                                   step="0.1"
+                                   placeholder="Shape parameter (e.g., 2.0)"
+                                   name="residualWeibullShape"
+                                   value={form.residualWeibullShape}
+                                   onChange={handleChange}
+                                   className="rar-input"
+                                 />
+                               </td>
+                             </tr>
+
+                             <tr title="Residual scale parameter (lambda) for Weibull distribution. Determines the scale of the distribution." className="rar-tab-specific-content">
+                               <td className="rar-form-label-cell">
+                                 <label className="rar-form-label">Residual Scale Parameter (λ):</label>
+                               </td>
+                               <td className="rar-form-input-cell">
+                                 <div className="rar-currency-input">
+                                   <select
+                                     name="residualSleCurrency"
+                                     value={form.residualSleCurrency || form.sleCurrency}
+                                     onChange={handleChange}
+                                     className="rar-select rar-select-currency"
+                                   >
+                                     <option value="dollar">$ (dollar)</option>
+                                     <option value="euro">€ (euro)</option>
+                                     <option value="pound">£ (pound)</option>
+                                     <option value="yen">¥ (yen)</option>
+                                     <option value="rupee">₹ (rupee)</option>
+                                     <option value="peso">₱ (peso)</option>
+                                     <option value="won">₩ (won)</option>
+                                     <option value="lira">₺ (lira)</option>
+                                     <option value="franc">₣ (franc)</option>
+                                     <option value="shekel">₪ (shekel)</option>
+                                     <option value="other">¤ (other)</option>
+                                   </select>
+                                   <input
+                                     type="number"
+                                     placeholder="Scale parameter (e.g., 2500)"
+                                     name="residualWeibullScale"
+                                     value={form.residualWeibullScale}
+                                     onChange={handleChange}
+                                     className="rar-input rar-input-currency"
+                                   />
+                                 </div>
+                               </td>
+                             </tr>
+
+                             <tr className="rar-tab-specific-content">
+                               <td colSpan="2" className="rar-form-input-cell">
+                                 <DistributionChart
+                                   distributionType="weibull"
+                                   parameters={{
+                                     k: parseFloat(form.residualWeibullShape) || 2,
+                                     lambda: parseFloat(form.residualWeibullScale) || 2500
+                                   }}
+                                   title="Residual Loss Distribution - Weibull"
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
+                                 />
+                                 <CumulativeDistributionChart
+                                   distributionType="weibull"
+                                   parameters={{
+                                     k: parseFloat(form.residualWeibullShape) || 2,
+                                     lambda: parseFloat(form.residualWeibullScale) || 2500
+                                   }}
+                                   title="Cumulative Residual Loss Distribution - Weibull"
+                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
+                                 />
+                               </td>
+                             </tr>
+                           </>
+                         )}
+
                          <tr title="Residual frequency distribution type for Monte Carlo simulation" className="rar-tab-specific-content">
                            <td className="rar-form-label-cell">
                              <label className="rar-form-label">Residual Frequency Distribution:</label>
@@ -3242,16 +4506,23 @@ const InputForm = ({
                              >
                                <option value="">Select Distribution</option>
                                <option value="triangular">Triangular</option>
+                               <option value="pert">Modified PERT</option>
                                <option value="poisson">Poisson</option>
                                <option value="normal">Normal</option>
                                <option value="uniform">Uniform</option>
                                <option value="exponential">Exponential</option>
+                               <option value="negative-binomial">Negative Binomial</option>
+                               <option value="binomial">Binomial</option>
+                               <option value="geometric">Geometric</option>
+                               <option value="discrete-uniform">Discrete Uniform</option>
                              </select>
                              {(form.residualFrequencyDistribution || form.frequencyDistribution) && (
                                <small className="rar-help-text rar-distribution-info">
                                  <strong>Use case:</strong>{" "}
                                  {(form.residualFrequencyDistribution || form.frequencyDistribution) === "triangular" && 
                                    "Used when you can estimate minimum, most likely, and maximum residual frequencies based on expert judgment or limited historical data."}
+                                 {(form.residualFrequencyDistribution || form.frequencyDistribution) === "pert" && 
+                                   "Enhanced version of triangular distribution with gamma parameter for better shape control. Provides more realistic modeling of residual frequency estimates with adjustable confidence in the mode value."}
                                  {(form.residualFrequencyDistribution || form.frequencyDistribution) === "poisson" && 
                                    "Ideal for modeling discrete residual event counts (e.g., number of incidents per year) when events occur independently at a constant average rate."}
                                  {(form.residualFrequencyDistribution || form.frequencyDistribution) === "normal" && 
@@ -3260,6 +4531,14 @@ const InputForm = ({
                                    "Used when any residual frequency within a range is equally likely. Appropriate when there's complete uncertainty about event frequency within known bounds."}
                                  {(form.residualFrequencyDistribution || form.frequencyDistribution) === "exponential" && 
                                    "Models time between residual events or frequency of rare events. Common for reliability analysis and modeling time to failure scenarios."}
+                                 {(form.residualFrequencyDistribution || form.frequencyDistribution) === "negative-binomial" && 
+                                   "Models the number of trials needed to achieve a fixed number of successes after implementing controls. Useful for quality control and reliability testing with overdispersion."}
+                                 {(form.residualFrequencyDistribution || form.frequencyDistribution) === "binomial" && 
+                                   "Models the number of successes in a fixed number of independent trials with known success probability. Ideal for pass/fail scenarios and compliance testing."}
+                                 {(form.residualFrequencyDistribution || form.frequencyDistribution) === "geometric" && 
+                                   "Models the number of trials until the first success. Perfect for time-to-first-failure analysis and breakthrough event modeling."}
+                                 {(form.residualFrequencyDistribution || form.frequencyDistribution) === "discrete-uniform" && 
+                                   "Each outcome within a discrete range is equally likely. Used when any integer value between bounds has equal probability of occurrence."}
                                  {!form.residualFrequencyDistribution && form.frequencyDistribution && (
                                    <>
                                      <br />
@@ -3343,6 +4622,110 @@ const InputForm = ({
                                      max: parseFloat(form.residualMaxFrequency) || 1
                                    }}
                                    title="Residual Frequency Distribution - Triangular"
+                                   formatCurrency={null}
+                                 />
+                               </td>
+                             </tr>
+                           </>
+                         )}
+
+                         {(form.residualFrequencyDistribution || form.frequencyDistribution) === "pert" && (
+                           <>
+                             <tr title="Minimum residual frequency of occurrence per year" className="rar-tab-specific-content">
+                               <td className="rar-form-label-cell">
+                                 <label className="rar-form-label">Residual Minimum Frequency:</label>
+                               </td>
+                               <td className="rar-form-input-cell">
+                                 <input
+                                   type="number"
+                                   step="0.01"
+                                   placeholder="Minimum residual frequency per year (e.g., 0.1)"
+                                   name="residualMinFrequency"
+                                   value={form.residualMinFrequency}
+                                   onChange={handleChange}
+                                   className="rar-input"
+                                 />
+                               </td>
+                             </tr>
+
+                             <tr title="Most likely residual frequency of occurrence per year" className="rar-tab-specific-content">
+                               <td className="rar-form-label-cell">
+                                 <label className="rar-form-label">Residual Most Likely Frequency (mode):</label>
+                               </td>
+                               <td className="rar-form-input-cell">
+                                 <input
+                                   type="number"
+                                   step="0.01"
+                                   placeholder="Most likely residual frequency per year (e.g., 0.5)"
+                                   name="residualMostLikelyFrequency"
+                                   value={form.residualMostLikelyFrequency}
+                                   onChange={handleChange}
+                                   className="rar-input"
+                                 />
+                               </td>
+                             </tr>
+
+                             <tr title="Maximum residual frequency of occurrence per year" className="rar-tab-specific-content">
+                               <td className="rar-form-label-cell">
+                                 <label className="rar-form-label">Residual Maximum Frequency:</label>
+                               </td>
+                               <td className="rar-form-input-cell">
+                                 <input
+                                   type="number"
+                                   step="0.01"
+                                   placeholder="Maximum residual frequency per year (e.g., 2.0)"
+                                   name="residualMaxFrequency"
+                                   value={form.residualMaxFrequency}
+                                   onChange={handleChange}
+                                   className="rar-input"
+                                 />
+                               </td>
+                             </tr>
+
+                             <tr title="Gamma parameter controls the shape and weight given to the mode value for residual frequency (typically 2-6, default 4)" className="rar-tab-specific-content">
+                               <td className="rar-form-label-cell">
+                                 <label className="rar-form-label">Residual Gamma (Shape Parameter):</label>
+                               </td>
+                               <td className="rar-form-input-cell">
+                                 <input
+                                   type="number"
+                                   step="0.1"
+                                   min="1"
+                                   max="10"
+                                   placeholder="Gamma parameter (e.g., 4)"
+                                   name="residualFrequencyGamma"
+                                   value={form.residualFrequencyGamma || form.frequencyGamma || 4}
+                                   onChange={handleChange}
+                                   className="rar-input"
+                                 />
+                                 <small className="rar-help-text">
+                                   Controls shape and mode emphasis for residual frequency. Higher values give more weight to the mode. 
+                                   Typically ranges from 1-10, with 4 being a common default.
+                                 </small>
+                               </td>
+                             </tr>
+
+                             <tr className="rar-tab-specific-content">
+                               <td colSpan="2" className="rar-form-input-cell">
+                                 <DistributionChart
+                                   distributionType="pert"
+                                   parameters={{
+                                     min: parseFloat(form.residualMinFrequency) || 0,
+                                     mode: parseFloat(form.residualMostLikelyFrequency) || 0,
+                                     max: parseFloat(form.residualMaxFrequency) || 1,
+                                     gamma: parseFloat(form.residualFrequencyGamma) || parseFloat(form.frequencyGamma) || 4
+                                   }}
+                                   title="Residual Frequency Distribution - Modified PERT"
+                                 />
+                                 <CumulativeDistributionChart
+                                   distributionType="pert"
+                                   parameters={{
+                                     min: parseFloat(form.residualMinFrequency) || 0,
+                                     mode: parseFloat(form.residualMostLikelyFrequency) || 0,
+                                     max: parseFloat(form.residualMaxFrequency) || 1,
+                                     gamma: parseFloat(form.residualFrequencyGamma) || parseFloat(form.frequencyGamma) || 4
+                                   }}
+                                   title="Residual Frequency Distribution - Modified PERT"
                                    formatCurrency={null}
                                  />
                                </td>
@@ -3548,6 +4931,228 @@ const InputForm = ({
                            </>
                          )}
 
+                         {(form.residualFrequencyDistribution || form.frequencyDistribution) === "negative-binomial" && (
+                           <>
+                           <tr title="Number of successes (r) for negative binomial distribution" className="rar-tab-specific-content">
+                             <td className="rar-form-label-cell">
+                               <label className="rar-form-label">Residual Number of Successes (r):</label>
+                             </td>
+                             <td className="rar-form-input-cell">
+                               <input
+                                 type="number"
+                                 min="1"
+                                 step="1"
+                                 placeholder="Number of successes (e.g., 5)"
+                                 name="residualFrequencyNegBinomialR"
+                                 value={form.residualFrequencyNegBinomialR}
+                                 onChange={handleChange}
+                                 className="rar-input"
+                               />
+                             </td>
+                           </tr>
+                           <tr title="Probability of success (p) for negative binomial distribution" className="rar-tab-specific-content">
+                             <td className="rar-form-label-cell">
+                               <label className="rar-form-label">Residual Success Probability (p):</label>
+                             </td>
+                             <td className="rar-form-input-cell">
+                               <input
+                                 type="number"
+                                 min="0"
+                                 max="1"
+                                 step="0.01"
+                                 placeholder="Probability (e.g., 0.3)"
+                                 name="residualFrequencyNegBinomialP"
+                                 value={form.residualFrequencyNegBinomialP}
+                                 onChange={handleChange}
+                                 className="rar-input"
+                               />
+                             </td>
+                           </tr>
+                           <tr className="rar-tab-specific-content">
+                             <td colSpan="2" className="rar-form-input-cell">
+                               <DistributionChart
+                                 distributionType="negative-binomial"
+                                 parameters={{
+                                   r: parseFloat(form.residualFrequencyNegBinomialR) || 5,
+                                   p: parseFloat(form.residualFrequencyNegBinomialP) || 0.3
+                                 }}
+                                 title="Residual Frequency Distribution - Negative Binomial"
+                               />
+                               <CumulativeDistributionChart
+                                 distributionType="negative-binomial"
+                                 parameters={{
+                                   r: parseFloat(form.residualFrequencyNegBinomialR) || 5,
+                                   p: parseFloat(form.residualFrequencyNegBinomialP) || 0.3
+                                 }}
+                                 title="Residual Frequency Distribution - Negative Binomial"
+                                 formatCurrency={null}
+                               />
+                             </td>
+                           </tr>
+                           </>
+                         )}
+
+                         {(form.residualFrequencyDistribution || form.frequencyDistribution) === "binomial" && (
+                           <>
+                           <tr title="Number of trials (n) for binomial distribution" className="rar-tab-specific-content">
+                             <td className="rar-form-label-cell">
+                               <label className="rar-form-label">Residual Number of Trials (n):</label>
+                             </td>
+                             <td className="rar-form-input-cell">
+                               <input
+                                 type="number"
+                                 min="1"
+                                 step="1"
+                                 placeholder="Number of trials (e.g., 20)"
+                                 name="residualFrequencyBinomialN"
+                                 value={form.residualFrequencyBinomialN}
+                                 onChange={handleChange}
+                                 className="rar-input"
+                               />
+                             </td>
+                           </tr>
+                           <tr title="Probability of success (p) for binomial distribution" className="rar-tab-specific-content">
+                             <td className="rar-form-label-cell">
+                               <label className="rar-form-label">Residual Success Probability (p):</label>
+                             </td>
+                             <td className="rar-form-input-cell">
+                               <input
+                                 type="number"
+                                 min="0"
+                                 max="1"
+                                 step="0.01"
+                                 placeholder="Probability (e.g., 0.1)"
+                                 name="residualFrequencyBinomialP"
+                                 value={form.residualFrequencyBinomialP}
+                                 onChange={handleChange}
+                                 className="rar-input"
+                               />
+                             </td>
+                           </tr>
+                           <tr className="rar-tab-specific-content">
+                             <td colSpan="2" className="rar-form-input-cell">
+                               <DistributionChart
+                                 distributionType="binomial"
+                                 parameters={{
+                                   n: parseFloat(form.residualFrequencyBinomialN) || 20,
+                                   p: parseFloat(form.residualFrequencyBinomialP) || 0.1
+                                 }}
+                                 title="Residual Frequency Distribution - Binomial"
+                               />
+                               <CumulativeDistributionChart
+                                 distributionType="binomial"
+                                 parameters={{
+                                   n: parseFloat(form.residualFrequencyBinomialN) || 20,
+                                   p: parseFloat(form.residualFrequencyBinomialP) || 0.1
+                                 }}
+                                 title="Residual Frequency Distribution - Binomial"
+                                 formatCurrency={null}
+                               />
+                             </td>
+                           </tr>
+                           </>
+                         )}
+
+                         {(form.residualFrequencyDistribution || form.frequencyDistribution) === "geometric" && (
+                           <>
+                           <tr title="Probability of success (p) for geometric distribution" className="rar-tab-specific-content">
+                             <td className="rar-form-label-cell">
+                               <label className="rar-form-label">Residual Success Probability (p):</label>
+                             </td>
+                             <td className="rar-form-input-cell">
+                               <input
+                                 type="number"
+                                 min="0"
+                                 max="1"
+                                 step="0.01"
+                                 placeholder="Probability (e.g., 0.2)"
+                                 name="residualFrequencyGeometricP"
+                                 value={form.residualFrequencyGeometricP}
+                                 onChange={handleChange}
+                                 className="rar-input"
+                               />
+                             </td>
+                           </tr>
+                           <tr className="rar-tab-specific-content">
+                             <td colSpan="2" className="rar-form-input-cell">
+                               <DistributionChart
+                                 distributionType="geometric"
+                                 parameters={{
+                                   p: parseFloat(form.residualFrequencyGeometricP || "0.2") || 0.2
+                                 }}
+                                 title="Residual Frequency Distribution - Geometric"
+                               />
+                               <CumulativeDistributionChart
+                                 distributionType="geometric"
+                                 parameters={{
+                                   p: parseFloat(form.residualFrequencyGeometricP || "0.2") || 0.2
+                                 }}
+                                 title="Residual Frequency Distribution - Geometric"
+                                 formatCurrency={null}
+                               />
+                             </td>
+                           </tr>
+                           </>
+                         )}
+
+                         {(form.residualFrequencyDistribution || form.frequencyDistribution) === "discrete-uniform" && (
+                           <>
+                           <tr title="Minimum value for discrete uniform distribution" className="rar-tab-specific-content">
+                             <td className="rar-form-label-cell">
+                               <label className="rar-form-label">Residual Minimum Value:</label>
+                             </td>
+                             <td className="rar-form-input-cell">
+                               <input
+                                 type="number"
+                                 step="1"
+                                 placeholder="Minimum value (e.g., 1)"
+                                 name="residualFrequencyDiscreteUniformMin"
+                                 value={form.residualFrequencyDiscreteUniformMin}
+                                 onChange={handleChange}
+                                 className="rar-input"
+                               />
+                             </td>
+                           </tr>
+                           <tr title="Maximum value for discrete uniform distribution" className="rar-tab-specific-content">
+                             <td className="rar-form-label-cell">
+                               <label className="rar-form-label">Residual Maximum Value:</label>
+                             </td>
+                             <td className="rar-form-input-cell">
+                               <input
+                                 type="number"
+                                 step="1"
+                                 placeholder="Maximum value (e.g., 10)"
+                                 name="residualFrequencyDiscreteUniformMax"
+                                 value={form.residualFrequencyDiscreteUniformMax}
+                                 onChange={handleChange}
+                                 className="rar-input"
+                               />
+                             </td>
+                           </tr>
+                           <tr className="rar-tab-specific-content">
+                             <td colSpan="2" className="rar-form-input-cell">
+                               <DistributionChart
+                                 distributionType="discrete-uniform"
+                                 parameters={{
+                                   min: parseFloat(form.residualFrequencyDiscreteUniformMin) || 1,
+                                   max: parseFloat(form.residualFrequencyDiscreteUniformMax) || 10
+                                 }}
+                                 title="Residual Frequency Distribution - Discrete Uniform"
+                               />
+                               <CumulativeDistributionChart
+                                 distributionType="discrete-uniform"
+                                 parameters={{
+                                   min: parseFloat(form.residualFrequencyDiscreteUniformMin) || 1,
+                                   max: parseFloat(form.residualFrequencyDiscreteUniformMax) || 10
+                                 }}
+                                 title="Residual Frequency Distribution - Discrete Uniform"
+                                 formatCurrency={null}
+                               />
+                             </td>
+                           </tr>
+                           </>
+                         )}
+
                          <tr title="Confidence level for residual Value at Risk calculation" className="rar-tab-specific-content">
                            <td className="rar-form-label-cell">
                              <label className="rar-form-label">Residual Confidence Level:</label>
@@ -3627,123 +5232,7 @@ const InputForm = ({
                            </td>
                          </tr>
 
-                         <tr title="Residual heat map display options" className="rar-tab-specific-content">
-                           <td className="rar-form-label-cell">
-                             <label className="rar-form-label">Residual Heat Map Display Options:</label>
-                           </td>
-                           <td className="rar-form-input-cell">
-                             <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-                               <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
-                                 <input
-                                   type="checkbox"
-                                   checked={showVaR}
-                                   onChange={(e) => setShowVaR(e.target.checked)}
-                                 />
-                                 <span style={{ color: '#0066ff', fontWeight: 'bold' }}>VaR Line</span>
-                               </label>
-                               <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
-                                 <input
-                                   type="checkbox"
-                                   checked={showEAL}
-                                   onChange={(e) => setShowEAL(e.target.checked)}
-                                 />
-                                 <span style={{ color: '#00cc66', fontWeight: 'bold' }}>EAL Line</span>
-                               </label>
-                               <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
-                                 <input
-                                   type="checkbox"
-                                   checked={showPercentiles}
-                                   onChange={(e) => setShowPercentiles(e.target.checked)}
-                                 />
-                                 <span>Percentile Lines</span>
-                               </label>
-                             </div>
-                             <small className="rar-help-text">
-                               Toggle visibility of different contour lines on the residual heat map
-                             </small>
-                           </td>
-                         </tr>
-
-                         <tr title="Joint residual unit cost and frequency heat map with probability density" className="rar-tab-specific-content">
-                           <td colSpan="2" className="rar-form-input-cell">
-                             {(() => {
-                               const residualVarRaw = calculateResidualMonteCarloVaR(form);
-                               const residualEalRaw = calculateResidualMonteCarloExpectedLoss(form);
-                               
-                               // Extract numeric values from potentially formatted strings
-                               const extractNumericValue = (value) => {
-                                 if (typeof value === 'number') return value;
-                                 if (typeof value === 'string') {
-                                   // Remove all currency symbols, commas, spaces, and extract number
-                                   // This regex removes common currency symbols: $, €, £, ¥, ₩, ₹, ₽, ₪, ₣, ₱, ₺, ¤, etc.
-                                   const cleaned = value.replace(/[$€£¥₩₹₽₪₣₱₺¤,\s]/g, '');
-                                   const num = parseFloat(cleaned);
-                                   return isNaN(num) ? 0 : num;
-                                 }
-                                 return 0;
-                               };
-                               
-                               const residualVarValue = extractNumericValue(residualVarRaw);
-                               const residualEalValue = extractNumericValue(residualEalRaw);
-                               const residualVarStdDev = (residualVarValue * 0.15); // Default to 15% since no stddev function available
-                               const residualEalStdDev = (residualEalValue * 0.15); // Default to 15% since no stddev function available
-                               
-                               console.log('Residual VaR & EAL Debug:', {
-                                 residualVarRaw,
-                                 residualEalRaw,
-                                 residualVarValue,
-                                 residualEalValue,
-                                 residualVarStdDev,
-                                 residualEalStdDev,
-                                 showVaR,
-                                 showEAL,
-                                 formValues: {
-                                   residualMinFrequency: form.residualMinFrequency,
-                                   residualMaxFrequency: form.residualMaxFrequency,
-                                   residualMinLoss: form.residualMinLoss,
-                                   residualMaxLoss: form.residualMaxLoss
-                                 }
-                               });
-                               
-                               return (
-                                 <RiskHeatMap
-                                   frequencyDistribution={form.residualFrequencyDistribution || form.frequencyDistribution || 'triangular'}
-                                   frequencyParams={{
-                                     min: parseFloat(form.residualMinFrequency) || parseFloat(form.minFrequency) || parseFloat(form.residualFrequencyMean) - parseFloat(form.residualFrequencyStdDev) || parseFloat(form.frequencyMean) - parseFloat(form.frequencyStdDev) || 0.1,
-                                     mode: parseFloat(form.residualMostLikelyFrequency) || parseFloat(form.mostLikelyFrequency) || parseFloat(form.residualFrequencyMean) || parseFloat(form.frequencyMean) || 1,
-                                     max: parseFloat(form.residualMaxFrequency) || parseFloat(form.maxFrequency) || parseFloat(form.residualFrequencyMean) + parseFloat(form.residualFrequencyStdDev) || parseFloat(form.frequencyMean) + parseFloat(form.frequencyStdDev) || 10,
-                                     mean: parseFloat(form.residualFrequencyMean) || parseFloat(form.frequencyMean) || parseFloat(form.residualFrequencyLambda) || parseFloat(form.frequencyLambda) || undefined,
-                                     std: parseFloat(form.residualFrequencyStdDev) || parseFloat(form.frequencyStdDev) || undefined,
-                                     lambda: parseFloat(form.residualFrequencyLambda) || parseFloat(form.frequencyLambda) || parseFloat(form.residualFrequencyLambdaExp) || parseFloat(form.frequencyLambdaExp) || undefined
-                                   }}
-                                   lossDistribution={form.residualLossDistribution || form.lossDistribution || 'triangular'}
-                                   lossParams={{
-                                     min: parseFloat(form.residualMinLoss) || parseFloat(form.minLoss) || parseFloat(form.residualLossMean) - parseFloat(form.residualLossStdDev) || parseFloat(form.lossMean) - parseFloat(form.lossStdDev) || 1000,
-                                     mode: parseFloat(form.residualMostLikelyLoss) || parseFloat(form.mostLikelyLoss) || parseFloat(form.residualLossMean) || parseFloat(form.lossMean) || 50000,
-                                     max: parseFloat(form.residualMaxLoss) || parseFloat(form.maxLoss) || parseFloat(form.residualLossMean) + parseFloat(form.residualLossStdDev) || parseFloat(form.lossMean) + parseFloat(form.lossStdDev) || 500000,
-                                     mean: parseFloat(form.residualLossMean) || parseFloat(form.lossMean) || undefined,
-                                     std: parseFloat(form.residualLossStdDev) || parseFloat(form.lossStdDev) || undefined,
-                                     mu: parseFloat(form.residualLognormalMuLoss) || parseFloat(form.lognormalMuLoss) || undefined,
-                                     sigma: parseFloat(form.residualLognormalSigmaLoss) || parseFloat(form.lognormalSigmaLoss) || undefined,
-                                     alpha: parseFloat(form.residualBetaAlpha) || parseFloat(form.betaAlpha) || undefined,
-                                     beta: parseFloat(form.residualBetaBeta) || parseFloat(form.betaBeta) || undefined
-                                   }}
-                                   formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
-                                   title="Residual Risk Assessment: Unit Cost × Frequency Heat Map"
-                                   isResidual={true}
-                                   iterations={form.residualMonteCarloIterations || form.monteCarloIterations || 10000}
-                                   valueAtRisk={residualVarValue || residualVarRaw || null}
-                                   expectedAnnualLoss={residualEalValue || residualEalRaw || null}
-                                   valueAtRiskStdDev={residualVarStdDev || null}
-                                   expectedAnnualLossStdDev={residualEalStdDev || null}
-                                   showVaR={showVaR}
-                                   showEAL={showEAL}
-                                   showPercentiles={showPercentiles}
-                                 />
-                               );
-                             })()}
-                           </td>
-                         </tr>
+                         {/* Residual Risk Heat Map and Display Options moved to separate Heat Map tab for comparison with Inherent Risk */}
 
                          <tr title="Residual risk level based on Monte Carlo analysis" className="rar-tab-specific-content">
                            <td className="rar-form-label-cell">
@@ -3771,11 +5260,313 @@ const InputForm = ({
                              </small>
                            </td>
                          </tr>
+                         
+                         {/* Back to Top Button for Residual Risk Tab */}
+                         <tr>
+                           <td colSpan="2">
+                             <BackToTopButton />
+                           </td>
+                         </tr>
                        </>
                      )}
                      </>
                   )}
+
+                  {/* Tornado Graph Tab Content */}
+                  {activeAdvancedQuantitativeTab === 'tornado' && (
+                    <>
+                      <tr>
+                        <td colSpan="2">
+                          <TornadoGraphCustom 
+                            form={form}
+                            getMonteCarloResults={getMonteCarloResults}
+                            formatCurrency={formatCurrency}
+                            getMonteCarloExpectedLossNumeric={getMonteCarloExpectedLossNumeric}
+                          />
+                        </td>
+                      </tr>
+                    </>
+                  )}
+
+                  {/* Heat Map Tab Content */}
+                  {activeAdvancedQuantitativeTab === 'heatmap' && (
+                    <>
+                      <tr title="Heat map display options" className="rar-tab-specific-content">
+                        <td className="rar-form-label-cell">
+                          <label className="rar-form-label">Heat Map Display Options:</label>
+                        </td>
+                        <td className="rar-form-input-cell">
+                          <div style={{ 
+                            display: 'flex', 
+                            gap: '15px', 
+                            flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+                            flexWrap: 'wrap',
+                            maxWidth: '100%',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}>
+                            <label style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '5px', 
+                              fontSize: '14px',
+                              minWidth: 'max-content',
+                              flex: '0 0 auto'
+                            }}>
+                              <input
+                                type="checkbox"
+                                checked={showVaR}
+                                onChange={(e) => setShowVaR(e.target.checked)}
+                              />
+                              <span style={{ color: '#0066ff', fontWeight: 'bold' }}>VaR Line</span>
+                            </label>
+                            <label style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '5px', 
+                              fontSize: '14px',
+                              minWidth: 'max-content',
+                              flex: '0 0 auto'
+                            }}>
+                              <input
+                                type="checkbox"
+                                checked={showEAL}
+                                onChange={(e) => setShowEAL(e.target.checked)}
+                              />
+                              <span style={{ color: '#00cc66', fontWeight: 'bold' }}>EAL Line</span>
+                            </label>
+                            <label style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '5px', 
+                              fontSize: '14px',
+                              minWidth: 'max-content',
+                              flex: '0 0 auto'
+                            }}>
+                              <input
+                                type="checkbox"
+                                checked={showPercentiles}
+                                onChange={(e) => setShowPercentiles(e.target.checked)}
+                              />
+                              <span>Percentile Lines</span>
+                            </label>
+                          </div>
+                          <small className="rar-help-text">
+                            Toggle visibility of different contour lines on both heat maps (Inherent Risk and Residual Risk)
+                          </small>
+                        </td>
+                      </tr>
+
+                      {/* Heat Map Visualization */}
+                      <tr title="Risk Heat Map" className="rar-tab-specific-content">
+                        <td colSpan="2" style={{ padding: '0px' }}>
+                            {(() => {
+                              const inherentVarRaw = calculateMonteCarloVaR(form);
+                              const inherentEalRaw = calculateMonteCarloExpectedLoss(form);
+                              
+                              // Extract numeric values from potentially formatted strings
+                              const extractNumericValue = (value) => {
+                                if (typeof value === 'number') return value;
+                                if (typeof value === 'string') {
+                                  // Remove all currency symbols, commas, spaces, and extract number
+                                  // This regex removes common currency symbols: $, €, £, ¥, ₩, ₹, ₽, ₪, ₣, ₱, ₺, ¤, etc.
+                                  const cleaned = value.replace(/[$€£¥₩₹₽₪₣₱₺¤,\s]/g, '');
+                                  const num = parseFloat(cleaned);
+                                  return isNaN(num) ? 0 : num;
+                                }
+                                return 0;
+                              };
+                              
+                              const inherentVarValue = extractNumericValue(inherentVarRaw);
+                              const inherentEalValue = extractNumericValue(inherentEalRaw);
+                              const inherentVarStdDev = (inherentVarValue * 0.15); // Default to 15% since no stddev function available
+                              const inherentEalStdDev = (inherentEalValue * 0.15); // Default to 15% since no stddev function available
+                              
+                              return (
+                                <div style={{ border: 'none', background: 'transparent' }}>
+                                  <RiskHeatMap
+                                frequencyDistribution={form.frequencyDistribution || 'triangular'}
+                                frequencyParams={{
+                                  min: (form.minFrequency !== undefined && form.minFrequency !== null && form.minFrequency !== '') ? parseFloat(form.minFrequency) : 
+                                       (form.frequencyMean !== undefined && form.frequencyMean !== null && form.frequencyMean !== '' && form.frequencyStdDev !== undefined && form.frequencyStdDev !== null && form.frequencyStdDev !== '') ? parseFloat(form.frequencyMean) - parseFloat(form.frequencyStdDev) : 0.1,
+                                  mode: (form.mostLikelyFrequency !== undefined && form.mostLikelyFrequency !== null && form.mostLikelyFrequency !== '') ? parseFloat(form.mostLikelyFrequency) : 
+                                        (form.frequencyMean !== undefined && form.frequencyMean !== null && form.frequencyMean !== '') ? parseFloat(form.frequencyMean) : 1,
+                                  max: (form.maxFrequency !== undefined && form.maxFrequency !== null && form.maxFrequency !== '') ? parseFloat(form.maxFrequency) : 
+                                       (form.frequencyMean !== undefined && form.frequencyMean !== null && form.frequencyMean !== '' && form.frequencyStdDev !== undefined && form.frequencyStdDev !== null && form.frequencyStdDev !== '') ? parseFloat(form.frequencyMean) + parseFloat(form.frequencyStdDev) : 10,
+                                  mean: (form.frequencyMean !== undefined && form.frequencyMean !== null && form.frequencyMean !== '') ? parseFloat(form.frequencyMean) : 
+                                        (form.frequencyLambda !== undefined && form.frequencyLambda !== null && form.frequencyLambda !== '') ? parseFloat(form.frequencyLambda) : undefined,
+                                  std: (form.frequencyStdDev !== undefined && form.frequencyStdDev !== null && form.frequencyStdDev !== '') ? parseFloat(form.frequencyStdDev) : undefined,
+                                  lambda: (form.frequencyLambda !== undefined && form.frequencyLambda !== null && form.frequencyLambda !== '') ? parseFloat(form.frequencyLambda) : 
+                                          (form.frequencyLambdaExp !== undefined && form.frequencyLambdaExp !== null && form.frequencyLambdaExp !== '') ? parseFloat(form.frequencyLambdaExp) : undefined,
+                                  gamma: (form.frequencyGamma !== undefined && form.frequencyGamma !== null && form.frequencyGamma !== '') ? parseFloat(form.frequencyGamma) : 4
+                                }}
+                                lossDistribution={form.lossDistribution || 'triangular'}
+                                lossParams={{
+                                  min: (form.minLoss !== undefined && form.minLoss !== '') ? parseFloat(form.minLoss) : 
+                                       (parseFloat(form.lossMean) - parseFloat(form.lossStdDev) || 1000),
+                                  mode: parseFloat(form.mostLikelyLoss) || parseFloat(form.lossMean) || 50000,
+                                  max: parseFloat(form.maxLoss) || parseFloat(form.lossMean) + parseFloat(form.lossStdDev) || 500000,
+                                  mean: parseFloat(form.lossMean) || undefined,
+                                  std: parseFloat(form.lossStdDev) || undefined,
+                                  mu: parseFloat(form.lognormalMuLoss) || undefined,
+                                  sigma: parseFloat(form.lognormalSigmaLoss) || undefined,
+                                  alpha: parseFloat(form.betaAlpha) || undefined,
+                                  beta: parseFloat(form.betaBeta) || undefined,
+                                  gamma: parseFloat(form.lossGamma) || 4
+                                }}
+                                formatCurrency={(value) => formatCurrency(value, form.sleCurrency)}
+                                title="Inherent Risk Assessment: Unit Cost × Frequency Heat Map"
+                                isResidual={false}
+                                iterations={form.monteCarloIterations || 10000}
+                                valueAtRisk={inherentVarValue || inherentVarRaw || null}
+                                expectedAnnualLoss={inherentEalValue || inherentEalRaw || null}
+                                valueAtRiskStdDev={inherentVarStdDev || null}
+                                expectedAnnualLossStdDev={inherentEalStdDev || null}
+                                showVaR={showVaR}
+                                showEAL={showEAL}
+                                showPercentiles={showPercentiles}
+                              />
+                                </div>
+                              );
+                            })()}
+                        </td>
+                      </tr>
+
+                      {/* Residual Risk Heat Map Visualization */}
+                      <tr title="Residual Risk Heat Map" className="rar-tab-specific-content">
+                        <td colSpan="2" style={{ padding: '0px' }}>
+                          {(() => {
+                            const residualVarRaw = calculateResidualMonteCarloVaR(form);
+                            const residualEalRaw = calculateResidualMonteCarloExpectedLoss(form);
+                            
+                            // Extract numeric values from potentially formatted strings
+                            const extractNumericValue = (value) => {
+                              if (typeof value === 'number') return value;
+                              if (typeof value === 'string') {
+                                // Remove all currency symbols, commas, spaces, and extract number
+                                // This regex removes common currency symbols: $, €, £, ¥, ₩, ₹, ₽, ₪, ₣, ₱, ₺, ¤, etc.
+                                const cleaned = value.replace(/[$€£¥₩₹₽₪₣₱₺¤,\s]/g, '');
+                                const num = parseFloat(cleaned);
+                                return isNaN(num) ? 0 : num;
+                              }
+                              return 0;
+                            };
+                            
+                            const residualVarValue = extractNumericValue(residualVarRaw);
+                            const residualEalValue = extractNumericValue(residualEalRaw);
+                            const residualVarStdDev = (residualVarValue * 0.15); // Default to 15% since no stddev function available
+                            const residualEalStdDev = (residualEalValue * 0.15); // Default to 15% since no stddev function available
+                            
+                            return (
+                              <RiskHeatMap
+                                frequencyDistribution={form.residualFrequencyDistribution || form.frequencyDistribution || 'triangular'}
+                                frequencyParams={{
+                                  min: (form.residualMinFrequency !== undefined && form.residualMinFrequency !== null && form.residualMinFrequency !== '') ? parseFloat(form.residualMinFrequency) :
+                                       (form.minFrequency !== undefined && form.minFrequency !== null && form.minFrequency !== '') ? parseFloat(form.minFrequency) :
+                                       (form.residualFrequencyMean !== undefined && form.residualFrequencyMean !== null && form.residualFrequencyMean !== '' && form.residualFrequencyStdDev !== undefined && form.residualFrequencyStdDev !== null && form.residualFrequencyStdDev !== '') ? parseFloat(form.residualFrequencyMean) - parseFloat(form.residualFrequencyStdDev) :
+                                       (form.frequencyMean !== undefined && form.frequencyMean !== null && form.frequencyMean !== '' && form.frequencyStdDev !== undefined && form.frequencyStdDev !== null && form.frequencyStdDev !== '') ? parseFloat(form.frequencyMean) - parseFloat(form.frequencyStdDev) : 0.1,
+                                  mode: (form.residualMostLikelyFrequency !== undefined && form.residualMostLikelyFrequency !== null && form.residualMostLikelyFrequency !== '') ? parseFloat(form.residualMostLikelyFrequency) :
+                                        (form.mostLikelyFrequency !== undefined && form.mostLikelyFrequency !== null && form.mostLikelyFrequency !== '') ? parseFloat(form.mostLikelyFrequency) :
+                                        (form.residualFrequencyMean !== undefined && form.residualFrequencyMean !== null && form.residualFrequencyMean !== '') ? parseFloat(form.residualFrequencyMean) :
+                                        (form.frequencyMean !== undefined && form.frequencyMean !== null && form.frequencyMean !== '') ? parseFloat(form.frequencyMean) : 1,
+                                  max: (form.residualMaxFrequency !== undefined && form.residualMaxFrequency !== null && form.residualMaxFrequency !== '') ? parseFloat(form.residualMaxFrequency) :
+                                       (form.maxFrequency !== undefined && form.maxFrequency !== null && form.maxFrequency !== '') ? parseFloat(form.maxFrequency) :
+                                       (form.residualFrequencyMean !== undefined && form.residualFrequencyMean !== null && form.residualFrequencyMean !== '' && form.residualFrequencyStdDev !== undefined && form.residualFrequencyStdDev !== null && form.residualFrequencyStdDev !== '') ? parseFloat(form.residualFrequencyMean) + parseFloat(form.residualFrequencyStdDev) :
+                                       (form.frequencyMean !== undefined && form.frequencyMean !== null && form.frequencyMean !== '' && form.frequencyStdDev !== undefined && form.frequencyStdDev !== null && form.frequencyStdDev !== '') ? parseFloat(form.frequencyMean) + parseFloat(form.frequencyStdDev) : 10,
+                                  mean: (form.residualFrequencyMean !== undefined && form.residualFrequencyMean !== null && form.residualFrequencyMean !== '') ? parseFloat(form.residualFrequencyMean) :
+                                        (form.frequencyMean !== undefined && form.frequencyMean !== null && form.frequencyMean !== '') ? parseFloat(form.frequencyMean) :
+                                        (form.residualFrequencyLambda !== undefined && form.residualFrequencyLambda !== null && form.residualFrequencyLambda !== '') ? parseFloat(form.residualFrequencyLambda) :
+                                        (form.frequencyLambda !== undefined && form.frequencyLambda !== null && form.frequencyLambda !== '') ? parseFloat(form.frequencyLambda) : undefined,
+                                  std: (form.residualFrequencyStdDev !== undefined && form.residualFrequencyStdDev !== null && form.residualFrequencyStdDev !== '') ? parseFloat(form.residualFrequencyStdDev) :
+                                       (form.frequencyStdDev !== undefined && form.frequencyStdDev !== null && form.frequencyStdDev !== '') ? parseFloat(form.frequencyStdDev) : undefined,
+                                  lambda: (form.residualFrequencyLambda !== undefined && form.residualFrequencyLambda !== null && form.residualFrequencyLambda !== '') ? parseFloat(form.residualFrequencyLambda) :
+                                          (form.frequencyLambda !== undefined && form.frequencyLambda !== null && form.frequencyLambda !== '') ? parseFloat(form.frequencyLambda) :
+                                          (form.residualFrequencyLambdaExp !== undefined && form.residualFrequencyLambdaExp !== null && form.residualFrequencyLambdaExp !== '') ? parseFloat(form.residualFrequencyLambdaExp) :
+                                          (form.frequencyLambdaExp !== undefined && form.frequencyLambdaExp !== null && form.frequencyLambdaExp !== '') ? parseFloat(form.frequencyLambdaExp) : undefined,
+                                  gamma: (form.residualFrequencyGamma !== undefined && form.residualFrequencyGamma !== null && form.residualFrequencyGamma !== '') ? parseFloat(form.residualFrequencyGamma) :
+                                         (form.frequencyGamma !== undefined && form.frequencyGamma !== null && form.frequencyGamma !== '') ? parseFloat(form.frequencyGamma) : 4
+                                }}
+                                lossDistribution={form.residualLossDistribution || form.lossDistribution || 'triangular'}
+                                lossParams={{
+                                  min: (form.residualMinLoss !== undefined && form.residualMinLoss !== '') ? parseFloat(form.residualMinLoss) : 
+                                       (form.minLoss !== undefined && form.minLoss !== '') ? parseFloat(form.minLoss) : 
+                                       (parseFloat(form.residualLossMean) - parseFloat(form.residualLossStdDev) || parseFloat(form.lossMean) - parseFloat(form.lossStdDev) || 1000),
+                                  mode: parseFloat(form.residualMostLikelyLoss) || parseFloat(form.mostLikelyLoss) || parseFloat(form.residualLossMean) || parseFloat(form.lossMean) || 50000,
+                                  max: parseFloat(form.residualMaxLoss) || parseFloat(form.maxLoss) || parseFloat(form.residualLossMean) + parseFloat(form.residualLossStdDev) || parseFloat(form.lossMean) + parseFloat(form.lossStdDev) || 500000,
+                                  mean: parseFloat(form.residualLossMean) || parseFloat(form.lossMean) || undefined,
+                                  std: parseFloat(form.residualLossStdDev) || parseFloat(form.lossStdDev) || undefined,
+                                  mu: parseFloat(form.residualLognormalMuLoss) || parseFloat(form.lognormalMuLoss) || undefined,
+                                  sigma: parseFloat(form.residualLognormalSigmaLoss) || parseFloat(form.lognormalSigmaLoss) || undefined,
+                                  alpha: parseFloat(form.residualBetaAlpha) || parseFloat(form.betaAlpha) || undefined,
+                                  beta: parseFloat(form.residualBetaBeta) || parseFloat(form.betaBeta) || undefined,
+                                  gamma: parseFloat(form.residualLossGamma) || parseFloat(form.lossGamma) || 4
+                                }}
+                                formatCurrency={(value) => formatCurrency(value, form.residualSleCurrency || form.sleCurrency)}
+                                title="Residual Risk Assessment: Unit Cost × Frequency Heat Map"
+                                isResidual={true}
+                                iterations={form.residualMonteCarloIterations || form.monteCarloIterations || 10000}
+                                valueAtRisk={residualVarValue || residualVarRaw || null}
+                                expectedAnnualLoss={residualEalValue || residualEalRaw || null}
+                                valueAtRiskStdDev={residualVarStdDev || null}
+                                expectedAnnualLossStdDev={residualEalStdDev || null}
+                                showVaR={showVaR}
+                                showEAL={showEAL}
+                                showPercentiles={showPercentiles}
+                              />
+                            );
+                          })()}
+                        </td>
+                      </tr>
+
+                      {/* Heat Map Information Card */}
+                      <tr className="rar-tab-specific-content">
+                        <td colSpan="2">
+                          <div style={{
+                            backgroundColor: '#f8f9fa',
+                            border: '1px solid #dee2e6',
+                            borderRadius: '8px',
+                            padding: '16px',
+                            margin: '16px 0',
+                            fontSize: '14px',
+                            lineHeight: '1.5'
+                          }}>
+                            <h4 style={{ 
+                              margin: '0 0 12px 0', 
+                              color: '#495057',
+                              fontSize: '16px',
+                              fontWeight: 'bold'
+                            }}>
+                              📊 Heat Map Analysis Guide
+                            </h4>
+                            <div style={{ marginBottom: '12px' }}>
+                              <strong>Risk Comparison:</strong> The heat maps above show the probability density distribution of potential losses, allowing direct comparison between Inherent Risk (before controls) and Residual Risk (after controls implementation).
+                            </div>
+                            <div style={{ marginBottom: '12px' }}>
+                              <strong>Display Options:</strong>
+                              <ul style={{ margin: '4px 0 0 20px', padding: 0 }}>
+                                <li><span style={{ color: '#0066ff', fontWeight: 'bold' }}>VaR Line (Blue)</span> - Value at Risk threshold showing the maximum expected loss at a given confidence level</li>
+                                <li><span style={{ color: '#00cc66', fontWeight: 'bold' }}>EAL Line (Green)</span> - Expected Annual Loss representing the average yearly financial impact</li>
+                                <li><strong>Percentile Lines</strong> - Statistical distribution markers showing probability contours</li>
+                              </ul>
+                            </div>
+                            <div style={{ marginBottom: '12px' }}>
+                              <strong>Heat Map Technical Details:</strong> Each heat map shows the joint probability distribution of frequency and unit cost combinations. Color intensity represents the probability of occurrence for each frequency-cost combination, with darker red areas indicating higher probability regions. Contour lines represent percentiles of total loss (frequency × unit cost). Hover over cells to see exact probability values and sample counts.
+                            </div>
+                            <div style={{ marginBottom: '12px' }}>
+                              <strong>⚠️ Important Note:</strong> Heat map contour percentiles are visual approximations based on grid discretization and may differ from the Monte Carlo Simulation Results percentiles, which use the full simulation data and provide more accurate statistical values.
+                            </div>
+                            <div style={{ marginBottom: '8px' }}>
+                              <strong>Interpretation:</strong> Darker areas indicate higher probability of occurrence. The spread and intensity patterns help visualize risk concentration and the effectiveness of implemented controls.
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </>
+                  )}
+
+                  <tr><td colSpan="2"><hr /></td></tr>
                   {/* General assessment fields - shown below both tabs */}
+                  {viewMode === 'Extended' && (
                   <tr title="Date for reviewing the risk assessment">
                     <td className="rar-form-label-cell">
                       <label className="rar-form-label">Review Date:</label>
@@ -3790,6 +5581,7 @@ const InputForm = ({
                       />
                     </td>
                   </tr>
+                  )}
 
                   <tr title="Status of the risk assessment">
                     <td className="rar-form-label-cell">
@@ -3858,6 +5650,7 @@ const InputForm = ({
                   )}
 
                   {/* Approver field for all assessment types */}
+                  {viewMode === 'Extended' && (
                   <tr title="Name of the person who approves this risk assessment based on the risk level">
                     <td className="rar-form-label-cell">
                       <label className="rar-form-label">
@@ -3890,6 +5683,7 @@ const InputForm = ({
                       </small>
                     </td>
                   </tr>
+                  )}
                 </tbody>
               </table>
 
@@ -4098,11 +5892,12 @@ const InputForm = ({
             </fieldset>
 
             <p className="rar-form-note">
-              <strong>Note:</strong> RAR fields should be customized based on
+              <strong>Note:</strong> RAR fields should be customised based on
               organisational risk management frameworks, industry requirements,
               and regulatory obligations. Consider adding custom fields for
               specific business contexts.
             </p>
+            <p className="rar-form-note">Any calculations in this form should be used as a guide only and not as definitive values. No reliance should be placed on the accuracy or completeness of these calculations and you are advised to perform your own due diligence.</p>
 
             {/* Submit/Update Button */}
             <div className="rar-button-container">

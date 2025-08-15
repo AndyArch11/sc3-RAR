@@ -4,14 +4,6 @@ import "./RAR.css";
 // SC3 Design System Constants
 const SC3_PRIMARY = "#003366";
 const SC3_SECONDARY = "#008cba"; 
-const SC3_ACCENT = "#ffc72c";
-const SC3_GREEN = "#4CAF50";
-const SC3_BG = "#f8f9fa";
-const SC3_BTN_FONT_WEIGHT = "600";
-const SC3_BTN_PADDING = "0.75rem 1.5rem";
-const SC3_BTN_RADIUS = "8px";
-const SC3_BTN_FONT_SIZE = "1rem";
-const SC3_BTN_BOX_SHADOW = (color) => `0 2px 4px ${color}33`;
 
 const RARReport = ({
   risks,
@@ -44,7 +36,7 @@ const RARReport = ({
   if (risks.length === 0) {
     return null;
   }
-  
+
   return (
     <div className="rar-report-container">
       {/* Risk Assessment Report Section */}
@@ -417,7 +409,12 @@ const RARReport = ({
                       </div>
 
                       {/* Heat Map Table */}
-                      <div className="rar-heatmap-matrix-container">
+                      <div className="rar-heatmap-matrix-container" style={{
+                        overflowX: 'auto',
+                        overflowY: 'visible',
+                        maxWidth: '100%',
+                        WebkitOverflowScrolling: 'touch'
+                      }}>
                         <table className="rar-heatmap-matrix"
                           style={{
                             backgroundColor: "white",
@@ -429,16 +426,16 @@ const RARReport = ({
                             <tr>
                               <th className="rar-heatmap-header"
                                 style={{
-                                  minWidth: "80px"
+                                  minWidth: window.innerWidth <= 768 ? "60px" : "80px"
                                 }}>
                                 Impact ↓<br/>Likelihood →
                               </th>
                               {likelihoodLevels.map(likelihood => (
                                 <th key={likelihood} className="rar-heatmap-header"
                                   style={{
-                                    minWidth: "90px",
+                                    minWidth: window.innerWidth <= 768 ? "50px" : "90px",
                                   }}>
-                                  {likelihood}
+                                  {window.innerWidth <= 480 ? likelihood.slice(0, 3) : likelihood}
                                 </th>
                               ))}
                             </tr>
@@ -447,15 +444,15 @@ const RARReport = ({
                             {impactLevels.slice().reverse().map(impact => (
                               <tr key={impact}>
                                 <td style={{
-                                  padding: "0.75rem",
+                                  padding: window.innerWidth <= 768 ? "0.5rem 0.3rem" : "0.75rem",
                                   backgroundColor: "#f8f9fa",
                                   border: "1px solid #dee2e6",
                                   fontWeight: "600",
                                   color: SC3_PRIMARY,
                                   textAlign: "center",
-                                  fontSize: "0.75rem"
+                                  fontSize: window.innerWidth <= 768 ? "0.65rem" : "0.75rem"
                                 }}>
-                                  {impact}
+                                  {window.innerWidth <= 480 ? impact.slice(0, 3) : impact}
                                 </td>
                                 {likelihoodLevels.map(likelihood => {
                                   const cell = matrix[impact][likelihood];
@@ -470,7 +467,7 @@ const RARReport = ({
                                   
                                   return (
                                     <td key={`${impact}-${likelihood}`} style={{
-                                      padding: "0.75rem",
+                                      padding: window.innerWidth <= 768 ? "0.5rem 0.3rem" : "0.75rem",
                                       border: "1px solid #dee2e6",
                                       textAlign: "center",
                                       backgroundColor: getRiskColor(riskLevel),
@@ -480,14 +477,14 @@ const RARReport = ({
                                       position: "relative"
                                     }}>
                                       <div style={{
-                                        fontSize: count > 0 ? "1.1rem" : "0.9rem",
+                                        fontSize: count > 0 ? (window.innerWidth <= 768 ? "0.9rem" : "1.1rem") : (window.innerWidth <= 768 ? "0.7rem" : "0.9rem"),
                                         lineHeight: "1"
                                       }}>
                                         {count}
                                       </div>
                                       {count > 0 && (
                                         <div style={{
-                                          fontSize: "0.65rem",
+                                          fontSize: window.innerWidth <= 768 ? "0.5rem" : "0.65rem",
                                           marginTop: "0.25rem",
                                           opacity: 0.9
                                         }}>

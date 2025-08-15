@@ -34,12 +34,14 @@ sc3-rar
 │   ├── index.css          # CSS styles for the React application
 │   ├── App.js             # Main App component, imports BIAForm
 │   ├── App.css            # CSS styles for the application
+│   └── util
+│   │   └── DistributionChart.js    # logic for creating charts for the Monte Carlo algorithms
+│   │   └── distribution.js         # logic for the different Monte Carlo distribution algorithms
+│   │   └── montecarlo.js           # Monte Carlo simulations
+│   │   └── RiskHeatMap.js          # Creates the heatmaps used by this SPA
+│   │   └── TornadoGraphCustom.js   # Creates the Sensitivity Analysis Tornado Graph
+│   │   └── ExcelExport.js          # Exports risks to an Excel file
 │   └── components
-│       └── DistributionChart.js    # logic for creating charts for the Monte Carlo algorithms
-│       └── distribution.js         # logic for the different Monte Carlo distribution algorithms
-│       └── montecarlo.js           # Monte Carlo simulations
-│       └── RiskHeatMap.js          # Creates the heatmaps used by this SPA
-│       └── ExcelExport.js          # Exports risks to an Excel file
 │       └── RAR.css                 # CSS for the components
 │       └── RARForm.js              # RAR SPA form
 │       └── RARInputForm.js         # Captures the Risk details
@@ -68,6 +70,7 @@ In the project folder
 ### `npm install`
 ### `npm install xlsx --save`
 ### `npm install recharts`
+### `npm install chart.js react-chartjs-2`
 
 ## Available Scripts
 

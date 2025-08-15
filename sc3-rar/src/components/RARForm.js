@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { runMonteCarlo, sampleDistribution } from "./montecarlo";
+import { runMonteCarlo, sampleDistribution } from "../util/montecarlo";
 import RARIntro from "./RARIntro";
 import InputForm from "./RARinputForm";
 import RARReport from "./RARReport";
 import RARTable from "./RARTable";
 import "./RAR.css";
 
-const VERSION = "v0.3.0"; // Update as needed
+const VERSION = "v0.4.0"; // Update as needed
 
 
 // TODO: Add more unit tests for all components and functions
@@ -145,8 +145,8 @@ const RARForm = () => {
   }, [form.assessmentType, form.sleCurrency]);
 
   // Auto-calculate manual risk level for quantitative assessments based on thresholds
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    // Only run for quantitative assessment types to avoid unnecessary calculations
     if (form.assessmentType === "quantitative") {
       const ale = calculateALE(form);
       const calculatedLevel = getQuantitativeRiskLevel(ale);
@@ -174,15 +174,18 @@ const RARForm = () => {
         }));
       }
     }
+    // ESLint disable: Functions are stable within component lifecycle
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     form.assessmentType,
-    form.sle,
+    // Include all possible dependencies to maintain consistent array size
+    form.sle, 
     form.aro,
-    form.minLoss,
-    form.mostLikelyLoss,
+    form.minLoss, 
+    form.mostLikelyLoss, 
     form.maxLoss,
-    form.minFrequency,
-    form.mostLikelyFrequency,
+    form.minFrequency, 
+    form.mostLikelyFrequency, 
     form.maxFrequency,
     form.manualRiskLevel,
     thresholds
@@ -774,6 +777,27 @@ const RARForm = () => {
           mode: validMode,
           max: validMax
         };
+      case 'pert':
+        const pertMinVal = parseFloat(form[`min${isLoss ? 'Loss' : 'Frequency'}`]) || 0;
+        const pertModeVal = parseFloat(form[`mostLikely${isLoss ? 'Loss' : 'Frequency'}`]) || 0;
+        const pertMaxVal = parseFloat(form[`max${isLoss ? 'Loss' : 'Frequency'}`]) || 0;
+        // Handle both regular and residual gamma parameters
+        const pertGammaVal = parseFloat(form[`${isLoss ? 'pert' : 'frequency'}Gamma`] || 
+                                       form[`residual${isLoss ? 'Pert' : 'Frequency'}Gamma`]) || 4;
+        
+        // Ensure valid PERT distribution parameters
+        const validPertMin = Math.max(0, pertMinVal);
+        const validPertMax = Math.max(validPertMin + 0.01, pertMaxVal);
+        const validPertMode = Math.max(validPertMin, Math.min(validPertMax, pertModeVal || (validPertMin + validPertMax) / 2));
+        const validPertGamma = Math.max(1, Math.min(10, pertGammaVal));
+        
+        return {
+          type: 'pert',
+          min: validPertMin,
+          mode: validPertMode,
+          max: validPertMax,
+          gamma: validPertGamma
+        };
       case 'normal':
         const meanVal = parseFloat(form[`${prefix}Mean`]) || 1;
         const stdDevVal = parseFloat(form[`${prefix}StdDev`]) || 0.1;
@@ -832,6 +856,60 @@ const RARForm = () => {
           type: 'exponential',
           lambda: Math.max(0.001, expLambdaVal) // Ensure positive lambda
         };
+      case 'gamma':
+        const gammaShapeVal = parseFloat(form[`${prefix}GammaShape`]) || 2;
+        const gammaScaleVal = parseFloat(form[`${prefix}GammaScale`]) || 1000;
+        return {
+          type: 'gamma',
+          shape: Math.max(0.1, gammaShapeVal),
+          scale: Math.max(0.1, gammaScaleVal)
+        };
+      case 'pareto':
+        const paretoXMinVal = parseFloat(form[`${prefix}ParetoMin`]) || (isLoss ? 1000 : 1);
+        const paretoAlphaVal = parseFloat(form[`${prefix}ParetoShape`]) || 2;
+        return {
+          type: 'pareto',
+          xMin: Math.max(0.1, paretoXMinVal),
+          alpha: Math.max(0.1, paretoAlphaVal)
+        };
+      case 'weibull':
+        const weibullKVal = parseFloat(form[`${prefix}WeibullShape`]) || 2;
+        const weibullLambdaVal = parseFloat(form[`${prefix}WeibullScale`]) || (isLoss ? 10000 : 1);
+        return {
+          type: 'weibull',
+          k: Math.max(0.1, weibullKVal),
+          lambda: Math.max(0.1, weibullLambdaVal)
+        };
+      case 'negative-binomial':
+        const negBinRVal = parseFloat(form[`${prefix}NegBinomialR`]) || 5;
+        const negBinPVal = parseFloat(form[`${prefix}NegBinomialP`]) || 0.3;
+        return {
+          type: 'negative-binomial',
+          r: Math.max(1, Math.floor(negBinRVal)),
+          p: Math.max(0.001, Math.min(0.999, negBinPVal))
+        };
+      case 'binomial':
+        const binNVal = parseFloat(form[`${prefix}BinomialN`]) || 20;
+        const binPVal = parseFloat(form[`${prefix}BinomialP`]) || 0.1;
+        return {
+          type: 'binomial',
+          n: Math.max(1, Math.floor(binNVal)),
+          p: Math.max(0.001, Math.min(0.999, binPVal))
+        };
+      case 'geometric':
+        const geomPVal = parseFloat(form[`${prefix}GeometricP`]) || 0.2;
+        return {
+          type: 'geometric',
+          p: Math.max(0.001, Math.min(0.999, geomPVal))
+        };
+      case 'discrete-uniform':
+        const duMinVal = parseFloat(form[`${prefix}DiscreteUniformMin`]) || 1;
+        const duMaxVal = parseFloat(form[`${prefix}DiscreteUniformMax`]) || 10;
+        return {
+          type: 'discrete-uniform',
+          min: Math.floor(duMinVal),
+          max: Math.max(Math.floor(duMinVal) + 1, Math.floor(duMaxVal))
+        };
       default:
         // Default to triangular with sensible defaults
         return {
@@ -854,14 +932,6 @@ const RARForm = () => {
     // Build frequency distribution parameters
     const frequencyParams = buildDistributionParams(form.frequencyDistribution, form, false);
     
-    // Debug logging
-    console.log('Monte Carlo Simulation Parameters:');
-    console.log('Form data:', form);
-    console.log('Iterations:', iterations);
-    console.log('Confidence Level:', confidenceLevel);
-    console.log('Severity Params:', severityParams);
-    console.log('Frequency Params:', frequencyParams);
-    
     // Validate parameters
     if (!severityParams || !frequencyParams) {
       console.error('Invalid distribution parameters');
@@ -880,12 +950,9 @@ const RARForm = () => {
       frequency: frequencyParams
     }];
     
-    console.log('Events for simulation:', events);
-    
     try {
       // Run Monte Carlo simulation
       const results = runMonteCarlo(events, iterations, confidenceLevel);
-      console.log('Monte Carlo Results:', results);
       
       // Validate results
       if (!results || typeof results.expectedAnnualLoss !== 'number' || typeof results.valueAtRisk !== 'number') {
@@ -933,17 +1000,32 @@ const RARForm = () => {
       frequencyAlpha: form.frequencyAlpha,
       frequencyBeta: form.frequencyBeta,
       frequencyLambda: form.frequencyLambda,
-      frequencyLambdaExp: form.frequencyLambdaExp
+      frequencyLambdaExp: form.frequencyLambdaExp,
+      // PERT gamma parameters
+      pertGamma: form.pertGamma,
+      frequencyGamma: form.frequencyGamma,
+      // New distribution parameters
+      lossGammaShape: form.lossGammaShape,
+      lossGammaScale: form.lossGammaScale,
+      lossParetoMin: form.lossParetoMin,
+      lossParetoShape: form.lossParetoShape,
+      lossWeibullShape: form.lossWeibullShape,
+      lossWeibullScale: form.lossWeibullScale,
+      frequencyNegBinomialR: form.frequencyNegBinomialR,
+      frequencyNegBinomialP: form.frequencyNegBinomialP,
+      frequencyBinomialN: form.frequencyBinomialN,
+      frequencyBinomialP: form.frequencyBinomialP,
+      frequencyGeometricP: form.frequencyGeometricP,
+      frequencyDiscreteUniformMin: form.frequencyDiscreteUniformMin,
+      frequencyDiscreteUniformMax: form.frequencyDiscreteUniformMax
     });
 
     // Check if we have cached results for these parameters
     if (monteCarloCache[cacheKey]) {
-      console.log('Using cached Monte Carlo results');
       return monteCarloCache[cacheKey];
     }
 
     // Run new simulation and cache results
-    console.log('Running new Monte Carlo simulation');
     const results = runMonteCarloSimulation(form);
     
     // Cache the results using setTimeout to avoid setState during render
@@ -960,7 +1042,6 @@ const RARForm = () => {
   // Monte Carlo calculation functions
   const calculateMonteCarloExpectedLoss = (form) => {
     const results = getMonteCarloResults(form);
-    console.log('Expected Loss Results:', results);
     
     if (results.expectedAnnualLoss && results.expectedAnnualLoss > 0) {
       return formatCurrency(results.expectedAnnualLoss, form.sleCurrency);
@@ -983,7 +1064,6 @@ const RARForm = () => {
 
   const calculateMonteCarloVaR = (form) => {
     const results = getMonteCarloResults(form);
-    console.log('VaR Results:', results);
     
     if (results.valueAtRisk && results.valueAtRisk > 0) {
       return formatCurrency(results.valueAtRisk, form.sleCurrency);
@@ -1029,6 +1109,11 @@ ${form.lossDistribution === 'triangular' ?
   `• Minimum: ${formatCurrency(severityParams.min, form.sleCurrency)}
 • Mode: ${formatCurrency(severityParams.mode, form.sleCurrency)}
 • Maximum: ${formatCurrency(severityParams.max, form.sleCurrency)}` :
+  form.lossDistribution === 'pert' ? 
+  `• Minimum: ${formatCurrency(severityParams.min, form.sleCurrency)}
+• Mode: ${formatCurrency(severityParams.mode, form.sleCurrency)}
+• Maximum: ${formatCurrency(severityParams.max, form.sleCurrency)}
+• Gamma (γ): ${severityParams.gamma}` :
   form.lossDistribution === 'normal' || form.lossDistribution === 'lognormal' ?
   `• Mean: ${formatCurrency(severityParams.mean, form.sleCurrency)}
 • Standard Deviation: ${formatCurrency(severityParams.stdDev, form.sleCurrency)}` :
@@ -1039,7 +1124,16 @@ ${form.lossDistribution === 'triangular' ?
   `• Minimum: ${formatCurrency(severityParams.min, form.sleCurrency)}
 • Maximum: ${formatCurrency(severityParams.max, form.sleCurrency)}
 • Alpha: ${severityParams.alpha}
-• Beta: ${severityParams.beta}` : ''
+• Beta: ${severityParams.beta}` :
+  form.lossDistribution === 'gamma' ?
+  `• Shape: ${severityParams.shape}
+• Scale: ${formatCurrency(severityParams.scale, form.sleCurrency)}` :
+  form.lossDistribution === 'pareto' ?
+  `• Minimum (xₘᵢₙ): ${formatCurrency(severityParams.xMin, form.sleCurrency)}
+• Shape (α): ${severityParams.alpha}` :
+  form.lossDistribution === 'weibull' ?
+  `• Shape (k): ${severityParams.k}
+• Scale (λ): ${formatCurrency(severityParams.lambda, form.sleCurrency)}` : ''
 }
 
 FREQUENCY DISTRIBUTION (${form.frequencyDistribution}):
@@ -1047,6 +1141,11 @@ ${form.frequencyDistribution === 'triangular' ?
   `• Minimum: ${frequencyParams.min.toFixed(2)} events/year
 • Mode: ${frequencyParams.mode.toFixed(2)} events/year
 • Maximum: ${frequencyParams.max.toFixed(2)} events/year` :
+  form.frequencyDistribution === 'pert' ? 
+  `• Minimum: ${frequencyParams.min.toFixed(2)} events/year
+• Mode: ${frequencyParams.mode.toFixed(2)} events/year
+• Maximum: ${frequencyParams.max.toFixed(2)} events/year
+• Gamma (γ): ${frequencyParams.gamma}` :
   form.frequencyDistribution === 'normal' ?
   `• Mean: ${frequencyParams.mean.toFixed(2)} events/year
 • Standard Deviation: ${frequencyParams.stdDev.toFixed(2)} events/year` :
@@ -1056,7 +1155,18 @@ ${form.frequencyDistribution === 'triangular' ?
   form.frequencyDistribution === 'poisson' ?
   `• Lambda (Rate): ${frequencyParams.lambda.toFixed(2)} events/year` :
   form.frequencyDistribution === 'exponential' ?
-  `• Lambda (Rate): ${frequencyParams.lambda.toFixed(2)}` : ''
+  `• Lambda (Rate): ${frequencyParams.lambda.toFixed(2)}` :
+  form.frequencyDistribution === 'negativeBinomial' ?
+  `• Number of Successes (r): ${frequencyParams.r}
+• Probability of Success (p): ${frequencyParams.p.toFixed(4)}` :
+  form.frequencyDistribution === 'binomial' ?
+  `• Number of Trials (n): ${frequencyParams.n}
+• Probability of Success (p): ${frequencyParams.p.toFixed(4)}` :
+  form.frequencyDistribution === 'geometric' ?
+  `• Probability of Success (p): ${frequencyParams.p.toFixed(4)}` :
+  form.frequencyDistribution === 'discreteUniform' ?
+  `• Minimum: ${frequencyParams.min} events/year
+• Maximum: ${frequencyParams.max} events/year` : ''
 }
 
 SIMULATION RESULTS:
@@ -1213,6 +1323,11 @@ INTERPRETATION:
       'lossMean', 'lossStdDev', 'frequencyMean', 'frequencyStdDev',
       'lossAlpha', 'lossBeta', 'frequencyAlpha', 'frequencyBeta',
       'frequencyLambda', 'frequencyLambdaExp',
+      // New distribution parameters  
+      'lossGammaShape', 'lossGammaScale', 'lossParetoMin', 'lossParetoShape',
+      'lossWeibullShape', 'lossWeibullScale', 'frequencyNegBinomialR', 'frequencyNegBinomialP',
+      'frequencyBinomialN', 'frequencyBinomialP', 'frequencyGeometricP',
+      'frequencyDiscreteUniformMin', 'frequencyDiscreteUniformMax',
       // Residual Monte Carlo parameters
       'residualLossDistribution', 'residualFrequencyDistribution',
       'residualMinLoss', 'residualMostLikelyLoss', 'residualMaxLoss', 
@@ -1220,11 +1335,15 @@ INTERPRETATION:
       'residualMonteCarloIterations', 'residualConfidenceLevel', 'residualSleCurrency',
       'residualLossMean', 'residualLossStdDev', 'residualFrequencyMean', 'residualFrequencyStdDev',
       'residualLossAlpha', 'residualLossBeta', 'residualFrequencyAlpha', 'residualFrequencyBeta',
-      'residualFrequencyLambda', 'residualFrequencyLambdaExp'
+      'residualFrequencyLambda', 'residualFrequencyLambdaExp',
+      // Residual new distribution parameters
+      'residualLossGammaShape', 'residualLossGammaScale', 'residualLossParetoMin', 'residualLossParetoShape',
+      'residualLossWeibullShape', 'residualLossWeibullScale', 'residualFrequencyNegBinomialR', 'residualFrequencyNegBinomialP',
+      'residualFrequencyBinomialN', 'residualFrequencyBinomialP', 'residualFrequencyGeometricP',
+      'residualFrequencyDiscreteUniformMin', 'residualFrequencyDiscreteUniformMax'
     ];
     
     if (monteCarloParams.includes(name)) {
-      console.log(`Clearing Monte Carlo cache due to change in ${name}`);
       setMonteCarloCache({});
     }
     
@@ -1284,7 +1403,10 @@ INTERPRETATION:
       residualFrequencyAlpha: form.residualFrequencyAlpha || form.frequencyAlpha,
       residualFrequencyBeta: form.residualFrequencyBeta || form.frequencyBeta,
       residualFrequencyLambda: form.residualFrequencyLambda || form.frequencyLambda,
-      residualFrequencyLambdaExp: form.residualFrequencyLambdaExp || form.frequencyLambdaExp
+      residualFrequencyLambdaExp: form.residualFrequencyLambdaExp || form.frequencyLambdaExp,
+      // Residual PERT gamma parameters
+      residualPertGamma: form.residualPertGamma || form.pertGamma,
+      residualFrequencyGamma: form.residualFrequencyGamma || form.frequencyGamma
     });
 
     // Check if we have cached results for these parameters
@@ -1316,7 +1438,10 @@ INTERPRETATION:
       frequencyAlpha: form.residualFrequencyAlpha || form.frequencyAlpha,
       frequencyBeta: form.residualFrequencyBeta || form.frequencyBeta,
       frequencyLambda: form.residualFrequencyLambda || form.frequencyLambda,
-      frequencyLambdaExp: form.residualFrequencyLambdaExp || form.frequencyLambdaExp
+      frequencyLambdaExp: form.residualFrequencyLambdaExp || form.frequencyLambdaExp,
+      // PERT gamma parameters
+      pertGamma: form.residualPertGamma || form.pertGamma,
+      frequencyGamma: form.residualFrequencyGamma || form.frequencyGamma
     };
 
     // Run new simulation and cache results
@@ -1351,7 +1476,6 @@ INTERPRETATION:
 
   const calculateResidualMonteCarloVaR = (form) => {
     const results = getResidualMonteCarloResults(form);
-    console.log('Residual VaR Results:', results);
     
     if (results.valueAtRisk && results.valueAtRisk > 0) {
       return formatCurrency(results.valueAtRisk, form.residualSleCurrency || form.sleCurrency);
@@ -1380,9 +1504,23 @@ ${lossDistribution === 'triangular' ?
   `• Minimum: ${formatCurrency(form.residualMinLoss || form.minLoss, currency)}
 • Mode: ${formatCurrency(form.residualMostLikelyLoss || form.mostLikelyLoss, currency)}
 • Maximum: ${formatCurrency(form.residualMaxLoss || form.maxLoss, currency)}` :
+  lossDistribution === 'pert' ? 
+  `• Minimum: ${formatCurrency(form.residualMinLoss || form.minLoss, currency)}
+• Mode: ${formatCurrency(form.residualMostLikelyLoss || form.mostLikelyLoss, currency)}
+• Maximum: ${formatCurrency(form.residualMaxLoss || form.maxLoss, currency)}
+• Gamma (γ): ${form.residualPertGamma || form.pertGamma || 4}` :
   lossDistribution === 'normal' || lossDistribution === 'lognormal' ?
   `• Mean: ${formatCurrency(form.residualLossMean || form.lossMean, currency)}
 • Standard Deviation: ${formatCurrency(form.residualLossStdDev || form.lossStdDev, currency)}` :
+  lossDistribution === 'gamma' ?
+  `• Shape: ${form.residualGammaShape || form.lossGammaShape || 1}
+• Scale: ${formatCurrency(form.residualGammaScale || form.lossGammaScale || 1000, currency)}` :
+  lossDistribution === 'pareto' ?
+  `• Minimum (xₘᵢₙ): ${formatCurrency(form.residualParetoMin || form.lossParetoMin || 500, currency)}
+• Shape (α): ${form.residualParetoShape || form.lossParetoShape || 2}` :
+  lossDistribution === 'weibull' ?
+  `• Shape (k): ${form.residualWeibullShape || form.lossWeibullShape || 2}
+• Scale (λ): ${formatCurrency(form.residualWeibullScale || form.lossWeibullScale || 2500, currency)}` :
   `• Distribution parameters from main Risk tab`
 }
 
@@ -1391,9 +1529,25 @@ ${frequencyDistribution === 'triangular' ?
   `• Minimum: ${(parseFloat(form.residualMinFrequency || form.minFrequency) || 0).toFixed(2)} events/year
 • Mode: ${(parseFloat(form.residualMostLikelyFrequency || form.mostLikelyFrequency) || 0).toFixed(2)} events/year
 • Maximum: ${(parseFloat(form.residualMaxFrequency || form.maxFrequency) || 0).toFixed(2)} events/year` :
+  frequencyDistribution === 'pert' ? 
+  `• Minimum: ${(parseFloat(form.residualMinFrequency || form.minFrequency) || 0).toFixed(2)} events/year
+• Mode: ${(parseFloat(form.residualMostLikelyFrequency || form.mostLikelyFrequency) || 0).toFixed(2)} events/year
+• Maximum: ${(parseFloat(form.residualMaxFrequency || form.maxFrequency) || 0).toFixed(2)} events/year
+• Gamma (γ): ${form.residualFrequencyGamma || form.frequencyGamma || 4}` :
   frequencyDistribution === 'normal' ?
   `• Mean: ${(parseFloat(form.residualFrequencyMean || form.frequencyMean) || 0).toFixed(2)} events/year
 • Standard Deviation: ${(parseFloat(form.residualFrequencyStdDev || form.frequencyStdDev) || 0).toFixed(2)} events/year` :
+  frequencyDistribution === 'negativeBinomial' ?
+  `• Number of Successes (r): ${form.residualFrequencyR || form.frequencyR || 5}
+• Probability of Success (p): ${(parseFloat(form.residualFrequencyP || form.frequencyP) || 0.1).toFixed(4)}` :
+  frequencyDistribution === 'binomial' ?
+  `• Number of Trials (n): ${form.residualFrequencyN || form.frequencyN || 10}
+• Probability of Success (p): ${(parseFloat(form.residualFrequencyP || form.frequencyP) || 0.1).toFixed(4)}` :
+  frequencyDistribution === 'geometric' ?
+  `• Probability of Success (p): ${(parseFloat(form.residualFrequencyP || form.frequencyP) || 0.1).toFixed(4)}` :
+  frequencyDistribution === 'discreteUniform' ?
+  `• Minimum: ${form.residualFrequencyMin || form.frequencyMin || 1} events/year
+• Maximum: ${form.residualFrequencyMax || form.frequencyMax || 10} events/year` :
   `• Distribution parameters from main Risk tab`
 }
 

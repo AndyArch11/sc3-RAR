@@ -4,19 +4,8 @@ import "./RAR.css";
 // SC3.com.au theme colours and style constants
 const SC3_PRIMARY = "#003366";      // Deep blue
 const SC3_SECONDARY = "#0099cc";    // Bright blue
-const SC3_ACCENT = "#fbc02d";       // Gold/yellow
 const SC3_GREEN = "#388e3c";        // Green
-const SC3_BORDER_RADIUS = 6;
-const SC3_BTN_FONT_WEIGHT = "bold";
-const SC3_BTN_BOX_SHADOW = (color) => `0 2px 6px ${color}22`;
-const SC3_INPUT_PADDING = "8px 12px";
-const SC3_INPUT_BORDER_RADIUS = 4;
 const SC3_TABLE_HEADER_BG = "#e5eef5";
-const SC3_TABLE_BG = "#fff";
-const SC3_TABLE_BORDER_RADIUS = 8;
-const SC3_TABLE_HEADER_FONT_SIZE = "1.05em";
-const SC3_TABLE_HEADER_FONT_WEIGHT = "bold";
-const SC3_TABLE_TRANSITION = "background 0.2s";
 
 const RARIntro = ({ 
     riskMatrix, 
@@ -34,6 +23,27 @@ const RARIntro = ({
 }) => {
     // State for guidance section
     const [showQualitativeGuidance, setShowQualitativeGuidance] = useState(false);
+
+    // Function to scroll to top
+    const scrollToTop = () => {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    };
+
+    // Back to Top Button Component
+    const BackToTopButton = ({ className = "" }) => (
+        <div className={`rar-back-to-top-container ${className}`}>
+            <button 
+                onClick={scrollToTop}
+                className="rar-back-to-top-btn"
+                title="Back to Top"
+            >
+                ↑ Back to Top
+            </button>
+        </div>
+    );
 
     return (        
         <details className="rar-intro-details">
@@ -368,6 +378,265 @@ const RARIntro = ({
               Modify the Risk Assessment Matrix to reflect the organisation's
               risk appetite.
             </p>
+            
+            <BackToTopButton />
+            
+            {/* Severity Guidance Table */}
+            <div className="rar-severity-section">
+              <h3 className="rar-severity-title">
+                Severity Guidance
+              </h3>
+              <div className="rar-severity-table-wrapper">
+                {/* Outer wrapper for horizontal scroll so that scroll bar does not hide the last row - works for Chrome and Edge, not for Firefox */}
+                <div className="rar-severity-table-scroll">
+                  <table className="rar-severity-table">
+                    <thead>
+                      <tr>
+                        <th className="rar-severity-table-header">
+                          Severity Level
+                        </th>
+                        <th className="rar-severity-table-header-wide">
+                          People
+                        </th>
+                        <th className="rar-severity-table-header-detailed-wide">
+                          Assets & Technology/Systems
+                        </th>
+                        <th className="rar-severity-table-header-detailed">
+                          Environment
+                        </th>
+                        <th className="rar-severity-table-header-detailed-wide">
+                          Reputation & Customer Impact
+                        </th>
+                        <th className="rar-severity-table-header-detailed">
+                          Financial
+                        </th>
+                        <th className="rar-severity-table-header-detailed">
+                          Staff Retention
+                        </th>
+                        <th className="rar-severity-table-header-detailed-wide">
+                          Information Security & Data Privacy
+                        </th>
+                        <th className="rar-severity-table-header-detailed-extra-wide">
+                          Governance, Legal, Compliance & Regulatory
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td
+                          className="rar-severity-table-header-cell"
+                          style={{
+                            background: SC3_TABLE_HEADER_BG,
+                            border: `1px solid ${SC3_PRIMARY}`,
+                          }}
+                        >
+                          Severe
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Multiple fatalities or permanent disabilities
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Complete loss of critical infrastructure; total system
+                          failure
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Catastrophic environmental damage
+                        </td>
+                        <td
+                          style={{
+                            padding: "8px",
+                            border: `1px solid ${SC3_PRIMARY}`,
+                            textAlign: "left",
+                          }}
+                        >
+                          Irreparable brand damage; mass customer exodus
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Threatens organizational survival
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Mass exodus of key personnel
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Massive data breach; complete loss of confidentiality
+                        </td>
+                        <td
+                          style={{
+                            padding: "8px",
+                            border: `1px solid ${SC3_PRIMARY}`,
+                            textAlign: "left",
+                          }}
+                        >
+                          Criminal prosecution; loss of license to operate;
+                          regulatory shutdown
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="rar-severity-table-header-cell"
+                          style={{
+                            background: SC3_TABLE_HEADER_BG,
+                          }}
+                        >
+                          Major
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Single fatality or serious injury requiring
+                          hospitalization
+                        </td>
+                        <td
+                          style={{
+                            padding: "8px",
+                            border: `1px solid ${SC3_PRIMARY}`,
+                            textAlign: "left",
+                          }}
+                        >
+                          Significant damage to critical assets; major system
+                          disruption
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Serious environmental impact requiring remediation
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          National publicity; significant customer loss
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Significant financial impact on operations
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Loss of critical staff or leadership
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Significant data breach; widespread privacy violations
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Regulatory action; significant fines; political
+                          intervention
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="rar-severity-table-header-cell"
+                          style={{
+                            background: SC3_TABLE_HEADER_BG,
+                          }}
+                        >
+                          Moderate
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Injury requiring medical treatment
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Damage to non-critical assets; system performance
+                          degradation
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Limited environmental impact
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Local negative publicity; customer complaints
+                        </td>
+                        <td
+                          style={{
+                            padding: "8px",
+                            border: `1px solid ${SC3_PRIMARY}`,
+                            textAlign: "left",
+                          }}
+                        >
+                          Moderate financial impact
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Temporary loss of some staff
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Limited data exposure; security incident
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Regulatory notice; compliance breach; policy changes
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="rar-severity-table-header-cell"
+                          style={{
+                            background: SC3_TABLE_HEADER_BG,
+                          }}
+                        >
+                          Minor
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Minor injury requiring first aid
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Minor damage, easily repaired; temporary system issues
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Minimal environmental impact
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Internal criticism; minor customer dissatisfaction
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Minor financial impact
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Minimal staff turnover
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Minor security weakness; limited access exposure
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Minor compliance issue; administrative requirements
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="rar-severity-table-header-cell"
+                          style={{
+                            background: SC3_TABLE_HEADER_BG,
+                          }}
+                        >
+                          Negligible
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          No injury or very minor discomfort
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          No damage or insignificant damage; minor performance
+                          impact
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          No environmental impact
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          No impact on reputation or customers
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          Negligible financial impact
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          No impact on staff retention
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          No security or privacy impact
+                        </td>
+                        <td className="rar-severity-table-cell">
+                          No compliance implications
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <p></p>
+                </div>
+              </div>
+            </div>
+            <p>
+              The impact categories are industry-specific and may vary based on
+              the organization's context and risk appetite. The Severity
+              Guidance Table provides a starting point for assessing the
+              potential impact of risks. Authorisation levels to accept
+              risks of different severity levels should be defined based on the
+              organization's governance structure and risk management policies.
+            </p>
+            
+            <BackToTopButton />
+            
             {/* Severity Level Sign-off Table */}
             <div className="rar-threshold-section">
               <h3 className="rar-threshold-title">
@@ -608,6 +877,9 @@ const RARIntro = ({
             
             {/* Qualitative Assessment Options Section */}
             <div className="rar-guidance-container">
+              
+              <BackToTopButton />
+              
               <div
                 className="rar-guidance-toggle"
                 onClick={() => setShowQualitativeGuidance(!showQualitativeGuidance)}
@@ -618,9 +890,7 @@ const RARIntro = ({
                 <span className="rar-guidance-toggle-icon">
                   {showQualitativeGuidance ? "−" : "+"}
                 </span>
-              </div>
-              
-              {showQualitativeGuidance && (
+              </div>              {showQualitativeGuidance && (
                 <div className="rar-guidance-content">
                   <div className="rar-assessment-overview">
                     <h4 className="rar-assessment-overview-title">
@@ -765,6 +1035,16 @@ const RARIntro = ({
                           </div>
                           
                           <div className="rar-distribution-item">
+                            <strong className="rar-distribution-name">Modified PERT Loss Distribution</strong>
+                            <p className="rar-distribution-detail">
+                              <strong>Best for:</strong> Enhanced triangular analysis with adjustable confidence levels and tail behavior
+                            </p>
+                            <p className="rar-distribution-detail">
+                              <strong>Use when:</strong> Expert estimates require fine-tuning between optimistic and pessimistic scenarios, complex project risks with variable confidence
+                            </p>
+                          </div>
+                          
+                          <div className="rar-distribution-item">
                             <strong className="rar-distribution-name-normal">Normal Loss Distribution</strong>
                             <p className="rar-distribution-detail">
                               <strong>Best for:</strong> Symmetric losses around a mean with known standard deviation
@@ -775,7 +1055,7 @@ const RARIntro = ({
                           </div>
                           
                           <div className="rar-distribution-item">
-                            <strong className="rar-distribution-name-lognormal">Lognormal Loss Distribution</strong>
+                            <strong className="rar-distribution-name-lognormal">Log-normal Loss Distribution</strong>
                             <p className="rar-distribution-detail">
                               <strong>Best for:</strong> Right-skewed losses with potential for extreme values
                             </p>
@@ -803,6 +1083,36 @@ const RARIntro = ({
                               <strong>Use when:</strong> Project risks, performance metrics, bounded scenarios
                             </p>
                           </div>
+                          
+                          <div className="rar-distribution-item">
+                            <strong className="rar-distribution-name-gamma">Gamma Distribution</strong>
+                            <p className="rar-distribution-detail">
+                              <strong>Best for:</strong> Right-skewed losses with waiting time characteristics and flexible shape control
+                            </p>
+                            <p className="rar-distribution-detail">
+                              <strong>Use when:</strong> Modeling aggregate losses, insurance claims, time-to-event scenarios, reliability analysis
+                            </p>
+                          </div>
+                          
+                          <div className="rar-distribution-item">
+                            <strong className="rar-distribution-name-pareto">Pareto Distribution</strong>
+                            <p className="rar-distribution-detail">
+                              <strong>Best for:</strong> Heavy-tailed losses following the 80/20 principle with extreme value potential
+                            </p>
+                            <p className="rar-distribution-detail">
+                              <strong>Use when:</strong> Catastrophic losses, cyber security breaches, operational risk events, wealth distribution modeling
+                            </p>
+                          </div>
+                          
+                          <div className="rar-distribution-item">
+                            <strong className="rar-distribution-name-weibull">Weibull Distribution</strong>
+                            <p className="rar-distribution-detail">
+                              <strong>Best for:</strong> Failure analysis and reliability modeling with varying hazard rates over time
+                            </p>
+                            <p className="rar-distribution-detail">
+                              <strong>Use when:</strong> Equipment failure costs, product lifecycle losses, survival analysis, maintenance scheduling
+                            </p>
+                          </div>
                         </div>
                       </div>
                       
@@ -823,22 +1133,22 @@ const RARIntro = ({
                           </div>
                           
                           <div className="rar-distribution-item">
+                            <strong className="rar-distribution-name">Modified PERT Frequency Distribution</strong>
+                            <p className="rar-distribution-detail">
+                              <strong>Best for:</strong> Enhanced three-point frequency estimates with gamma parameter control
+                            </p>
+                            <p className="rar-distribution-detail">
+                              <strong>Use when:</strong> Expert frequency estimates with varying confidence levels, adjustable distribution shape for different risk scenarios
+                            </p>
+                          </div>
+                          
+                          <div className="rar-distribution-item">
                             <strong className="rar-distribution-name-normal">Normal Frequency Distribution</strong>
                             <p className="rar-distribution-detail">
                               <strong>Best for:</strong> Symmetric frequency patterns with known variability
                             </p>
                             <p className="rar-distribution-detail">
                               <strong>Use when:</strong> Historical data shows normal distribution, operational events
-                            </p>
-                          </div>
-                          
-                          <div className="rar-distribution-item-indent">
-                            <strong className="rar-distribution-type-header">Uniform Frequency Distribution</strong>
-                            <p className="rar-distribution-detail-small">
-                              <strong>Best for:</strong> Equal probability across a frequency range
-                            </p>
-                            <p className="rar-distribution-detail-small">
-                              <strong>Use when:</strong> Limited frequency data, conservative assumptions
                             </p>
                           </div>
                           
@@ -853,6 +1163,26 @@ const RARIntro = ({
                           </div>
                           
                           <div className="rar-distribution-item">
+                            <strong className="rar-distribution-name-uniform">Discrete Uniform Frequency Distribution</strong>
+                            <p className="rar-distribution-detail">
+                              <strong>Best for:</strong> Equal probability for each discrete outcome within a defined range
+                            </p>
+                            <p className="rar-distribution-detail">
+                              <strong>Use when:</strong> Dice-roll scenarios, random sampling, equally likely discrete events
+                            </p>
+                          </div>
+                          
+                          <div className="rar-distribution-item-indent">
+                            <strong className="rar-distribution-type-header">Uniform Frequency Distribution</strong>
+                            <p className="rar-distribution-detail-small">
+                              <strong>Best for:</strong> Equal probability across a frequency range
+                            </p>
+                            <p className="rar-distribution-detail-small">
+                              <strong>Use when:</strong> Limited frequency data, conservative assumptions. As it models a continuous range rather than discrete events, it is best for scenarios where any value within a range is equally likely and event counts are not restricted to whole numbers. Not usually appropriate to use in frequency distributions for scenarios with distinct, countable events.
+                            </p>
+                          </div>
+                          
+                          <div className="rar-distribution-item">
                             <strong className="rar-distribution-name-beta">Exponential Frequency Distribution</strong>
                             <p className="rar-distribution-detail">
                               <strong>Best for:</strong> Time between events, failure rates
@@ -861,26 +1191,156 @@ const RARIntro = ({
                               <strong>Use when:</strong> Modeling time to failure, service intervals
                             </p>
                           </div>
+                          
+                          <div className="rar-distribution-item">
+                            <strong className="rar-distribution-name-gamma">Negative Binomial Frequency Distribution</strong>
+                            <p className="rar-distribution-detail">
+                              <strong>Best for:</strong> Discrete count events with overdispersion and clustering behavior
+                            </p>
+                            <p className="rar-distribution-detail">
+                              <strong>Use when:</strong> Quality control failures, reliability testing, events that occur in bursts or clusters
+                            </p>
+                          </div>
+                          
+                          <div className="rar-distribution-item">
+                            <strong className="rar-distribution-name-pareto">Binomial Frequency Distribution</strong>
+                            <p className="rar-distribution-detail">
+                              <strong>Best for:</strong> Fixed number of independent trials with known success probability
+                            </p>
+                            <p className="rar-distribution-detail">
+                              <strong>Use when:</strong> Pass/fail testing scenarios, compliance audits, binary outcome processes
+                            </p>
+                          </div>
+                          
+                          <div className="rar-distribution-item">
+                            <strong className="rar-distribution-name-weibull">Geometric Frequency Distribution</strong>
+                            <p className="rar-distribution-detail">
+                              <strong>Best for:</strong> Number of trials until first success or breakthrough event
+                            </p>
+                            <p className="rar-distribution-detail">
+                              <strong>Use when:</strong> Time-to-first-failure analysis, breakthrough incidents, first occurrence modeling
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     <div className="rar-distribution-guidelines">
                       <h5 className="rar-distribution-guidelines-title">
-                        🎯 Distribution Selection Guidelines
+                        🎯 Loss Severity Distribution Selection Guidelines
                       </h5>
                       <ul className="rar-distribution-guidelines-list">
                         <li><strong>Start with Triangular</strong> - Most intuitive for business users, requires min/mode/max estimates</li>
+                        <li><strong>Choose Modified PERT</strong> - For enhanced triangular analysis with adjustable confidence and tail behavior via gamma parameter (1-10)</li>
                         <li><strong>Use Normal</strong> - When you have historical mean and standard deviation data</li>
-                        <li><strong>Choose Lognormal</strong> - For financial losses or when extreme values are possible</li>
-                        <li><strong>Select Poisson</strong> - For rare events with known average occurrence rates</li>
-                        <li><strong>Apply Beta</strong> - For bounded scenarios requiring flexible shape control</li>
+                        <li><strong>Choose Log-normal</strong> - For financial losses or when extreme values are possible</li>
                         <li><strong>Consider Uniform</strong> - When making conservative assumptions with limited data</li>
+                        <li><strong>Apply Beta</strong> - For bounded scenarios requiring flexible shape control</li>
+                        <li><strong>Use Gamma</strong> - For modeling time until an event occurs</li>
+                        <li><strong>Chose Pareto</strong> - For modeling distributions with a heavy tail, often used in business contexts to represent the 80/20 rule</li>
+                        <li><strong>Select Weibull</strong> - For modeling life data and failure times with varying hazard rates</li>
+                      </ul>
+                      
+                      <h5 className="rar-distribution-guidelines-title">
+                        🎯 Frequency Distribution Selection Guidelines
+                      </h5>
+                      <ul className="rar-distribution-guidelines-list">
+                        <li><strong>Start with Poisson</strong> - Most intuitive for business users, requires min/mode/max estimates. For rare events with known average occurrence rates</li>
+                        <li><strong>Or begin with Triangular</strong> - For a simple and flexible approach with min/mode/max estimates</li>
+                        <li><strong>Choose Modified PERT</strong> - For enhanced three-point frequency estimates with gamma parameter control</li>
+                        <li><strong>Use Normal</strong> - For scenarios where data is symmetrically distributed around a mean</li>
+                        <li><strong>Consider Discrete Uniform</strong> - For scenarios with equally likely discrete outcomes within a defined range</li>
+                        <li><strong>Explore Continuous Uniform</strong> - For scenarios with equally likely continuous outcomes within a defined range</li>
                         <li><strong>Use Exponential</strong> - For modeling time until an event occurs</li>
+                        <li><strong>Use Negative Binomial</strong> - For discrete count events with overdispersion and clustering behavior where you have historical mean and standard deviation data</li>
+                        <li><strong>Apply Binomial</strong> - For scenarios with a fixed number of trials and two possible outcomes</li>
+                        <li><strong>Consider Geometric</strong> - For modelling financial losses or when extreme values are possible, or for modeling the number of trials until the first success in a series of Bernoulli trials</li>
                       </ul>
                     </div>   
                     <p></p>                 
                   
+                    <div className="rar-distribution-pairings">
+                      <h5 className="rar-distribution-guidelines-title">
+                        🔗 Practical Distribution Pairings
+                      </h5>
+                      <p className="rar-distribution-intro">
+                        Effective risk modeling often involves pairing severity and frequency distributions that complement each other's characteristics. Here are proven combinations for common risk scenarios:
+                      </p>
+                      
+                      <div className="rar-distribution-pairings-grid">
+                        <div className="rar-distribution-pairing-item">
+                          <strong className="rar-pairing-title">🔐 Data Breach Modeling</strong>
+                          <p className="rar-pairing-combo"><strong>Log-Normal + Poisson</strong></p>
+                          <p className="rar-pairing-detail">
+                            Heavy-tailed loss impacts with rare but predictable breach frequency. Log-normal captures extreme financial losses while Poisson models discrete security incidents.
+                          </p>
+                        </div>
+                        
+                        <div className="rar-distribution-pairing-item">
+                          <strong className="rar-pairing-title">☁️ Cloud Misconfigurations</strong>
+                          <p className="rar-pairing-combo"><strong>Gamma + Negative Binomial</strong></p>
+                          <p className="rar-pairing-detail">
+                            Variable remediation costs with clustered configuration failures. Gamma models aggregate fix costs while Negative Binomial captures overdispersed failure patterns.
+                          </p>
+                        </div>
+                        
+                        <div className="rar-distribution-pairing-item">
+                          <strong className="rar-pairing-title">🚀 Deployment Failures</strong>
+                          <p className="rar-pairing-combo"><strong>Triangular + Binomial</strong></p>
+                          <p className="rar-pairing-detail">
+                            Three-point cost estimates with fixed deployment cycles. Triangular provides expert-judged loss ranges while Binomial models success/failure rates across deployments.
+                          </p>
+                        </div>
+                        
+                        <div className="rar-distribution-pairing-item">
+                          <strong className="rar-pairing-title">🦠 Ransomware Attacks</strong>
+                          <p className="rar-pairing-combo"><strong>Pareto + Poisson</strong></p>
+                          <p className="rar-pairing-detail">
+                            Catastrophic financial impacts with rare occurrence patterns. Pareto captures extreme ransom demands while Poisson models independent attack frequency.
+                          </p>
+                        </div>
+                        
+                        <div className="rar-distribution-pairing-item">
+                          <strong className="rar-pairing-title">📊 Early Project Risk</strong>
+                          <p className="rar-pairing-combo"><strong>Triangular + Discrete Uniform</strong></p>
+                          <p className="rar-pairing-detail">
+                            Conservative cost estimation with equal likelihood scenarios. Triangular provides min/mode/max cost bounds while Discrete Uniform ensures unbiased frequency assumptions.
+                          </p>
+                        </div>
+                        
+                        <div className="rar-distribution-pairing-item">
+                          <strong className="rar-pairing-title">⚙️ Equipment Reliability</strong>
+                          <p className="rar-pairing-combo"><strong>Weibull + Geometric</strong></p>
+                          <p className="rar-pairing-detail">
+                            Failure cost analysis with time-to-first-failure modeling. Weibull captures lifecycle-dependent repair costs while Geometric models trials until breakthrough failure.
+                          </p>
+                        </div>
+                        
+                        <div className="rar-distribution-pairing-item">
+                          <strong className="rar-pairing-title">🎯 Compliance Testing</strong>
+                          <p className="rar-pairing-combo"><strong>Beta + Binomial</strong></p>
+                          <p className="rar-pairing-detail">
+                            Bounded penalty structures with audit cycles. Beta provides flexible penalty modeling within regulatory bounds while Binomial captures pass/fail audit outcomes.
+                          </p>
+                        </div>
+                        
+                        <div className="rar-distribution-pairing-item">
+                          <strong className="rar-pairing-title">🔄 Operational Incidents</strong>
+                          <p className="rar-pairing-combo"><strong>Normal + Exponential</strong></p>
+                          <p className="rar-pairing-detail">
+                            Stable operational costs with memoryless incident timing. Normal models predictable response costs while Exponential captures time-between-events patterns.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="rar-pairing-tips">
+                        <p className="rar-pairing-guidance">
+                          <strong>💡 Selection Tip:</strong> Consider the underlying risk mechanics - are losses bounded or unbounded? Do events cluster or occur independently? Match distribution characteristics to your risk's behavioral patterns.
+                        </p>
+                      </div>
+                    </div>
+                    <p></p>                 
+
                     <div className="rar-pro-tip">
                       <h4 className="rar-pro-tip-title">
                         💡 Pro Tip
@@ -892,6 +1352,8 @@ const RARIntro = ({
                         reserved for critical risks, regulatory requirements, or strategic decision-making.
                     </p>
                   </div>                  
+                  
+                  <BackToTopButton />
                   
                   <div className="rar-treatment-strategies-section">
                     <h4 className="rar-treatment-strategies-title">
@@ -1218,260 +1680,6 @@ const RARIntro = ({
               )}
             </div>
             
-            {/* Severity Guidance Table */}
-            <div className="rar-severity-section">
-              <h3 className="rar-severity-title">
-                Severity Guidance
-              </h3>
-              <div className="rar-severity-table-wrapper">
-                {/* Outer wrapper for horizontal scroll so that scroll bar does not hide the last row - works for Chrome and Edge, not for Firefox */}
-                <div className="rar-severity-table-scroll">
-                  <table className="rar-severity-table">
-                    <thead>
-                      <tr>
-                        <th className="rar-severity-table-header">
-                          Severity Level
-                        </th>
-                        <th className="rar-severity-table-header-wide">
-                          People
-                        </th>
-                        <th className="rar-severity-table-header-detailed-wide">
-                          Assets & Technology/Systems
-                        </th>
-                        <th className="rar-severity-table-header-detailed">
-                          Environment
-                        </th>
-                        <th className="rar-severity-table-header-detailed-wide">
-                          Reputation & Customer Impact
-                        </th>
-                        <th className="rar-severity-table-header-detailed">
-                          Financial
-                        </th>
-                        <th className="rar-severity-table-header-detailed">
-                          Staff Retention
-                        </th>
-                        <th className="rar-severity-table-header-detailed-wide">
-                          Information Security & Data Privacy
-                        </th>
-                        <th className="rar-severity-table-header-detailed-extra-wide">
-                          Governance, Legal, Compliance & Regulatory
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td
-                          className="rar-severity-table-header-cell"
-                          style={{
-                            background: SC3_TABLE_HEADER_BG,
-                            border: `1px solid ${SC3_PRIMARY}`,
-                          }}
-                        >
-                          Severe
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Multiple fatalities or permanent disabilities
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Complete loss of critical infrastructure; total system
-                          failure
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Catastrophic environmental damage
-                        </td>
-                        <td
-                          style={{
-                            padding: "8px",
-                            border: `1px solid ${SC3_PRIMARY}`,
-                            textAlign: "left",
-                          }}
-                        >
-                          Irreparable brand damage; mass customer exodus
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Threatens organizational survival
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Mass exodus of key personnel
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Massive data breach; complete loss of confidentiality
-                        </td>
-                        <td
-                          style={{
-                            padding: "8px",
-                            border: `1px solid ${SC3_PRIMARY}`,
-                            textAlign: "left",
-                          }}
-                        >
-                          Criminal prosecution; loss of license to operate;
-                          regulatory shutdown
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="rar-severity-table-header-cell"
-                          style={{
-                            background: SC3_TABLE_HEADER_BG,
-                          }}
-                        >
-                          Major
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Single fatality or serious injury requiring
-                          hospitalization
-                        </td>
-                        <td
-                          style={{
-                            padding: "8px",
-                            border: `1px solid ${SC3_PRIMARY}`,
-                            textAlign: "left",
-                          }}
-                        >
-                          Significant damage to critical assets; major system
-                          disruption
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Serious environmental impact requiring remediation
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          National publicity; significant customer loss
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Significant financial impact on operations
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Loss of critical staff or leadership
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Significant data breach; widespread privacy violations
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Regulatory action; significant fines; political
-                          intervention
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="rar-severity-table-header-cell"
-                          style={{
-                            background: SC3_TABLE_HEADER_BG,
-                          }}
-                        >
-                          Moderate
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Injury requiring medical treatment
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Damage to non-critical assets; system performance
-                          degradation
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Limited environmental impact
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Local negative publicity; customer complaints
-                        </td>
-                        <td
-                          style={{
-                            padding: "8px",
-                            border: `1px solid ${SC3_PRIMARY}`,
-                            textAlign: "left",
-                          }}
-                        >
-                          Moderate financial impact
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Temporary loss of some staff
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Limited data exposure; security incident
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Regulatory notice; compliance breach; policy changes
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="rar-severity-table-header-cell"
-                          style={{
-                            background: SC3_TABLE_HEADER_BG,
-                          }}
-                        >
-                          Minor
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Minor injury requiring first aid
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Minor damage, easily repaired; temporary system issues
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Minimal environmental impact
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Internal criticism; minor customer dissatisfaction
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Minor financial impact
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Minimal staff turnover
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Minor security weakness; limited access exposure
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Minor compliance issue; administrative requirements
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="rar-severity-table-header-cell"
-                          style={{
-                            background: SC3_TABLE_HEADER_BG,
-                          }}
-                        >
-                          Negligible
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          No injury or very minor discomfort
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          No damage or insignificant damage; minor performance
-                          impact
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          No environmental impact
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          No impact on reputation or customers
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          Negligible financial impact
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          No impact on staff retention
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          No security or privacy impact
-                        </td>
-                        <td className="rar-severity-table-cell">
-                          No compliance implications
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <p></p>
-                </div>
-              </div>
-            </div>
-            <p>
-              The impact categories are industry-specific and may vary based on
-              the organization's context and risk appetite. The Severity
-              Guidance Table provides a starting point for assessing the
-              potential impact of risks. Authorisation levels to accept
-              risks of different severity levels should be defined based on the
-              organization's governance structure and risk management policies.
-            </p>
-
             {/* Additional Recommended Fields Section */}
             <details className="rar-additional-fields-details">
               <summary className="rar-additional-fields-summary">
@@ -1502,7 +1710,6 @@ const RARIntro = ({
                   <div>
                     <h4 className="rar-distribution-section-header" style={{ color: SC3_PRIMARY }}>🔬 Risk Assessment Methodology</h4>
                     <ul className="rar-distribution-list">
-                      <li><strong>Risk Assessment Method:</strong> Specific methodology used (FAIR, OCTAVE, etc.)</li>
                       <li><strong>Data Sources:</strong> Where risk information was gathered</li>
                       <li><strong>Assumptions Made:</strong> Key assumptions underlying assessment</li>
                       <li><strong>Confidence Level:</strong> Assessor's confidence in rating (High/Medium/Low)</li>
@@ -1518,9 +1725,6 @@ const RARIntro = ({
                       <li><strong>Risk Appetite Threshold:</strong> Organizational tolerance level</li>
                       <li><strong>Time to Impact:</strong> How quickly risk could materialize</li>
                       <li><strong>Detection Probability:</strong> Likelihood of detecting before impact</li>
-                      <li><strong>Residual SLE:</strong> Single Loss Expectancy after controls implementation</li>
-                      <li><strong>Residual ARO:</strong> Annual Rate of Occurrence after controls</li>
-                      <li><strong>Residual ALE:</strong> Annual Loss Expectancy after risk treatment</li>
                       <li><strong>Risk Reduction Value:</strong> Quantified benefit of implemented controls</li>
                     </ul>
                   </div>
@@ -1528,7 +1732,6 @@ const RARIntro = ({
                   <div>
                     <h4 className="rar-distribution-section-header" style={{ color: SC3_GREEN }}>👥 Stakeholder & Communication</h4>
                     <ul className="rar-distribution-list">
-                      <li><strong>Signatory Level:</strong> Required authorization level for risk acceptance (Team Lead, Manager, Director, Executive, Board)</li>
                       <li><strong>Risk Committee/Board Approval:</strong> Governance oversight details</li>
                       <li><strong>Stakeholder Notifications:</strong> Who needs to be informed</li>
                       <li><strong>Escalation Triggers:</strong> Conditions requiring escalation</li>
@@ -1573,6 +1776,8 @@ const RARIntro = ({
                 </div>
               </div>
             </details>
+
+            <BackToTopButton />
 
             <p>
               <b>Disclaimer:</b> The information provided here is for general
