@@ -237,7 +237,8 @@ body {
   width: 100vw;
   margin-left: calc(-50vw + 50%);
   background: #f8f9fa;
-  border-top: 2px solid var(--sc3-primary);
+  border-top: 2px solid var(--sc3-secondary);
+  border-bottom: 2px solid var(--sc3-secondary);
   padding: 2rem 1rem;
   margin-top: 2rem;
 }
@@ -315,6 +316,7 @@ body {
 
 .rar-table-summary:hover {
   color: var(--sc3-primary);
+  margin: 0 0.25rem;
 }
 
 .rar-table-count {
@@ -965,16 +967,33 @@ body {
 .rar-btn-outline:hover {
   background: var(--sc3-primary);
   color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .rar-btn-primary {
-  background: var(--sc3-secondary);
+  background: var(--sc3-primary);
   color: #fff;
   box-shadow: 0 2px 6px rgb(0, 153, 204, 0.13);
 }
 
 .rar-btn-primary:hover {
-  background: #007aa3;
+  background-color: var(--sc3-secondary);
+  border-color: var(--sc3-secondary);
+}
+
+.rar-btn-secondary {
+  background: var(--sc3-secondary);
+  color: var(--sc3-white);
+  border-color: var(--sc3-secondary);
+  box-shadow: 0 2px 6px rgba(117, 117, 117, 0.13);
+}
+
+.rar-btn-secondary:hover {
+  background-color: var(--sc3-primary);
+  border-color: var(--sc3-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .rar-btn-add-first-risk {
@@ -1416,6 +1435,7 @@ body {
   background: white;
   border-radius: var(--sc3-border-radius);
   border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px var(--sc3-primary-shadow);
 }
 
 .rar-report-title {
@@ -3441,11 +3461,6 @@ body {
   color: var(--sc3-secondary);
 }
 
-.rar-report-title {
-  color: var(--sc3-primary);
-  margin-bottom: 1rem;
-}
-
 /* Analytics dashboard */
 .rar-analytics-dashboard {
   margin-top: 1.5rem;
@@ -3672,17 +3687,37 @@ body {
 
 .rar-heatmap-chart-container {
   width: 100%;
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow: visible !important;
   background: transparent;
   -webkit-overflow-scrolling: touch;
   margin: 1rem 0;
+  /* Remove max-height to prevent truncation */
 }
 
 .rar-heatmap-chart {
   min-width: 600px;
   width: max-content;
   margin: 0 auto;
+}
+
+/* Override table overflow for heat map containers */
+.rar-table td:has(.rar-heatmap-container),
+.rar-table td .rar-heatmap-container,
+td[style*="padding: 0px"] {
+  overflow: visible !important;
+}
+
+/* Comprehensive heat map overflow fix - override any parent constraints */
+.rar-heatmap-container,
+.rar-heatmap-chart-container,
+.rar-heatmap-chart,
+tr:has(.rar-heatmap-container),
+td:has(.rar-heatmap-container),
+.rar-form-table tr:has(.rar-heatmap-container),
+.rar-form-table td:has(.rar-heatmap-container),
+.rar-table tr:has(.rar-heatmap-container),
+.rar-table td:has(.rar-heatmap-container) {
+  overflow: visible !important;
 }
 
 /* Responsive heat map for small form factor devices */
@@ -5332,33 +5367,27 @@ body {
 }
 
 .rar-back-to-top-btn {
-  background: var(--sc3-primary);
-  color: white;
-  border: none;
-  border-radius: var(--sc3-border-radius);
-  padding: 0.75rem 1.5rem;
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+  border-radius: var(--sc3-btn-radius);
+  padding: 8px 16px;
   font-size: 0.9rem;
   font-weight: var(--sc3-btn-font-weight);
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease-in-out;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
 .rar-back-to-top-btn:hover {
-  background: var(--sc3-secondary);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  background: #e9ecef;
+  color: #495057;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
-
-.rar-back-to-top-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-
 
 @media (width <= 768px) {
   .rar-main-container {
@@ -5559,6 +5588,14 @@ body {
   .rar-back-to-top-btn {
     padding: 0.6rem 1.2rem;
     font-size: 0.85rem;
+  }
+  
+  .rar-back-to-top-btn:hover {
+    background: #e9ecef;
+    color: #495057;
+    border-color: #adb5bd;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -5913,5 +5950,498 @@ body {
     width: 100% !important;
     height: 100% !important;
     display: block !important;
+  }
+}
+
+/* SVG Modal Overlay Styles */
+
+/* Global modal isolation - ensure no elements can appear over modals */
+body.modal-open {
+  overflow: hidden;
+  /* Remove the aggressive position: fixed to prevent scroll issues */
+}
+
+/* Ensure all page content stays below modal */
+body.modal-open > *:not(.rar-svg-modal-overlay) {
+  z-index: 1 !important;
+  position: relative !important;
+}
+
+/* Force all other elements to stay below modal */
+body.modal-open .rar-assessment-type,
+body.modal-open .rar-tab,
+body.modal-open .rar-tab-content,
+body.modal-open .rar-qualitative-tab,
+body.modal-open .rar-quantitative-tab,
+body.modal-open .rar-advanced-quantitative-tab,
+body.modal-open .rar-fieldset,
+body.modal-open .rar-legend,
+body.modal-open .rar-fieldset-assessment,
+body.modal-open .rar-legend-assessment,
+body.modal-open fieldset,
+body.modal-open legend,
+body.modal-open *:not(.rar-svg-modal-overlay):not(.rar-svg-modal-content):not(.rar-svg-zoom-btn):not(.rar-svg-close-btn) {
+  z-index: 1 !important;
+  position: relative !important;
+}
+
+body.modal-open .rar-svg-modal-overlay,
+body.modal-open .rar-svg-modal-content {
+  z-index: 2147483647 !important;
+  position: fixed !important;
+}
+
+.rar-svg-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  z-index: 2147483647 !important; /* Maximum possible z-index value */
+  cursor: zoom-out !important;
+  /* Prevent body scroll when modal is open */
+  overflow: hidden !important;
+  /* Isolate modal from page context */
+  isolation: isolate !important;
+  /* Prevent any interaction with background */
+  backdrop-filter: blur(2px) !important;
+}
+
+.rar-svg-modal-content {
+  position: relative !important;
+  max-width: 95vw !important;
+  max-height: 95vh !important;
+  background: white !important;
+  border-radius: var(--sc3-border-radius) !important;
+  padding: 1rem !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+  overflow: hidden !important;
+  cursor: default !important;
+  z-index: 2147483647 !important; /* Maximum possible z-index value */
+  /* Ensure modal is completely isolated */
+  contain: layout style paint !important;
+}
+
+.rar-svg-modal-body {
+  position: relative !important;
+  width: 100% !important;
+  height: calc(95vh - 8rem) !important; /* Account for header and padding */
+  overflow: auto !important; /* Enable both horizontal and vertical scrolling */
+  border: 1px solid #dee2e6 !important;
+  border-radius: var(--sc3-input-border-radius) !important;
+  /* Enable smooth scrolling */
+  scroll-behavior: smooth !important;
+  /* Enable touch scrolling on mobile */
+  -webkit-overflow-scrolling: touch !important;
+  /* Ensure scrollbars are always visible when needed */
+  scrollbar-width: auto !important;
+  /* Prevent content from being clipped */
+  contain: none !important;
+  /* Ensure proper stacking context */
+  z-index: 2147483647 !important;
+  /* Enable both directions of scrolling */
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+}
+
+.rar-svg-modal-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 1rem !important;
+  padding-bottom: 0.5rem !important;
+  border-bottom: 1px solid #dee2e6 !important;
+  z-index: 2147483647 !important;
+  position: relative !important;
+  background: white !important;
+  /* Ensure header can receive clicks */
+  pointer-events: auto !important;
+  /* Prevent any interference */
+  isolation: isolate !important;
+}
+
+.rar-svg-modal-title {
+  font-size: 1.1rem;
+  font-weight: var(--sc3-btn-font-weight);
+  color: var(--sc3-primary);
+  margin: 0;
+}
+
+.rar-svg-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #999;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.rar-svg-modal-close:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+/* Tab-specific content containment */
+.rar-tab-specific-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure heat maps stay within their containers */
+.rar-heatmap-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  margin: 1rem 0;
+  position: relative;
+  contain: layout style;
+}
+
+.rar-heatmap-chart-container {
+  overflow-x: auto;
+  overflow-y: visible;
+  min-height: 400px;
+  width: 100%;
+}
+
+.rar-heatmap-chart {
+  width: 100%;
+  min-width: 600px;
+}
+
+.rar-heatmap-chart svg {
+  display: block;
+  max-width: none;
+  width: 100%;
+  height: auto;
+}
+
+.rar-heatmap-chart svg text {
+  font-family: var(--sc3-font-family);
+  font-size: 11px;
+  fill: #000 !important;
+  pointer-events: none;
+}
+
+.rar-heatmap-chart svg line {
+  stroke: #000 !important;
+  stroke-width: 1 !important;
+  pointer-events: none;
+}
+
+.rar-heatmap-chart svg path {
+  stroke-width: 3 !important;
+  fill: none !important;
+  pointer-events: none;
+}
+
+.rar-heatmap-chart svg circle {
+  stroke: white !important;
+  stroke-width: 2 !important;
+  pointer-events: none;
+}
+
+/* Ensure all SVG elements are visible */
+.rar-heatmap-chart svg g {
+  pointer-events: none;
+}
+
+.rar-heatmap-chart svg rect {
+  pointer-events: auto;
+}
+
+.rar-svg-modal-svg-container {
+  position: relative !important;
+  width: max-content !important; /* Allow content to determine width */
+  height: max-content !important; /* Allow content to determine height */
+  min-width: 800px !important; /* Ensure minimum width for horizontal scrolling */
+  min-height: 600px !important; /* Ensure minimum height for vertical scrolling */
+  cursor: grab !important;
+  /* Enable smooth scrolling and touch gestures */
+  -webkit-overflow-scrolling: touch !important;
+  scroll-behavior: smooth !important;
+  /* Allow pinch-to-zoom on mobile */
+  touch-action: pan-x pan-y pinch-zoom !important;
+  /* Prevent boundary issues */
+  box-sizing: border-box !important;
+  /* Force hardware acceleration for smooth interactions */
+  transform: translateZ(0) !important;
+  will-change: transform !important;
+}
+
+.rar-svg-modal-svg-container:active {
+  cursor: grabbing !important;
+}
+
+.rar-svg-modal-svg-container svg {
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 800px !important; /* Ensure minimum width for horizontal scrolling */
+  min-height: 600px !important; /* Ensure minimum height */
+  transition: transform 0.2s ease !important;
+  /* Enable touch interactions */
+  touch-action: pan-x pan-y pinch-zoom !important;
+  /* Force hardware acceleration */
+  transform: translateZ(0) !important;
+  will-change: transform !important;
+}
+
+/* Ensure heat map overlays are visible */
+.rar-svg-modal-svg-container svg path {
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.rar-svg-modal-svg-container svg line {
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.rar-svg-modal-svg-container svg circle {
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.rar-svg-modal-svg-container svg g {
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Chart container for QuantitativeValuesChart modal */
+.rar-svg-modal-chart-container {
+  position: relative;
+  /* Allow container to be sized by inline styles */
+  width: auto !important;
+  height: auto !important;
+  /* Remove fixed minimums to allow flexible sizing */
+  cursor: grab;
+  /* Enable smooth interactions */
+  transform: translateZ(0);
+  will-change: transform;
+  /* Enable drag scrolling */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  /* Ensure proper scaling behavior - center origin for heat maps */
+  transform-origin: center center;
+  /* Force container to expand with content */
+  display: flex;
+  /* Ensure z-index doesn't interfere */
+  z-index: inherit;
+}
+
+.rar-svg-modal-chart-container:active {
+  cursor: grabbing;
+}
+
+/* Enhance scrollbar visibility in modals */
+.rar-svg-modal-body::-webkit-scrollbar {
+  width: 12px !important;
+  height: 12px !important;
+}
+
+.rar-svg-modal-body::-webkit-scrollbar-track {
+  background: #f1f1f1 !important;
+  border-radius: 6px !important;
+}
+
+.rar-svg-modal-body::-webkit-scrollbar-thumb {
+  background: #888 !important;
+  border-radius: 6px !important;
+}
+
+.rar-svg-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #555 !important;
+}
+
+.rar-svg-modal-body::-webkit-scrollbar-corner {
+  background: #f1f1f1 !important;
+}
+
+/* Modal zoom and control buttons */
+.rar-svg-zoom-btn,
+.rar-svg-close-btn {
+  background: var(--sc3-secondary) !important;
+  color: white !important;
+  border: none !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: var(--sc3-btn-radius) !important;
+  font-size: 1rem !important;
+  font-weight: var(--sc3-btn-font-weight) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.25rem !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  z-index: 2147483647 !important;
+  position: relative !important;
+  /* Ensure buttons can be clicked */
+  pointer-events: auto !important;
+  user-select: none !important;
+  /* Prevent any parent container from blocking clicks */
+  isolation: isolate !important;
+}
+
+.rar-svg-zoom-btn:hover,
+.rar-svg-close-btn:hover {
+  background: #007bb5 !important;
+  transform: translateY(-1px) !important;
+}
+
+.rar-svg-zoom-btn:active,
+.rar-svg-close-btn:active {
+  transform: translateY(0) !important;
+}
+
+.rar-svg-close-btn {
+  background: #dc3545 !important;
+  font-size: 1.2rem !important;
+}
+
+.rar-svg-close-btn:hover {
+  background: #c82333 !important;
+}
+
+.rar-svg-modal-controls {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  margin-top: 0 !important;
+  flex-wrap: wrap !important;
+  z-index: 2147483647 !important;
+  position: relative !important;
+  /* Ensure the container doesn't block interactions */
+  pointer-events: auto !important;
+  /* Isolate from any parent transforms */
+  isolation: isolate !important;
+}
+
+.rar-svg-modal-btn {
+  background: var(--sc3-secondary);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--sc3-btn-radius);
+  font-size: 0.9rem;
+  font-weight: var(--sc3-btn-font-weight);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.rar-svg-modal-btn:hover {
+  background: #007bb5;
+  transform: translateY(-1px);
+}
+
+.rar-svg-modal-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Double-click indicator for SVG elements */
+.rar-svg-zoomable {
+  cursor: zoom-in;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  outline: none !important;
+  border: none !important;
+}
+
+.rar-svg-zoomable:hover {
+  transform: scale(1.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.rar-svg-zoomable:focus {
+  outline: none !important;
+  border: none !important;
+}
+
+.rar-svg-zoomable:active {
+  outline: none !important;
+  border: none !important;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .rar-svg-modal-content {
+    max-width: 98vw;
+    max-height: 98vh;
+    padding: 0.5rem;
+  }
+  
+  .rar-svg-modal-header {
+    margin-bottom: 0.5rem;
+  }
+  
+  .rar-svg-modal-title {
+    font-size: 1rem;
+  }
+  
+  .rar-svg-modal-svg-container {
+    max-height: calc(98vh - 4rem);
+  }
+  
+  .rar-svg-modal-controls {
+    gap: 0.25rem;
+  }
+  
+  .rar-svg-modal-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .rar-svg-modal-content {
+    padding: 0.25rem;
+  }
+  
+  .rar-svg-modal-svg-container {
+    max-height: calc(98vh - 3.5rem);
+  }
+  
+  .rar-svg-modal-controls {
+    margin-top: 0.5rem;
+  }
+}
+
+/* Touch-specific styles for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .rar-svg-zoomable:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  
+  .rar-svg-modal-svg-container {
+    cursor: default;
+  }
+  
+  .rar-svg-modal-svg-container:active {
+    cursor: default;
   }
 }

@@ -42,7 +42,7 @@ const RARReport = ({
       {/* Risk Assessment Report Section */}
       <details className="rar-report-details">
         <summary className="rar-report-summary">
-          Risk Assessment Report
+          📊 Risk Assessment Report
         </summary>
         <div>
           <h3 className="rar-report-title">

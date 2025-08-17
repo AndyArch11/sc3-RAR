@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import DistributionChart, { CumulativeDistributionChart } from '../util/DistributionChart';
 import RiskHeatMap from '../util/RiskHeatMap';
 import TornadoGraphCustom, { isSensitivityAnalysisAvailable } from '../util/TornadoGraphCustom';
@@ -37,10 +37,18 @@ const QuantitativeValuesChart = ({ sle, aro, ale, formatCurrency }) => {
   const aleValue = (ale !== undefined && ale !== null && ale !== '') ? parseFloat(ale) : 0;
   
   // Force chart dimensions for 768px viewport
-  const [chartDimensions, setChartDimensions] = React.useState({ width: 0, height: 300 });
-  const chartRef = React.useRef(null);
+  const [chartDimensions, setChartDimensions] = useState({ width: 0, height: 300 });
+  const chartRef = useRef(null);
   
-  React.useEffect(() => {
+  // Modal state for chart viewing
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalZoom, setModalZoom] = useState(1);
+  
+  // Double-click detection for chart
+  const [clickCount, setClickCount] = useState(0);
+  const clickTimeoutRef = useRef(null);
+  
+  useEffect(() => {
     const updateDimensions = () => {
       if (chartRef.current) {
         const containerWidth = chartRef.current.offsetWidth;
@@ -55,6 +63,83 @@ const QuantitativeValuesChart = ({ sle, aro, ale, formatCurrency }) => {
     window.addEventListener('resize', updateDimensions);
     return () => window.removeEventListener('resize', updateDimensions);
   }, []);
+
+  // Modal handlers
+  const openModal = useCallback(() => {
+    setIsModalOpen(true);
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+    document.body.classList.add('modal-open');
+  }, []);
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false);
+    setModalZoom(1);
+    // Restore body scroll when modal is closed
+    document.body.style.overflow = '';
+    document.body.classList.remove('modal-open');
+  }, []);
+  const zoomIn = useCallback(() => {
+    setModalZoom(prev => {
+      const newZoom = Math.min(prev + 0.2, 3);
+      return newZoom;
+    });
+  }, []);
+  const zoomOut = useCallback(() => {
+    setModalZoom(prev => {
+      const newZoom = Math.max(prev - 0.2, 0.5);
+      return newZoom;
+    });
+  }, []);
+  const resetZoom = useCallback(() => {
+    setModalZoom(1);
+  }, []);
+  
+  // Handle chart clicks with double-click detection
+  const handleChartClick = useCallback(() => {
+    const newClickCount = clickCount + 1;
+    setClickCount(newClickCount);
+    
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+    }
+    
+    if (newClickCount === 2) {
+      // Double-click detected
+      setClickCount(0);
+      openModal();
+    } else {
+      // Wait for potential second click
+      clickTimeoutRef.current = setTimeout(() => {
+        setClickCount(0);
+      }, 300);
+    }
+  }, [clickCount, openModal]);
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Cleanup body scroll on unmount or modal state change
+  useEffect(() => {
+    return () => {
+      // Ensure body scroll is restored when component unmounts
+      document.body.style.overflow = '';
+      document.body.classList.remove('modal-open');
+    };
+  }, []);
+
+  // Also cleanup when modal closes to ensure consistency
+  useEffect(() => {
+    if (!isModalOpen) {
+      document.body.style.overflow = '';
+      document.body.classList.remove('modal-open');
+    }
+  }, [isModalOpen]);
 
   // Calculate cumulative risk costs over time (1, 5, 10 years)
   const chartData = [
@@ -108,55 +193,36 @@ const QuantitativeValuesChart = ({ sle, aro, ale, formatCurrency }) => {
       
       <div 
         ref={chartRef}
+        className="rar-svg-zoomable"
         style={{ 
           width: '100%', 
           height: '300px', 
           position: 'relative',
           minHeight: '300px',
-          overflow: 'visible'
+          overflow: 'visible',
+          cursor: 'pointer'
         }}
+        title="Double-click to view in modal"
+        onClick={handleChartClick}
       >
         {/* Chart with viewport-specific rendering */}
-        {window.innerWidth <= 768 ? (
-          <BarChart
-            width={Math.max(chartDimensions.width, 300)}
-            height={chartDimensions.height}
-            data={chartData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="period" 
-              tick={{ fontSize: 12 }}
-            />
-            <YAxis 
-              tick={{ fontSize: 12 }}
-              tickFormatter={(value) => {
-                if (value >= 1000000) {
-                  return '$' + (value / 1000000).toFixed(1) + 'M';
-                } else if (value >= 1000) {
-                  return '$' + (value / 1000).toFixed(0) + 'K';
-                }
-                return '$' + value.toLocaleString();
-              }}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar 
-              dataKey="value" 
-              fill="#2196f3"
-              stroke="#333"
-              strokeWidth={1}
-            >
-              {chartData.map((entry, index) => (
-                <Bar key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Bar>
-          </BarChart>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
+        <div 
+          style={{ 
+            cursor: 'pointer', 
+            width: '100%', 
+            height: '100%',
+            transition: 'opacity 0.2s ease',
+            ':hover': { opacity: 0.8 }
+          }}
+          title="Double-click to view in modal"
+        >
+          {window.innerWidth <= 768 ? (
             <BarChart
+              width={Math.max(chartDimensions.width, 300)}
+              height={chartDimensions.height}
               data={chartData}
               margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              onClick={handleChartClick}
             >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
@@ -186,8 +252,44 @@ const QuantitativeValuesChart = ({ sle, aro, ale, formatCurrency }) => {
                 ))}
               </Bar>
             </BarChart>
-          </ResponsiveContainer>
-        )}
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                onClick={handleChartClick}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="period" 
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(value) => {
+                    if (value >= 1000000) {
+                      return '$' + (value / 1000000).toFixed(1) + 'M';
+                    } else if (value >= 1000) {
+                      return '$' + (value / 1000).toFixed(0) + 'K';
+                    }
+                    return '$' + value.toLocaleString();
+                  }}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar 
+                  dataKey="value" 
+                  fill="#2196f3"
+                  stroke="#333"
+                  strokeWidth={1}
+                >
+                  {chartData.map((entry, index) => (
+                    <Bar key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
       </div>
       
       <div className="rar-quantitative-chart-summary">
@@ -231,6 +333,109 @@ const QuantitativeValuesChart = ({ sle, aro, ale, formatCurrency }) => {
           </div>
         </div>
       </div>
+      
+      {/* Modal for chart viewing */}
+      {isModalOpen && (
+        <div className="rar-svg-modal-overlay" onClick={closeModal}>
+          <div className="rar-svg-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="rar-svg-modal-header">
+              <h3>📊 Cumulative Risk Cost Over Time - Detailed View (Zoom: {Math.round(modalZoom * 100)}%)</h3>
+              <div className="rar-svg-modal-controls">
+                <button 
+                  type="button" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    zoomOut();
+                  }} 
+                  className="rar-svg-zoom-btn" 
+                  title="Zoom Out"
+                >−</button>
+                <button 
+                  type="button" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    resetZoom();
+                  }} 
+                  className="rar-svg-zoom-btn" 
+                  title="Reset Zoom"
+                >⌂</button>
+                <button 
+                  type="button" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    zoomIn();
+                  }} 
+                  className="rar-svg-zoom-btn" 
+                  title="Zoom In"
+                >+</button>
+                <button 
+                  type="button" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closeModal();
+                  }} 
+                  className="rar-svg-close-btn" 
+                  title="Close"
+                >×</button>
+              </div>
+            </div>
+            <div className="rar-svg-modal-body">
+              <div 
+                className="rar-svg-modal-chart-container"
+                style={{
+                  width: `${800 * modalZoom}px`,
+                  height: `${600 * modalZoom}px`,
+                  overflow: 'visible'
+                }}
+              >
+                <BarChart
+                  width={800 * modalZoom}
+                  height={600 * modalZoom}
+                  data={chartData}
+                  margin={{ 
+                    top: 40 * modalZoom, 
+                    right: 50 * modalZoom, 
+                    left: 80 * modalZoom, 
+                    bottom: 60 * modalZoom 
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="period" 
+                    tick={{ fontSize: 14 * modalZoom }}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 14 * modalZoom }}
+                    tickFormatter={(value) => {
+                      if (value >= 1000000) {
+                        return '$' + (value / 1000000).toFixed(1) + 'M';
+                      } else if (value >= 1000) {
+                        return '$' + (value / 1000).toFixed(0) + 'K';
+                      }
+                      return '$' + value.toLocaleString();
+                    }}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar 
+                    dataKey="value" 
+                    fill="#2196f3"
+                    stroke="#333"
+                    strokeWidth={1 * modalZoom}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Bar key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -304,12 +509,19 @@ const InputForm = ({
   // State for Basic/Extended view mode
   const [viewMode, setViewMode] = useState('Basic');
 
+  // Initialize and cleanup any lingering modal state on component mount
+  useEffect(() => {
+    // Ensure clean state on component mount
+    document.body.style.overflow = '';
+    document.body.classList.remove('modal-open');
+  }, []);
+
   return (
     <form onSubmit={handleSubmitRisk}>
         {/* RAR Fields Section*/}
         <details className="rar-intro-details" open={rarFieldsOpen} onToggle={e => {setRarFieldsOpen(e.target.open); e.preventDefault();}}>
           <summary className="rar-intro-summary">
-            RAR Fields{" "}
+            ✏️ RAR Fields{" "}
             {isEditingRisk && `(Editing: ${form.riskTitle || "Untitled Risk"})`}
           </summary>
           <div>
@@ -371,7 +583,7 @@ const InputForm = ({
                         type="text"
                         name="riskId"
                         placeholder="e.g., R001, R002"
-                        value={form.riskId}
+                        value={form.riskId || ''}
                         onChange={handleChange}
                         className={`rar-input ${showValidation && validationErrors.riskId ? 'error' : ''}`}
                       />
@@ -394,7 +606,7 @@ const InputForm = ({
                         type="text"
                         name="riskTitle"
                         placeholder="Concise name or description of the risk"
-                        value={form.riskTitle}
+                        value={form.riskTitle || ''}
                         onChange={handleChange}
                         className={`rar-input ${showValidation && validationErrors.riskTitle ? 'error' : ''}`}
                       />
@@ -412,7 +624,7 @@ const InputForm = ({
                         <td className="rar-form-input-cell">
                           <select
                             name="framework"
-                            value={form.framework}
+                            value={form.framework || ''}
                             onChange={handleChange}
                             className="rar-select"
                           >
@@ -5282,6 +5494,7 @@ const InputForm = ({
                             getMonteCarloResults={getMonteCarloResults}
                             formatCurrency={formatCurrency}
                             getMonteCarloExpectedLossNumeric={getMonteCarloExpectedLossNumeric}
+                            isTabActive={form.assessmentType === 'advancedQuantitative' && activeAdvancedQuantitativeTab === 'tornado'}
                           />
                         </td>
                       </tr>
@@ -5290,7 +5503,7 @@ const InputForm = ({
 
                   {/* Heat Map Tab Content */}
                   {activeAdvancedQuantitativeTab === 'heatmap' && (
-                    <>
+                    <React.Fragment key="heatmap-tab">
                       <tr title="Heat map display options" className="rar-tab-specific-content">
                         <td className="rar-form-label-cell">
                           <label className="rar-form-label">Heat Map Display Options:</label>
@@ -5385,6 +5598,7 @@ const InputForm = ({
                               return (
                                 <div style={{ border: 'none', background: 'transparent' }}>
                                   <RiskHeatMap
+                                key="inherent-heatmap"
                                 frequencyDistribution={form.frequencyDistribution || 'triangular'}
                                 frequencyParams={{
                                   min: (form.minFrequency !== undefined && form.minFrequency !== null && form.minFrequency !== '') ? parseFloat(form.minFrequency) : 
@@ -5425,6 +5639,7 @@ const InputForm = ({
                                 showVaR={showVaR}
                                 showEAL={showEAL}
                                 showPercentiles={showPercentiles}
+                                isTabActive={form.assessmentType === 'advancedQuantitative' && activeAdvancedQuantitativeTab === 'heatmap'}
                               />
                                 </div>
                               );
@@ -5459,6 +5674,7 @@ const InputForm = ({
                             
                             return (
                               <RiskHeatMap
+                                key="residual-heatmap"
                                 frequencyDistribution={form.residualFrequencyDistribution || form.frequencyDistribution || 'triangular'}
                                 frequencyParams={{
                                   min: (form.residualMinFrequency !== undefined && form.residualMinFrequency !== null && form.residualMinFrequency !== '') ? parseFloat(form.residualMinFrequency) :
@@ -5512,6 +5728,7 @@ const InputForm = ({
                                 showVaR={showVaR}
                                 showEAL={showEAL}
                                 showPercentiles={showPercentiles}
+                                isTabActive={form.assessmentType === 'advancedQuantitative' && activeAdvancedQuantitativeTab === 'heatmap'}
                               />
                             );
                           })()}
@@ -5561,7 +5778,7 @@ const InputForm = ({
                           </div>
                         </td>
                       </tr>
-                    </>
+                    </React.Fragment>
                   )}
 
                   <tr><td colSpan="2"><hr /></td></tr>
@@ -5906,7 +6123,7 @@ const InputForm = ({
                   <button
                     type="button"
                     onClick={handleUpdateRisk}
-                    className="rar-btn rar-btn-warning"
+                    className="rar-btn rar-btn-secondary"
                   >
                     Update Risk
                   </button>
@@ -5935,7 +6152,7 @@ const InputForm = ({
                   <button
                     type="button"
                     onClick={handleSubmitRisk}
-                    className="rar-btn rar-btn-primary"
+                    className="rar-btn rar-btn-secondary"
                   >
                     Submit Risk Details
                   </button>

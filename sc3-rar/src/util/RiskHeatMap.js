@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { pert } from './distributions';
 
 // Joint Unit Cost * Frequency Heat Map Component with Total Loss Contours
@@ -17,18 +17,66 @@ const RiskHeatMap = ({
   expectedAnnualLossStdDev = null,
   showVaR = true,
   showEAL = true,
-  showPercentiles = true
+  showPercentiles = true,
+  isTabActive = true // New parameter to control modal visibility
 }) => {
   
   // State for forcing re-generation of heat map
-  const [refreshKey, setRefreshKey] = React.useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Modal state for heat map viewing
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalZoom, setModalZoom] = useState(1);
+  
+  // Refs for modal handling
+  const heatmapRef = useRef(null);
   
   // Refresh handler
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
   };
+  
+  // Modal handlers
+  const openModal = useCallback(() => {
+    setIsModalOpen(true);
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+    document.body.classList.add('modal-open');
+  }, []);
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false);
+    setModalZoom(1);
+    // Restore body scroll when modal is closed
+    document.body.style.overflow = '';
+    document.body.classList.remove('modal-open');
+  }, []);
+  const zoomIn = useCallback(() => {
+    setModalZoom(prev => {
+      const newZoom = Math.min(prev + 0.25, 5);
+      return newZoom;
+    });
+  }, []);
+  const zoomOut = useCallback(() => {
+    setModalZoom(prev => {
+      const newZoom = Math.max(prev - 0.25, 0.5);
+      return newZoom;
+    });
+  }, []);
+  const resetZoom = useCallback(() => {
+    setModalZoom(1);
+  }, []);
+  
+  // Simple double-click handler
+  const handleDoubleClick = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Double-click detected on heat map, opening modal');
+    console.log('isTabActive:', isTabActive);
+    openModal();
+  }, [openModal, isTabActive]);
+  
   // Generate heat map data
-  const generateHeatMapData = () => {
+  const generateHeatMapData = useCallback(() => {
     const frequencyBins = 20;
     const lossBins = 20;
     // Use the passed iterations parameter instead of hardcoded value
@@ -124,7 +172,7 @@ const RiskHeatMap = ({
       maxDensity, // Include actual max density for reference
       totalSamples
     };
-  };
+  }, [frequencyParams, lossParams, frequencyDistribution, lossDistribution, iterations]);
   
   // Get distribution range
   const getDistributionRange = (distribution, params) => {
@@ -541,10 +589,67 @@ const RiskHeatMap = ({
     }
   };
   
-  const { data, contours, frequencyRange, lossRange, totalSamples } = React.useMemo(() => 
+  const { data, contours, frequencyRange, lossRange, totalSamples } = useMemo(() => 
     generateHeatMapData(), 
-    [frequencyParams, lossParams, frequencyDistribution, lossDistribution, iterations, refreshKey]
+    [generateHeatMapData, refreshKey]
   );
+  
+  // Cleanup body scroll on unmount or modal state change
+  useEffect(() => {
+    return () => {
+      // Ensure body scroll is restored when component unmounts
+      document.body.style.overflow = '';
+      document.body.classList.remove('modal-open');
+    };
+  }, []);
+
+  // Also cleanup when modal closes to ensure consistency
+  useEffect(() => {
+    if (!isModalOpen) {
+      document.body.style.overflow = '';
+      document.body.classList.remove('modal-open');
+    }
+  }, [isModalOpen]);
+
+  // Add keyboard support for modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!isModalOpen) return;
+      
+      switch(e.key) {
+        case 'Escape':
+          e.preventDefault();
+          closeModal();
+          break;
+        case '+':
+        case '=':
+          e.preventDefault();
+          if (modalZoom < 5) zoomIn();
+          break;
+        case '-':
+        case '_':
+          e.preventDefault();
+          if (modalZoom > 0.5) zoomOut();
+          break;
+        case '0':
+          e.preventDefault();
+          resetZoom();
+          break;
+        default:
+          break;
+      }
+    };
+
+    if (isModalOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isModalOpen, modalZoom, closeModal, zoomIn, zoomOut, resetZoom]);
+  
+  // Early return if tab is not active to prevent cross-contamination
+  if (!isTabActive) {
+    return null;
+  }
   
   if (!data.length) {
     return (
@@ -555,9 +660,11 @@ const RiskHeatMap = ({
   }
   
   const cellSize = 15;
-  const margin = { top: 40, right: 180, bottom: 80, left: 120 };
+  const margin = { top: 40, right: 200, bottom: 100, left: 120 };
   const width = 20 * cellSize + margin.left + margin.right;
   const height = 20 * cellSize + margin.top + margin.bottom;
+  
+  console.log('Heat map dimensions:', { width, height, cellSize, margin });
   
   return (
     <div className="rar-heatmap-container">
@@ -593,8 +700,18 @@ const RiskHeatMap = ({
         </button>
       </div>
       <div className="rar-heatmap-chart-container">
-        <div className="rar-heatmap-chart">
-          <svg width={width} height={height}>
+        <div 
+          className="rar-heatmap-chart"
+          ref={heatmapRef}
+          style={{ 
+            cursor: 'pointer',
+            minWidth: `${width}px`,
+            minHeight: `${height}px`,
+            overflow: 'visible'
+          }}
+          title="Double-click to open in modal view"
+        >
+          <svg width={width} height={height} onDoubleClick={handleDoubleClick}>
           <defs>
             {/* Gradient for legend */}
             <linearGradient id="heatmap-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -747,13 +864,13 @@ const RiskHeatMap = ({
           {/* X-axis */}
           <g transform={`translate(${margin.left}, ${height - margin.bottom})`}>
             <line x1="0" y1="0" x2={20 * cellSize} y2="0" stroke="#000" />
-            <text x={10 * cellSize} y="25" textAnchor="middle" fontSize="12">
+            <text x={10 * cellSize} y="35" textAnchor="middle" fontSize="12">
               Frequency (events/year)
             </text>
             {[0, 5, 10, 15, 19].map(i => (
               <g key={i}>
                 <line x1={i * cellSize} y1="0" x2={i * cellSize} y2="5" stroke="#000" />
-                <text x={i * cellSize} y="15" textAnchor="middle" fontSize="10">
+                <text x={i * cellSize} y="20" textAnchor="middle" fontSize="10">
                   {(frequencyRange.min + (i / 19) * (frequencyRange.max - frequencyRange.min)).toFixed(2)}
                 </text>
               </g>
@@ -978,6 +1095,376 @@ const RiskHeatMap = ({
           )}
         </div>
       </div>
+
+      {/* Modal for zoomed view */}
+      {isModalOpen && (
+        <div className="rar-svg-modal-overlay" onClick={closeModal}>
+          <div className="rar-svg-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="rar-svg-modal-header">
+              <h3>🌡️ Monte Carlo Heat Map - Detailed View (Zoom: {Math.round(modalZoom * 100)}%)</h3>
+              <div className="rar-svg-modal-controls">
+                <span style={{ fontSize: '12px', marginRight: '10px', color: '#666' }}>
+                  Tip: Scroll to pan • Use +/- to zoom
+                </span>
+                <button 
+                  type="button" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    zoomOut();
+                  }} 
+                  className="rar-svg-zoom-btn" 
+                  title="Zoom Out (or press -)"
+                  disabled={modalZoom <= 0.5}
+                >−</button>
+                <button 
+                  type="button" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    resetZoom();
+                  }} 
+                  className="rar-svg-zoom-btn" 
+                  title="Reset Zoom (100%)"
+                >⌂</button>
+                <button 
+                  type="button" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    zoomIn();
+                  }} 
+                  className="rar-svg-zoom-btn" 
+                  title="Zoom In (or press +)"
+                  disabled={modalZoom >= 5}
+                >+</button>
+                <button 
+                  type="button" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closeModal();
+                  }} 
+                  className="rar-svg-close-btn" 
+                  title="Close (or press Escape)"
+                >×</button>
+              </div>
+            </div>
+            <div className="rar-svg-modal-body">
+              <div 
+                className="rar-svg-modal-chart-container"
+                style={{
+                  width: '100%',
+                  height: 'calc(100vh - 120px)',
+                  overflow: 'auto',
+                  position: 'relative',
+                  border: '1px solid #ddd',
+                  backgroundColor: '#f9f9f9',
+                  scrollBehavior: 'smooth',
+                  cursor: modalZoom > 1 ? 'grab' : 'default'
+                }}
+                onMouseDown={(e) => {
+                  if (modalZoom > 1) {
+                    e.currentTarget.style.cursor = 'grabbing';
+                  }
+                }}
+                onMouseUp={(e) => {
+                  if (modalZoom > 1) {
+                    e.currentTarget.style.cursor = 'grab';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (modalZoom > 1) {
+                    e.currentTarget.style.cursor = 'grab';
+                  }
+                }}
+              >
+                <div 
+                  style={{
+                    width: `${width * modalZoom}px`,
+                    height: `${height * modalZoom}px`,
+                    minWidth: `${width}px`,
+                    minHeight: `${height}px`,
+                    margin: '20px',
+                    backgroundColor: 'white',
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                    borderRadius: '4px',
+                    position: 'relative'
+                  }}
+                >
+                <svg width={width * modalZoom} height={height * modalZoom}>
+                  <defs>
+                    {/* Gradient for legend */}
+                    <linearGradient id="heatmap-gradient-modal" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="rgba(255, 255, 255, 0.3)" />
+                      <stop offset="100%" stopColor="rgba(255, 0, 0, 1)" />
+                    </linearGradient>
+                  </defs>
+                  
+                  {/* Heat map cells */}
+                  <g transform={`translate(${margin.left * modalZoom}, ${margin.top * modalZoom})`}>
+                    {data.map((d, i) => (
+                      <rect
+                        key={i}
+                        x={d.x * cellSize * modalZoom}
+                        y={(19 - d.y) * cellSize * modalZoom} // Flip Y-axis
+                        width={cellSize * modalZoom}
+                        height={cellSize * modalZoom}
+                        fill={getDensityColor(d.normalizedDensity)}
+                        stroke="#fff"
+                        strokeWidth={0.5 * modalZoom}
+                      >
+                        <title>
+                          {`Frequency: ${d.frequency.toFixed(3)}/year\nLoss: ${formatCurrency(d.loss)}\nTotal Loss: ${formatCurrency(d.totalLoss)}\nProbability: ${(d.probability * 100).toFixed(2)}%\nSamples: ${d.binCount}/${totalSamples}`}
+                        </title>
+                      </rect>
+                    ))}
+                    
+                    {/* Contour lines */}
+                    {contours.map((contour, i) => {
+                      const isVaR = contour.type === 'var';
+                      const isEAL = contour.type === 'eal';
+                      const isVaRBand = contour.type === 'var-band';
+                      const isEALBand = contour.type === 'eal-band';
+                      const isPercentile = contour.type === 'percentile';
+                      
+                      // Skip percentile contours if they're disabled
+                      if (isPercentile && !showPercentiles) {
+                        return null;
+                      }
+                      
+                      // Skip VaR bands if VaR is disabled
+                      if (isVaRBand && !showVaR) {
+                        return null;
+                      }
+                      
+                      // Skip EAL bands if EAL is disabled
+                      if (isEALBand && !showEAL) {
+                        return null;
+                      }
+                      
+                      // For main VaR and EAL lines, remove the scattered circles and just show the smooth curve
+                      if (isVaR || isEAL) {
+                        return (
+                          <g key={i}>
+                            {/* Draw iso-loss curve: frequency * loss = Value */}
+                            {(() => {
+                              const curvePoints = [];
+                              for (let j = 0; j < 100; j++) { // Use more points for smoother curve
+                                const frequency = frequencyRange.min + (j / 99) * (frequencyRange.max - frequencyRange.min);
+                                const requiredLoss = contour.value / frequency;
+                                
+                                // Only include points if the required loss is within our loss range
+                                if (requiredLoss >= lossRange.min && requiredLoss <= lossRange.max) {
+                                  const x = (j / 99) * 20 * cellSize * modalZoom;
+                                  const lossRatio = (requiredLoss - lossRange.min) / (lossRange.max - lossRange.min);
+                                  const y = (1 - lossRatio) * 20 * cellSize * modalZoom; // Flip y-axis
+                                  curvePoints.push(`${x},${y}`);
+                                }
+                              }
+                              
+                              if (curvePoints.length > 1) {
+                                return (
+                                  <path
+                                    d={`M ${curvePoints.join(' L ')}`}
+                                    stroke={isVaR ? "#0066ff" : "#00cc66"}
+                                    strokeWidth={3 * modalZoom}
+                                    fill="none"
+                                    opacity="0.9"
+                                    strokeDasharray={isVaR ? "none" : `${8 * modalZoom},${4 * modalZoom}`} // Solid line for VaR, dashed for EAL
+                                  />
+                                );
+                              }
+                              return null;
+                            })()}
+                          </g>
+                        );
+                      }
+                      
+                      // For confidence bands, draw thinner, semi-transparent curves
+                      if (isVaRBand || isEALBand) {
+                        return (
+                          <g key={i}>
+                            {(() => {
+                              const curvePoints = [];
+                              for (let j = 0; j < 100; j++) {
+                                const frequency = frequencyRange.min + (j / 99) * (frequencyRange.max - frequencyRange.min);
+                                const requiredLoss = contour.value / frequency;
+                                
+                                if (requiredLoss >= lossRange.min && requiredLoss <= lossRange.max) {
+                                  const x = (j / 99) * 20 * cellSize * modalZoom;
+                                  const lossRatio = (requiredLoss - lossRange.min) / (lossRange.max - lossRange.min);
+                                  const y = (1 - lossRatio) * 20 * cellSize * modalZoom;
+                                  curvePoints.push(`${x},${y}`);
+                                }
+                              }
+                              
+                              if (curvePoints.length > 1) {
+                                const baseColor = isVaRBand ? "#0066ff" : "#00cc66";
+                                return (
+                                  <path
+                                    d={`M ${curvePoints.join(' L ')}`}
+                                    stroke={baseColor}
+                                    strokeWidth={1 * modalZoom}
+                                    fill="none"
+                                    opacity="0.4"
+                                    strokeDasharray={`${3 * modalZoom},${2 * modalZoom}`}
+                                  />
+                                );
+                              }
+                              return null;
+                            })()}
+                          </g>
+                        );
+                      }
+                      
+                      // For percentile contours, use original scattered circle approach
+                      const contourData = data.filter(d => 
+                        Math.abs(d.totalLoss - contour.value) / Math.max(contour.value, 1) < 0.1
+                      );
+                      
+                      return (
+                        <g key={i}>
+                          {contourData.map((point, j) => (
+                            <circle
+                              key={j}
+                              cx={(point.x * cellSize + cellSize/2) * modalZoom}
+                              cy={((19 - point.y) * cellSize + cellSize/2) * modalZoom}
+                              r={3 * modalZoom}
+                              fill={getContourColor(contour.level)}
+                              stroke="white"
+                              strokeWidth={1 * modalZoom}
+                              opacity="0.8"
+                            />
+                          ))}
+                        </g>
+                      );
+                    }).filter(Boolean)}
+                  </g>
+                  
+                  {/* X-axis */}
+                  <g transform={`translate(${margin.left * modalZoom}, ${(height - margin.bottom) * modalZoom})`}>
+                    <line x1="0" y1="0" x2={20 * cellSize * modalZoom} y2="0" stroke="#000" strokeWidth={modalZoom} />
+                    <text x={10 * cellSize * modalZoom} y={35 * modalZoom} textAnchor="middle" fontSize={12 * modalZoom}>
+                      Frequency (events/year)
+                    </text>
+                    {[0, 5, 10, 15, 19].map(i => (
+                      <g key={i}>
+                        <line x1={i * cellSize * modalZoom} y1="0" x2={i * cellSize * modalZoom} y2={5 * modalZoom} stroke="#000" strokeWidth={modalZoom} />
+                        <text x={i * cellSize * modalZoom} y={20 * modalZoom} textAnchor="middle" fontSize={10 * modalZoom}>
+                          {(frequencyRange.min + (i / 19) * (frequencyRange.max - frequencyRange.min)).toFixed(2)}
+                        </text>
+                      </g>
+                    ))}
+                  </g>
+                  
+                  {/* Y-axis */}
+                  <g transform={`translate(${margin.left * modalZoom}, ${margin.top * modalZoom})`}>
+                    <line x1="0" y1="0" x2="0" y2={20 * cellSize * modalZoom} stroke="#000" strokeWidth={modalZoom} />
+                    <text x={-70 * modalZoom} y={10 * cellSize * modalZoom} textAnchor="middle" fontSize={12 * modalZoom} transform={`rotate(-90, ${-70 * modalZoom}, ${10 * cellSize * modalZoom})`}>
+                      Unit Cost
+                    </text>
+                    {[0, 5, 10, 15, 19].map(i => {
+                      const value = lossRange.min + (i / 19) * (lossRange.max - lossRange.min);
+                      return (
+                        <g key={i}>
+                          <line x1={-5 * modalZoom} y1={(19-i) * cellSize * modalZoom} x2="0" y2={(19-i) * cellSize * modalZoom} stroke="#000" strokeWidth={modalZoom} />
+                          <text x={-10 * modalZoom} y={(19-i) * cellSize * modalZoom + 3 * modalZoom} textAnchor="end" fontSize={10 * modalZoom}>
+                            {window.innerWidth <= 768 ? formatCompactCurrency(value) : formatCurrency(value)}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </g>
+                  
+                  {/* Legend */}
+                  <g transform={`translate(${(width - margin.right + 10) * modalZoom}, ${margin.top * modalZoom})`}>
+                    <text x="0" y={-5 * modalZoom} fontSize={12 * modalZoom} fontWeight="bold">Probability Density</text>
+                    <rect x="0" y="0" width={80 * modalZoom} height={15 * modalZoom} fill="url(#heatmap-gradient-modal)" />
+                    <text x="0" y={30 * modalZoom} fontSize={10 * modalZoom}>Low</text>
+                    <text x={65 * modalZoom} y={30 * modalZoom} fontSize={10 * modalZoom}>High</text>
+                    
+                    <text x="0" y={60 * modalZoom} fontSize={12 * modalZoom} fontWeight="bold">Total Loss Contours</text>
+                    {contours.map((contour, i) => {
+                      const isVaR = contour.type === 'var';
+                      const isEAL = contour.type === 'eal';
+                      const isVaRBand = contour.type === 'var-band';
+                      const isEALBand = contour.type === 'eal-band';
+                      const isPercentile = contour.type === 'percentile';
+                      
+                      // Skip percentile contours if they're disabled
+                      if (isPercentile && !showPercentiles) {
+                        return null;
+                      }
+                      
+                      // Skip VaR bands if VaR is disabled
+                      if (isVaRBand && !showVaR) {
+                        return null;
+                      }
+                      
+                      // Skip EAL bands if EAL is disabled
+                      if (isEALBand && !showEAL) {
+                        return null;
+                      }
+                      
+                      let legendText = '';
+                      let strokeDashArray = 'none';
+                      let opacity = 1;
+                      
+                      if (isVaR) {
+                        legendText = `VaR: ${formatCurrency(contour.value)}`;
+                      } else if (isEAL) {
+                        legendText = `EAL: ${formatCurrency(contour.value)}`;
+                        strokeDashArray = `${8 * modalZoom},${4 * modalZoom}`;
+                      } else if (isVaRBand) {
+                        legendText = `VaR ±1σ: ${formatCurrency(contour.value)}`;
+                        strokeDashArray = `${3 * modalZoom},${2 * modalZoom}`;
+                        opacity = 0.6;
+                      } else if (isEALBand) {
+                        legendText = `EAL ±1σ: ${formatCurrency(contour.value)}`;
+                        strokeDashArray = `${3 * modalZoom},${2 * modalZoom}`;
+                        opacity = 0.6;
+                      } else {
+                        legendText = `${contour.level}%: ${formatCurrency(contour.value)}`;
+                      }
+                      
+                      return (
+                        <g key={i} transform={`translate(0, ${(80 + i * 20) * modalZoom})`}>
+                          {(isVaR || isEAL || isVaRBand || isEALBand) ? (
+                            <line 
+                              x1="0" 
+                              y1="0" 
+                              x2={10 * modalZoom} 
+                              y2="0" 
+                              stroke={isVaR || isVaRBand ? "#0066ff" : "#00cc66"} 
+                              strokeWidth={(isVaR || isEAL ? 3 : 1) * modalZoom}
+                              strokeDasharray={strokeDashArray}
+                              opacity={opacity}
+                            />
+                          ) : (
+                            <circle 
+                              cx={5 * modalZoom} 
+                              cy="0" 
+                              r={3 * modalZoom} 
+                              fill={getContourColor(contour.level)} 
+                              stroke="white" 
+                              strokeWidth={1 * modalZoom} 
+                            />
+                          )}
+                          <text x={15 * modalZoom} y={3 * modalZoom} fontSize={10 * modalZoom} fontWeight={isVaR || isEAL ? "bold" : "normal"} opacity={opacity}>
+                            {legendText}
+                          </text>
+                        </g>
+                      );
+                    }).filter(Boolean)}
+                  </g>
+                </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

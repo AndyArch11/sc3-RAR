@@ -38,7 +38,7 @@ const RARIntro = ({
             <button 
                 onClick={scrollToTop}
                 className="rar-back-to-top-btn"
-                title="Back to Top"
+                title="Back to top of page"
             >
                 ↑ Back to Top
             </button>
@@ -48,7 +48,7 @@ const RARIntro = ({
     return (        
         <details className="rar-intro-details">
           <summary className="rar-intro-summary">
-            RAR Guidance and Preparation
+            📚 RAR Guidance and Preparation
           </summary>
 
           <p>A <i>Risk Assessment Report (RAR)</i> is a comprehensive document that outlines the findings of a risk assessment process, evaluating the risks to an organization's information assets and providing recommendations for mitigating those risks.</p>
@@ -1786,6 +1786,7 @@ const RARIntro = ({
               as legal advice. Please consult with a qualified legal
               professional for specific legal advice tailored to your situation.
             </p>
+            <hr />
 
           </div>
         </details>

@@ -1,14 +1,61 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 
 const TornadoGraphCustom = ({ 
   form, 
   getMonteCarloResults,
   formatCurrency,
-  getMonteCarloExpectedLossNumeric 
+  getMonteCarloExpectedLossNumeric,
+  isTabActive = true // New parameter to control modal visibility
 }) => {
   
   // Ref for the scrollable container
   const scrollContainerRef = useRef(null);
+  
+  // Modal state for chart viewing
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalZoom, setModalZoom] = useState(1);
+  
+  // Modal handlers
+  const openModal = useCallback(() => {
+    setIsModalOpen(true);
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+    document.body.classList.add('modal-open');
+  }, []);
+  
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false);
+    setModalZoom(1);
+    // Restore body scroll when modal is closed
+    document.body.style.overflow = '';
+    document.body.classList.remove('modal-open');
+  }, []);
+  
+  const zoomIn = useCallback(() => {
+    setModalZoom(prev => {
+      const newZoom = Math.min(prev + 0.25, 5);
+      return newZoom;
+    });
+  }, []);
+  
+  const zoomOut = useCallback(() => {
+    setModalZoom(prev => {
+      const newZoom = Math.max(prev - 0.25, 0.5);
+      return newZoom;
+    });
+  }, []);
+  
+  const resetZoom = useCallback(() => {
+    setModalZoom(1);
+  }, []);
+  
+  // Double-click handler
+  const handleDoubleClick = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Double-click detected on tornado graph, opening modal');
+    openModal();
+  }, [openModal]);
   
   // Center the scroll position on mount/update
   useEffect(() => {
@@ -33,6 +80,58 @@ const TornadoGraphCustom = ({
       }, 150);
     }
   }, [form?.assessmentType, form?.lossDistribution, form?.frequencyDistribution]);
+  
+  // Cleanup body scroll on unmount or modal state change
+  useEffect(() => {
+    return () => {
+      // Ensure body scroll is restored when component unmounts
+      document.body.style.overflow = '';
+      document.body.classList.remove('modal-open');
+    };
+  }, []);
+
+  // Also cleanup when modal closes to ensure consistency
+  useEffect(() => {
+    if (!isModalOpen) {
+      document.body.style.overflow = '';
+      document.body.classList.remove('modal-open');
+    }
+  }, [isModalOpen]);
+
+  // Add keyboard support for modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!isModalOpen) return;
+      
+      switch(e.key) {
+        case 'Escape':
+          e.preventDefault();
+          closeModal();
+          break;
+        case '+':
+        case '=':
+          e.preventDefault();
+          if (modalZoom < 5) zoomIn();
+          break;
+        case '-':
+        case '_':
+          e.preventDefault();
+          if (modalZoom > 0.5) zoomOut();
+          break;
+        case '0':
+          e.preventDefault();
+          resetZoom();
+          break;
+        default:
+          break;
+      }
+    };
+
+    if (isModalOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isModalOpen, modalZoom, closeModal, zoomIn, zoomOut, resetZoom]);
   
   // Calculate sensitivity data
   const sensitivityData = useMemo(() => {
@@ -497,6 +596,11 @@ const TornadoGraphCustom = ({
     
   }, [form, getMonteCarloExpectedLossNumeric]);
 
+  // Early return if tab is not active to prevent cross-contamination
+  if (!isTabActive) {
+    return null;
+  }
+
   // Calculate max absolute value for dynamic scaling
   const maxValue = Math.max(
     ...sensitivityData.data.map(item => Math.max(Math.abs(item.negative), Math.abs(item.positive)))
@@ -523,7 +627,8 @@ const TornadoGraphCustom = ({
   const centerX = chartWidth / 2;
 
   return (
-    <div className="rar-tornado-container">
+    <>
+      <div className="rar-tornado-container">
       {/* Enhanced status messaging */}
       <div className="rar-tornado-description">
         <div style={{ 
@@ -638,7 +743,10 @@ const TornadoGraphCustom = ({
             borderRadius: '8px', 
             backgroundColor: '#fafafa',
             position: 'relative'
-          }}>
+          }}
+          onDoubleClick={handleDoubleClick}
+          title="Double-click to view in modal"
+        >
           <svg 
             width={chartWidth} 
             height={chartHeight} 
@@ -976,6 +1084,237 @@ const TornadoGraphCustom = ({
         )}
       </div>
     </div>
+    
+    {/* Modal */}
+    {isModalOpen && (
+      <div className="rar-svg-modal-overlay" onClick={closeModal}>
+        <div className="rar-svg-modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="rar-svg-modal-header">
+            <h3>Sensitivity Analysis - Tornado Diagram</h3>
+            <div className="rar-svg-modal-controls">
+              <button type="button" onClick={zoomOut} disabled={modalZoom <= 0.5} title="Zoom Out (-)">−</button>
+              <span>{Math.round(modalZoom * 100)}%</span>
+              <button type="button" onClick={zoomIn} disabled={modalZoom >= 3} title="Zoom In (+)">+</button>
+              <button type="button" onClick={resetZoom} title="Reset Zoom (R)">Reset</button>
+              <button type="button" onClick={closeModal} className="rar-svg-modal-close" title="Close (Escape)">×</button>
+            </div>
+          </div>
+          <div className="rar-svg-modal-body" style={{ transform: `scale(${modalZoom})`, transformOrigin: 'top left' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              padding: '20px 0',
+              width: '100%',
+              overflow: 'hidden'
+            }}>
+              <div 
+                className="tornado-scroll-container"
+                style={{ 
+                  overflowX: 'auto', 
+                  overflowY: 'visible',
+                  width: '100%',
+                  maxWidth: '100%',
+                  border: '1px solid #e0e0e0', 
+                  borderRadius: '8px', 
+                  backgroundColor: '#fafafa',
+                  position: 'relative'
+                }}>
+                <svg 
+                  width={chartWidth} 
+                  height={chartHeight} 
+                  className="tornado-svg"
+                  style={{ 
+                    display: 'block'
+                  }}
+                >
+                  {/* Chart background */}
+                  <rect width={chartWidth} height={chartHeight} fill="white" />
+                  
+                  {/* Title */}
+                  <text x={centerX} y={20} textAnchor="middle" style={{ fontSize: '16px', fontWeight: 'bold', fill: '#333' }}>
+                    Sensitivity Analysis - Tornado Graph
+                  </text>
+                  <text x={centerX} y={40} textAnchor="middle" style={{ fontSize: '12px', fill: '#666' }}>
+                    {!sensitivityData.isExampleData && form ? 
+                      `Loss: ${form.lossDistribution ? form.lossDistribution.charAt(0).toUpperCase() + form.lossDistribution.slice(1) : 'Unknown'} | Frequency: ${form.frequencyDistribution ? form.frequencyDistribution.charAt(0).toUpperCase() + form.frequencyDistribution.slice(1) : 'Unknown'}` 
+                      : 'Distribution Models'
+                    }
+                  </text>
+                  
+                  {/* Center line */}
+                  <line x1={centerX} y1={topMargin} x2={centerX} y2={chartHeight - bottomMargin} stroke="#666" strokeWidth="2" />
+                  
+                  {/* Grid lines - dynamic based on max value */}
+                  {(() => {
+                    // Create appropriate grid intervals based on max value
+                    let intervals = [];
+                    if (maxValue <= 20) {
+                      intervals = [-20, -10, 10, 20];
+                    } else if (maxValue <= 50) {
+                      intervals = [-50, -25, 25, 50];
+                    } else if (maxValue <= 100) {
+                      intervals = [-100, -50, 50, 100];
+                    } else if (maxValue <= 200) {
+                      intervals = [-200, -100, 100, 200];
+                    } else {
+                      // For very high values, use multiples of 100
+                      const step = Math.ceil(maxValue / 4 / 100) * 100;
+                      intervals = [-step * 2, -step, step, step * 2];
+                    }
+                    
+                    return intervals.map(value => {
+                      const x = centerX + (value * scaleFactor);
+                      return (
+                        <line 
+                          key={value}
+                          x1={x} 
+                          y1={topMargin} 
+                          x2={x} 
+                          y2={chartHeight - bottomMargin} 
+                          stroke="#e0e0e0" 
+                          strokeWidth="1" 
+                          strokeDasharray="3,3"
+                        />
+                      );
+                    });
+                  })()}
+                  
+                  {/* Tornado bars */}
+                  {sensitivityData.data.map((item, index) => {
+                    const y = topMargin + 40 + index * (barHeight + 15);
+                    const leftBarWidth = Math.abs(item.negative) * scaleFactor;
+                    const rightBarWidth = Math.abs(item.positive) * scaleFactor;
+                    
+                    return (
+                      <g key={index}>
+                        {/* Left bar (negative change) */}
+                        <rect
+                          x={centerX - leftBarWidth}
+                          y={y}
+                          width={leftBarWidth}
+                          height={barHeight}
+                          fill="#4ecdc4"
+                          stroke="#26c6da"
+                          strokeWidth="1"
+                        />
+                        
+                        {/* Right bar (positive change) */}
+                        <rect
+                          x={centerX}
+                          y={y}
+                          width={rightBarWidth}
+                          height={barHeight}
+                          fill="#ff6b6b"
+                          stroke="#ff5252"
+                          strokeWidth="1"
+                        />
+                        
+                        {/* Parameter label */}
+                        <text 
+                          x={50} 
+                          y={y + barHeight/2 + 4} 
+                          textAnchor="start" 
+                          style={{ fontSize: '11px', fill: '#333', fontWeight: '500' }}
+                        >
+                          {item.parameter}
+                        </text>
+                        
+                        {/* Value labels on bars */}
+                        <text 
+                          x={centerX - leftBarWidth/2} 
+                          y={y + barHeight/2 + 4} 
+                          textAnchor="middle" 
+                          style={{ fontSize: '10px', fill: 'white', fontWeight: 'bold' }}
+                        >
+                          {item.negative > 0 ? '+' : ''}{item.negative.toFixed(1)}%
+                        </text>
+                        
+                        <text 
+                          x={centerX + rightBarWidth/2} 
+                          y={y + barHeight/2 + 4} 
+                          textAnchor="middle" 
+                          style={{ fontSize: '10px', fill: 'white', fontWeight: 'bold' }}
+                        >
+                          {item.positive > 0 ? '+' : ''}{item.positive.toFixed(1)}%
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  {/* X-axis labels */}
+                  {(() => {
+                    let labels = [];
+                    if (maxValue <= 20) {
+                      labels = [
+                        { value: -20, x: centerX - (20 * scaleFactor) },
+                        { value: -10, x: centerX - (10 * scaleFactor) },
+                        { value: 0, x: centerX },
+                        { value: 10, x: centerX + (10 * scaleFactor) },
+                        { value: 20, x: centerX + (20 * scaleFactor) }
+                      ];
+                    } else if (maxValue <= 50) {
+                      labels = [
+                        { value: -50, x: centerX - (50 * scaleFactor) },
+                        { value: -25, x: centerX - (25 * scaleFactor) },
+                        { value: 0, x: centerX },
+                        { value: 25, x: centerX + (25 * scaleFactor) },
+                        { value: 50, x: centerX + (50 * scaleFactor) }
+                      ];
+                    } else if (maxValue <= 100) {
+                      labels = [
+                        { value: -100, x: centerX - (100 * scaleFactor) },
+                        { value: -50, x: centerX - (50 * scaleFactor) },
+                        { value: 0, x: centerX },
+                        { value: 50, x: centerX + (50 * scaleFactor) },
+                        { value: 100, x: centerX + (100 * scaleFactor) }
+                      ];
+                    } else if (maxValue <= 200) {
+                      labels = [
+                        { value: -200, x: centerX - (200 * scaleFactor) },
+                        { value: -100, x: centerX - (100 * scaleFactor) },
+                        { value: 0, x: centerX },
+                        { value: 100, x: centerX + (100 * scaleFactor) },
+                        { value: 200, x: centerX + (200 * scaleFactor) }
+                      ];
+                    } else {
+                      const step = Math.ceil(maxValue / 4 / 100) * 100;
+                      labels = [
+                        { value: -step * 2, x: centerX - (step * 2 * scaleFactor) },
+                        { value: -step, x: centerX - (step * scaleFactor) },
+                        { value: 0, x: centerX },
+                        { value: step, x: centerX + (step * scaleFactor) },
+                        { value: step * 2, x: centerX + (step * 2 * scaleFactor) }
+                      ];
+                    }
+                    
+                    return labels.map((label, index) => (
+                      <text 
+                        key={index}
+                        x={label.x} 
+                        y={chartHeight - bottomMargin + 20} 
+                        textAnchor="middle" 
+                        style={{ fontSize: '11px', fill: '#333' }}
+                      >
+                        {label.value > 0 ? '+' : ''}{label.value}%
+                      </text>
+                    ));
+                  })()}
+
+                  {/* Legend */}
+                  <g transform={`translate(${chartWidth - 250}, 65)`}>
+                    <rect x="0" y="0" width="15" height="12" fill="#4ecdc4" />
+                    <text x="20" y="10" style={{ fontSize: '11px', fill: '#333' }}>Decreased Parameter (-20%)</text>
+                    <rect x="0" y="18" width="15" height="12" fill="#ff6b6b" />
+                    <text x="20" y="28" style={{ fontSize: '11px', fill: '#333' }}>Increased Parameter (+20%)</text>
+                  </g>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 };
 

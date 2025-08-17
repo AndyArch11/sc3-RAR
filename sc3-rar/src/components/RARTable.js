@@ -113,7 +113,7 @@ const RARTable = ({
               setRisksOpen(!risksOpen);
             }}
           >
-            Current Risk Assessment 
+            🗃️ Current Risk Assessment 
             <span className="rar-table-count">{risks.length} risks identified</span>
           </summary>
           <div className="rar-table-content">
