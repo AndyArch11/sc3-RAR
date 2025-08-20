@@ -203,7 +203,7 @@ const TornadoGraphCustom = ({
     // Get baseline expected loss
     const baselineEAL = getMonteCarloExpectedLossNumeric(form);
     
-    // Determine which risk data we're analyzing
+    // Determine which risk data we're analysing
     const riskType = form.currentRiskView === 'residual' ? 'residual' : 'inherent';
     
     if (!baselineEAL || baselineEAL === 0) {
@@ -689,7 +689,7 @@ const TornadoGraphCustom = ({
                   Frequency: {form?.frequencyDistribution ? form.frequencyDistribution.charAt(0).toUpperCase() + form.frequencyDistribution.slice(1) : 'Not specified'}
                 </p>
                 <p><strong>Analysis:</strong> Impact of ±20-50% parameter changes on Expected Annual Loss (EAL)</p>
-                <p><strong>Parameters Analyzed:</strong> {sensitivityData.data.length} distribution parameters with measurable impact</p>
+                <p><strong>Parameters Analysed:</strong> {sensitivityData.data.length} distribution parameters with measurable impact</p>
                 <p><strong>Methodology:</strong> Each parameter is varied independently while holding others constant to measure EAL sensitivity</p>
               </div>
             </div>
@@ -1046,7 +1046,7 @@ const TornadoGraphCustom = ({
                   return (
                     <span style={{ color: '#ef6c00', fontWeight: 'bold' }}>
                       ⚖️ Balanced approach recommended - upward exposure ({totalUpward.toFixed(1)}%) and downward potential ({totalDownward.toFixed(1)}%) are similar magnitude. 
-                      Implement mixed strategy combining preventive controls with proactive optimization measures.
+                      Implement mixed strategy combining preventive controls with proactive optimisation measures.
                     </span>
                   );
                 }
@@ -1055,7 +1055,7 @@ const TornadoGraphCustom = ({
           </>
         ) : (
           <div style={{ color: '#856404', fontStyle: 'italic' }}>
-            <p>Insights will be available when analyzing real risk data.</p>
+            <p>Insights will be available when analysing real risk data.</p>
             <p>Complete the setup requirements above to see parameter impact analysis.</p>
           </div>
         )}

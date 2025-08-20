@@ -86,6 +86,8 @@ const DistributionChart = ({ distributionType, parameters, title, formatCurrency
   // Force chart dimensions for 768px viewport compatibility
   const [chartDimensions, setChartDimensions] = React.useState({ width: 0, height: 250 });
   const chartRef = React.useRef(null);
+  // Add state for log scale toggle (only for loss charts)
+  const [useLogScale, setUseLogScale] = React.useState(false);
 
   React.useEffect(() => {
     const updateDimensions = () => {
@@ -451,7 +453,21 @@ const DistributionChart = ({ distributionType, parameters, title, formatCurrency
     return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
   };
 
-  const data = generateDistributionData();
+
+  let data = generateDistributionData();
+
+  // Use bar chart for discrete distributions, line chart for continuous
+  const isDiscrete = ['poisson', 'negative-binomial', 'binomial', 'geometric', 'discrete-uniform'].includes(distributionType);
+  const isSmallViewport = window.innerWidth <= 768;
+  // Heuristic: If the chart title or label contains 'Loss', treat as loss-based
+  const isLossChart = (title && title.toLowerCase().includes('loss')) || (parameters && parameters.lossMean !== undefined);
+
+  // Transform data for log scale if enabled
+  let chartData = data;
+  let log10floor = -8; // log10(0.00000001) = -8
+  if (!isDiscrete && isLossChart && useLogScale) {
+    chartData = data.map(d => ({ ...d, y: d.y > 0 ? Math.log10(d.y) : log10floor }));
+  }
 
   if (data.length === 0) {
     return (
@@ -461,13 +477,36 @@ const DistributionChart = ({ distributionType, parameters, title, formatCurrency
     );
   }
 
-  // Use bar chart for discrete distributions, line chart for continuous
-  const isDiscrete = ['poisson', 'negative-binomial', 'binomial', 'geometric', 'discrete-uniform'].includes(distributionType);
-  const isSmallViewport = window.innerWidth <= 768;
-
   return (
     <div className="rar-distribution-chart-container">
       <h5 className="rar-distribution-chart-title">{title}</h5>
+      {/* Log scale toggle for loss charts */}
+      {!isDiscrete && isLossChart && (
+        <div style={{ marginBottom: '8px' }}>
+          <button
+            type="button"
+            className="rar-logscale-toggle"
+            style={{
+              background: useLogScale ? '#b8860b' : '#eee',
+              color: useLogScale ? '#fff' : '#333',
+              border: '1px solid #b8860b',
+              borderRadius: '4px',
+              padding: '4px 10px',
+              fontSize: '13px',
+              cursor: 'pointer',
+              marginRight: '10px'
+            }}
+            onClick={() => setUseLogScale((prev) => !prev)}
+          >
+            {useLogScale ? 'Switch to Linear Scale' : 'Switch to Log Scale'}
+          </button>
+          {useLogScale && (
+            <span style={{ color: '#b8860b', fontSize: '13px', marginLeft: '8px' }}>
+              Logarithmic scale applied to probability density (y-axis). Values below 1e{log10floor} are shown at the chart floor.
+            </span>
+          )}
+        </div>
+      )}
       <div 
         ref={chartRef}
         style={{ 
@@ -481,7 +520,7 @@ const DistributionChart = ({ distributionType, parameters, title, formatCurrency
             <BarChart 
               width={chartDimensions.width}
               height={chartDimensions.height}
-              data={data}
+              data={chartData}
               margin={{ top: 10, right: 30, left: 10, bottom: 20 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
@@ -499,10 +538,10 @@ const DistributionChart = ({ distributionType, parameters, title, formatCurrency
               <YAxis 
                 tick={{ fontSize: 12 }}
                 width={100}
-                label={{ value: 'Probability Density', angle: -90, position: 'outside', style: { textAnchor: 'middle' }, offset: 50 }}
+                label={{ value: useLogScale ? 'Log Probability Density' : 'Probability Density', angle: -90, position: 'outside', style: { textAnchor: 'middle' }, offset: 50 }}
               />
               <Tooltip 
-                formatter={(value, name) => [value.toFixed(6), 'Probability']}
+                formatter={(value, name) => [useLogScale ? value.toFixed(3) : value.toFixed(6), useLogScale ? 'Log Probability Density' : 'Probability']}
                 labelFormatter={(value) => `Events: ${value}`}
               />
               <Bar 
@@ -516,7 +555,7 @@ const DistributionChart = ({ distributionType, parameters, title, formatCurrency
             <LineChart 
               width={chartDimensions.width}
               height={chartDimensions.height}
-              data={data}
+              data={chartData}
               margin={{ top: 10, right: 30, left: 10, bottom: 20 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
@@ -533,10 +572,10 @@ const DistributionChart = ({ distributionType, parameters, title, formatCurrency
               <YAxis 
                 tick={{ fontSize: 12 }}
                 width={100}
-                label={{ value: 'Probability Density', angle: -90, position: 'outside', style: { textAnchor: 'middle' }, offset: 50 }}
+                label={{ value: useLogScale ? 'Log Probability Density' : 'Probability Density', angle: -90, position: 'outside', style: { textAnchor: 'middle' }, offset: 50 }}
               />
               <Tooltip 
-                formatter={(value, name) => [value.toFixed(6), 'Probability Density']}
+                formatter={(value, name) => [useLogScale ? value.toFixed(3) : value.toFixed(6), useLogScale ? 'Log Probability Density' : 'Probability Density']}
                 labelFormatter={(value) => `Value: ${formatCurrency ? formatCurrency(value) : value.toLocaleString()}`}
               />
               <Line 
@@ -553,7 +592,7 @@ const DistributionChart = ({ distributionType, parameters, title, formatCurrency
           <ResponsiveContainer width="100%" height="100%">
             {isDiscrete ? (
               <BarChart 
-                data={data}
+                data={chartData}
                 margin={{ top: 10, right: 30, left: 10, bottom: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
@@ -571,10 +610,10 @@ const DistributionChart = ({ distributionType, parameters, title, formatCurrency
                 <YAxis 
                   tick={{ fontSize: 12 }}
                   width={100}
-                  label={{ value: 'Probability Density', angle: -90, position: 'outside', style: { textAnchor: 'middle' }, offset: 50 }}
+                  label={{ value: useLogScale ? 'Log Probability Density' : 'Probability Density', angle: -90, position: 'outside', style: { textAnchor: 'middle' }, offset: 50 }}
                 />
                 <Tooltip 
-                  formatter={(value, name) => [value.toFixed(6), 'Probability']}
+                  formatter={(value, name) => [useLogScale ? value.toFixed(3) : value.toFixed(6), useLogScale ? 'Log Probability Density' : 'Probability']}
                   labelFormatter={(value) => `Events: ${value}`}
                 />
                 <Bar 
@@ -586,7 +625,7 @@ const DistributionChart = ({ distributionType, parameters, title, formatCurrency
               </BarChart>
             ) : (
               <LineChart 
-                data={data}
+                data={chartData}
                 margin={{ top: 10, right: 30, left: 10, bottom: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
@@ -603,10 +642,10 @@ const DistributionChart = ({ distributionType, parameters, title, formatCurrency
                 <YAxis 
                   tick={{ fontSize: 12 }}
                   width={100}
-                  label={{ value: 'Probability Density', angle: -90, position: 'outside', style: { textAnchor: 'middle' }, offset: 50 }}
+                  label={{ value: useLogScale ? 'Log Probability Density' : 'Probability Density', angle: -90, position: 'outside', style: { textAnchor: 'middle' }, offset: 50 }}
                 />
                 <Tooltip 
-                  formatter={(value, name) => [value.toFixed(6), 'Probability Density']}
+                  formatter={(value, name) => [useLogScale ? value.toFixed(3) : value.toFixed(6), useLogScale ? 'Log Probability Density' : 'Probability Density']}
                   labelFormatter={(value) => `Value: ${formatCurrency ? formatCurrency(value) : value.toLocaleString()}`}
                 />
                 <Line 

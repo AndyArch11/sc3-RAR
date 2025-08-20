@@ -405,7 +405,7 @@ const RARReport = ({
                           border: "1px solid #ffeaa7"
                         }}>
                         <strong>Note:</strong> This heat map only displays qualitative risks with likelihood and impact scores. 
-                        Quantitative risks (using ALE calculations) are not included in this visualization.
+                        Quantitative risks (using ALE calculations) are not included in this visualisation.
                       </div>
 
                       {/* Heat Map Table */}
@@ -1006,7 +1006,7 @@ const RARReport = ({
                   </li>
                   <li>
                     <strong>Risk Evaluation:</strong> Risk level determinations and
-                    prioritization
+                    prioritisation
                   </li>
                   <li>
                     <strong>Risk Heat Map:</strong> Visual representation of risk
@@ -1092,7 +1092,7 @@ const RARReport = ({
 
                 <p className="rar-additional-considerations-note">
                   <strong>Note:</strong> The RAR structure should be tailored to
-                  organizational needs and regulatory requirements. Consider
+                  organisational needs and regulatory requirements. Consider
                   industry-specific risk factors and compliance obligations when
                   developing the assessment framework.
                 </p>

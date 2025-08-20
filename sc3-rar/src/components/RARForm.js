@@ -504,7 +504,7 @@ const RARForm = () => {
     const filteredRisks = includeClosedRisks ? risks : risks.filter(risk => risk.status !== 'closed');
     
     filteredRisks.forEach(risk => {
-      const category = risk.riskCategory || 'Uncategorized';
+      const category = risk.riskCategory || 'Uncategorised';
       categories[category] = (categories[category] || 0) + 1;
     });
     

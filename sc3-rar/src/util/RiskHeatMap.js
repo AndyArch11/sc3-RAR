@@ -153,7 +153,7 @@ const RiskHeatMap = ({
       }
     }
     
-    // Normalize densities for visualization (0-1 scale for color mapping)
+    // Normalise densities for visualisation (0-1 scale for colour mapping)
     const normalizedData = heatMapData.map(item => ({
       ...item,
       normalizedDensity: maxDensity > 0 ? item.density / maxDensity : 0
@@ -559,14 +559,14 @@ const RiskHeatMap = ({
     return contours;
   };
   
-  // Get color for density
+  // Get colour for density
   const getDensityColor = (density) => {
     const intensity = Math.max(0, Math.min(1, density));
     const alpha = 0.3 + 0.7 * intensity;
     return `rgba(255, ${Math.floor(255 * (1 - intensity))}, ${Math.floor(255 * (1 - intensity))}, ${alpha})`;
   };
   
-  // Get contour color
+  // Get contour colour
   const getContourColor = (level) => {
     const colors = {
       25: '#4CAF50',  // Green

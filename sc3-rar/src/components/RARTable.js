@@ -603,43 +603,6 @@ const RARTable = ({
           </div>
         )}
 
-        {/* Risk Assessment Table Legend - Hidden on small devices */}
-        {window.innerWidth > 768 && (
-          <div className='rar-table-legend'>
-            <div className='rar-table-legend-content'>
-              <span className='rar-table-legend-label'>
-                Legend:
-              </span>
-              <div className='rar-table-legend-item'>
-                <div className="rar-legend-square-selected"></div>
-                <span>Selected Risk</span>
-              </div>
-              <div className="rar-legend-flex-row">
-                <div className="rar-legend-square-current-edit"></div>
-                <span>Currently Editing in RAR Fields</span>
-              </div>
-              <div className="rar-legend-flex-row">
-                <div className="rar-legend-square-drag-drop"></div>
-                <span>Drag Drop Target</span>
-              </div>
-              <div className="rar-legend-flex-row">
-                <span className="rar-legend-risk-level">
-                  Risk Level
-                </span>
-                <span>Color-coded by severity</span>
-              </div>
-              <div className="rar-legend-flex-row">
-                <span className="rar-action-button">▲▼</span>
-                <span>Use arrows or drag rows to reorder</span>
-              </div>            
-              <div className="rar-legend-flex-row">
-                <span className="rar-action-button rar-action-button-remove">🗑</span>
-                <span>Remove the risk entry</span>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Action Buttons */}
         <div className='rar-table-button-container'>
           <button

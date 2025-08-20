@@ -13,7 +13,7 @@ export function exportRisksToExcel(risks, onExport) {
       ['RAR Guidance and Preparation'],
       [''],
       ['Purpose'],
-      ['This Risk Assessment Report (RAR) template is designed to facilitate comprehensive risk identification, analysis, and treatment planning for organizations of all sizes. The template supports both qualitative and quantitative risk assessment methodologies and provides structured guidance for documenting risk management activities.'],
+      ['This Risk Assessment Report (RAR) template is designed to facilitate comprehensive risk identification, analysis, and treatment planning for organisations of all sizes. The template supports both qualitative and quantitative risk assessment methodologies and provides structured guidance for documenting risk management activities.'],
       [''],
       ['Key Components'],
       ['• Risk Identification and Documentation'],
@@ -39,7 +39,7 @@ export function exportRisksToExcel(risks, onExport) {
       ['• Use consistent criteria for likelihood and impact assessment'],
       ['• Document assumptions and rationale for risk ratings'],
       ['• Regular review and update of risk assessments'],
-      ['• Align risk treatment with organizational risk appetite']
+      ['• Align risk treatment with organisational risk appetite']
     ];
 
     // Get Additional Considerations content
@@ -61,7 +61,7 @@ export function exportRisksToExcel(risks, onExport) {
       ['Risk Assessment Results'],
       ['• Risk Inventory: Comprehensive list of identified risks with descriptions'],
       ['• Risk Analysis: Detailed likelihood and impact assessments for each risk'],
-      ['• Risk Evaluation: Risk level determinations and prioritization'],
+      ['• Risk Evaluation: Risk level determinations and prioritisation'],
       ['• Risk Heat Map: Visual representation of risk landscape'],
       [''],
       ['Risk Treatment Recommendations'],
@@ -83,7 +83,7 @@ export function exportRisksToExcel(risks, onExport) {
       ['• Stakeholder Feedback: Input and validation from key stakeholders'],
       ['• Glossary: Definitions of risk management terms and concepts'],
       [''],
-      ['Note: The RAR structure should be tailored to organizational needs and regulatory requirements. Consider industry-specific risk factors and compliance obligations when developing the assessment framework.']
+      ['Note: The RAR structure should be tailored to organisational needs and regulatory requirements. Consider industry-specific risk factors and compliance obligations when developing the assessment framework.']
     ];
 
     // Get Current Risk Assessment table data

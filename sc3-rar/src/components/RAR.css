@@ -6445,3 +6445,8 @@ body.modal-open .rar-svg-modal-content {
     cursor: default;
   }
 }
+
+.rar-view-mode-label {
+  color: #000;
+  margin-bottom: 0.5rem;
+}

@@ -21,8 +21,10 @@ const RARIntro = ({
     restoreDefaultThresholds,
     formatCurrency
 }) => {
-    // State for guidance section
-    const [showQualitativeGuidance, setShowQualitativeGuidance] = useState(false);
+  // State for guidance section
+  const [showQualitativeGuidance, setShowQualitativeGuidance] = useState(false);
+  // State for additional criteria section
+  const [showAdditionalCriteria, setShowAdditionalCriteria] = useState(false);
 
     // Function to scroll to top
     const scrollToTop = () => {
@@ -51,7 +53,7 @@ const RARIntro = ({
             📚 RAR Guidance and Preparation
           </summary>
 
-          <p>A <i>Risk Assessment Report (RAR)</i> is a comprehensive document that outlines the findings of a risk assessment process, evaluating the risks to an organization's information assets and providing recommendations for mitigating those risks.</p>
+          <p>A <i>Risk Assessment Report (RAR)</i> is a comprehensive document that outlines the findings of a risk assessment process, evaluating the risks to an organisation's information assets and providing recommendations for mitigating those risks.</p>
           
           <div>
             <p>Also see:</p>
@@ -96,6 +98,7 @@ const RARIntro = ({
                 Framework for Improving Critical Infrastructure Cybersecurity
               </li>
             </ul>
+            </div>
             <p>Also see complementary standards:</p>
             <ul>
               <li>
@@ -452,7 +455,7 @@ const RARIntro = ({
                           Irreparable brand damage; mass customer exodus
                         </td>
                         <td className="rar-severity-table-cell">
-                          Threatens organizational survival
+                          Threatens organisational survival
                         </td>
                         <td className="rar-severity-table-cell">
                           Mass exodus of key personnel
@@ -481,7 +484,7 @@ const RARIntro = ({
                         </td>
                         <td className="rar-severity-table-cell">
                           Single fatality or serious injury requiring
-                          hospitalization
+                          hospitalisation
                         </td>
                         <td
                           style={{
@@ -628,11 +631,11 @@ const RARIntro = ({
             </div>
             <p>
               The impact categories are industry-specific and may vary based on
-              the organization's context and risk appetite. The Severity
+              the organisation's context and risk appetite. The Severity
               Guidance Table provides a starting point for assessing the
               potential impact of risks. Authorisation levels to accept
               risks of different severity levels should be defined based on the
-              organization's governance structure and risk management policies.
+              organisation's governance structure and risk management policies.
             </p>
             
             <BackToTopButton />
@@ -885,7 +888,7 @@ const RARIntro = ({
                 onClick={() => setShowQualitativeGuidance(!showQualitativeGuidance)}
               >
                 <h3 className="rar-guidance-title">
-                  Assessment Options & Usage Guidelines
+                  🧭 Assessment Options & Usage Guidelines
                 </h3>
                 <span className="rar-guidance-toggle-icon">
                   {showQualitativeGuidance ? "−" : "+"}
@@ -950,7 +953,7 @@ const RARIntro = ({
                           🎯 Advanced Quantitative Assessment (Monte Carlo)
                         </h5>
                         <p className="rar-assessment-card-text">
-                          <strong>Best for:</strong> Complex risks requiring statistical modeling and uncertainty analysis
+                          <strong>Best for:</strong> Complex risks requiring statistical modelling and uncertainty analysis
                         </p>
                         <p className="rar-assessment-card-text">
                           <strong>Method:</strong> Uses Monte Carlo simulation with probability distributions for loss severity and frequency
@@ -960,7 +963,7 @@ const RARIntro = ({
                         </p>
                         <ul className="rar-assessment-card-list">
                           <li>High-value cyber security risks</li>
-                          <li>Market and credit risk modeling</li>
+                          <li>Market and credit risk modelling</li>
                           <li>Natural disaster and catastrophic risks</li>
                           <li>Complex operational risks with variable impacts</li>
                           <li>Regulatory capital calculations</li>
@@ -1037,7 +1040,7 @@ const RARIntro = ({
                           <div className="rar-distribution-item">
                             <strong className="rar-distribution-name">Modified PERT Loss Distribution</strong>
                             <p className="rar-distribution-detail">
-                              <strong>Best for:</strong> Enhanced triangular analysis with adjustable confidence levels and tail behavior
+                              <strong>Best for:</strong> Enhanced triangular analysis with adjustable confidence levels and tail behaviour
                             </p>
                             <p className="rar-distribution-detail">
                               <strong>Use when:</strong> Expert estimates require fine-tuning between optimistic and pessimistic scenarios, complex project risks with variable confidence
@@ -1090,7 +1093,7 @@ const RARIntro = ({
                               <strong>Best for:</strong> Right-skewed losses with waiting time characteristics and flexible shape control
                             </p>
                             <p className="rar-distribution-detail">
-                              <strong>Use when:</strong> Modeling aggregate losses, insurance claims, time-to-event scenarios, reliability analysis
+                              <strong>Use when:</strong> Modelling aggregate losses, insurance claims, time-to-event scenarios, reliability analysis
                             </p>
                           </div>
                           
@@ -1100,14 +1103,14 @@ const RARIntro = ({
                               <strong>Best for:</strong> Heavy-tailed losses following the 80/20 principle with extreme value potential
                             </p>
                             <p className="rar-distribution-detail">
-                              <strong>Use when:</strong> Catastrophic losses, cyber security breaches, operational risk events, wealth distribution modeling
+                              <strong>Use when:</strong> Catastrophic losses, cyber security breaches, operational risk events, wealth distribution modelling
                             </p>
                           </div>
                           
                           <div className="rar-distribution-item">
                             <strong className="rar-distribution-name-weibull">Weibull Distribution</strong>
                             <p className="rar-distribution-detail">
-                              <strong>Best for:</strong> Failure analysis and reliability modeling with varying hazard rates over time
+                              <strong>Best for:</strong> Failure analysis and reliability modelling with varying hazard rates over time
                             </p>
                             <p className="rar-distribution-detail">
                               <strong>Use when:</strong> Equipment failure costs, product lifecycle losses, survival analysis, maintenance scheduling
@@ -1188,14 +1191,14 @@ const RARIntro = ({
                               <strong>Best for:</strong> Time between events, failure rates
                             </p>
                             <p className="rar-distribution-detail">
-                              <strong>Use when:</strong> Modeling time to failure, service intervals
+                              <strong>Use when:</strong> modelling time to failure, service intervals
                             </p>
                           </div>
                           
                           <div className="rar-distribution-item">
                             <strong className="rar-distribution-name-gamma">Negative Binomial Frequency Distribution</strong>
                             <p className="rar-distribution-detail">
-                              <strong>Best for:</strong> Discrete count events with overdispersion and clustering behavior
+                              <strong>Best for:</strong> Discrete count events with overdispersion and clustering behaviour
                             </p>
                             <p className="rar-distribution-detail">
                               <strong>Use when:</strong> Quality control failures, reliability testing, events that occur in bursts or clusters
@@ -1218,7 +1221,7 @@ const RARIntro = ({
                               <strong>Best for:</strong> Number of trials until first success or breakthrough event
                             </p>
                             <p className="rar-distribution-detail">
-                              <strong>Use when:</strong> Time-to-first-failure analysis, breakthrough incidents, first occurrence modeling
+                              <strong>Use when:</strong> Time-to-first-failure analysis, breakthrough incidents, first occurrence modelling
                             </p>
                           </div>
                         </div>
@@ -1231,14 +1234,14 @@ const RARIntro = ({
                       </h5>
                       <ul className="rar-distribution-guidelines-list">
                         <li><strong>Start with Triangular</strong> - Most intuitive for business users, requires min/mode/max estimates</li>
-                        <li><strong>Choose Modified PERT</strong> - For enhanced triangular analysis with adjustable confidence and tail behavior via gamma parameter (1-10)</li>
+                        <li><strong>Choose Modified PERT</strong> - For enhanced triangular analysis with adjustable confidence and tail behaviour via gamma parameter (1-10)</li>
                         <li><strong>Use Normal</strong> - When you have historical mean and standard deviation data</li>
                         <li><strong>Choose Log-normal</strong> - For financial losses or when extreme values are possible</li>
                         <li><strong>Consider Uniform</strong> - When making conservative assumptions with limited data</li>
                         <li><strong>Apply Beta</strong> - For bounded scenarios requiring flexible shape control</li>
-                        <li><strong>Use Gamma</strong> - For modeling time until an event occurs</li>
-                        <li><strong>Chose Pareto</strong> - For modeling distributions with a heavy tail, often used in business contexts to represent the 80/20 rule</li>
-                        <li><strong>Select Weibull</strong> - For modeling life data and failure times with varying hazard rates</li>
+                        <li><strong>Use Gamma</strong> - For modelling time until an event occurs</li>
+                        <li><strong>Chose Pareto</strong> - For modelling distributions with a heavy tail, often used in business contexts to represent the 80/20 rule</li>
+                        <li><strong>Select Weibull</strong> - For modelling life data and failure times with varying hazard rates</li>
                       </ul>
                       
                       <h5 className="rar-distribution-guidelines-title">
@@ -1251,10 +1254,10 @@ const RARIntro = ({
                         <li><strong>Use Normal</strong> - For scenarios where data is symmetrically distributed around a mean</li>
                         <li><strong>Consider Discrete Uniform</strong> - For scenarios with equally likely discrete outcomes within a defined range</li>
                         <li><strong>Explore Continuous Uniform</strong> - For scenarios with equally likely continuous outcomes within a defined range</li>
-                        <li><strong>Use Exponential</strong> - For modeling time until an event occurs</li>
-                        <li><strong>Use Negative Binomial</strong> - For discrete count events with overdispersion and clustering behavior where you have historical mean and standard deviation data</li>
+                        <li><strong>Use Exponential</strong> - For modelling time until an event occurs</li>
+                        <li><strong>Use Negative Binomial</strong> - For discrete count events with overdispersion and clustering behaviour where you have historical mean and standard deviation data</li>
                         <li><strong>Apply Binomial</strong> - For scenarios with a fixed number of trials and two possible outcomes</li>
-                        <li><strong>Consider Geometric</strong> - For modelling financial losses or when extreme values are possible, or for modeling the number of trials until the first success in a series of Bernoulli trials</li>
+                        <li><strong>Consider Geometric</strong> - For modelling financial losses or when extreme values are possible, or for modelling the number of trials until the first success in a series of Bernoulli trials</li>
                       </ul>
                     </div>   
                     <p></p>                 
@@ -1264,12 +1267,12 @@ const RARIntro = ({
                         🔗 Practical Distribution Pairings
                       </h5>
                       <p className="rar-distribution-intro">
-                        Effective risk modeling often involves pairing severity and frequency distributions that complement each other's characteristics. Here are proven combinations for common risk scenarios:
+                        Effective risk modelling often involves pairing severity and frequency distributions that complement each other's characteristics. Here are proven combinations for common risk scenarios:
                       </p>
                       
                       <div className="rar-distribution-pairings-grid">
                         <div className="rar-distribution-pairing-item">
-                          <strong className="rar-pairing-title">🔐 Data Breach Modeling</strong>
+                          <strong className="rar-pairing-title">🔐 Data Breach modelling</strong>
                           <p className="rar-pairing-combo"><strong>Log-Normal + Poisson</strong></p>
                           <p className="rar-pairing-detail">
                             Heavy-tailed loss impacts with rare but predictable breach frequency. Log-normal captures extreme financial losses while Poisson models discrete security incidents.
@@ -1312,7 +1315,7 @@ const RARIntro = ({
                           <strong className="rar-pairing-title">⚙️ Equipment Reliability</strong>
                           <p className="rar-pairing-combo"><strong>Weibull + Geometric</strong></p>
                           <p className="rar-pairing-detail">
-                            Failure cost analysis with time-to-first-failure modeling. Weibull captures lifecycle-dependent repair costs while Geometric models trials until breakthrough failure.
+                            Failure cost analysis with time-to-first-failure modelling. Weibull captures lifecycle-dependent repair costs while Geometric models trials until breakthrough failure.
                           </p>
                         </div>
                         
@@ -1320,7 +1323,7 @@ const RARIntro = ({
                           <strong className="rar-pairing-title">🎯 Compliance Testing</strong>
                           <p className="rar-pairing-combo"><strong>Beta + Binomial</strong></p>
                           <p className="rar-pairing-detail">
-                            Bounded penalty structures with audit cycles. Beta provides flexible penalty modeling within regulatory bounds while Binomial captures pass/fail audit outcomes.
+                            Bounded penalty structures with audit cycles. Beta provides flexible penalty modelling within regulatory bounds while Binomial captures pass/fail audit outcomes.
                           </p>
                         </div>
                         
@@ -1335,7 +1338,7 @@ const RARIntro = ({
                       
                       <div className="rar-pairing-tips">
                         <p className="rar-pairing-guidance">
-                          <strong>💡 Selection Tip:</strong> Consider the underlying risk mechanics - are losses bounded or unbounded? Do events cluster or occur independently? Match distribution characteristics to your risk's behavioral patterns.
+                          <strong>💡 Selection Tip:</strong> Consider the underlying risk mechanics - are losses bounded or unbounded? Do events cluster or occur independently? Match distribution characteristics to your risk's behavioural patterns.
                         </p>
                       </div>
                     </div>
@@ -1346,7 +1349,7 @@ const RARIntro = ({
                         💡 Pro Tip
                       </h4>
                       <p className="rar-pro-tip-content">
-                        Many organizations use a <strong>graduated approach</strong>: Start with qualitative assessments 
+                        Many organisations use a <strong>graduated approach</strong>: Start with qualitative assessments 
                         for risk identification, then advance to quantitative methods for high-priority risks requiring 
                         detailed analysis or business case development. Advanced quantitative methods are typically 
                         reserved for critical risks, regulatory requirements, or strategic decision-making.
@@ -1360,7 +1363,7 @@ const RARIntro = ({
                       Risk Treatment Strategies
                     </h4>
                     <p className="rar-treatment-strategies-intro">
-                      Once risks are identified and assessed, organizations must decide how to respond. There are four primary risk treatment strategies:
+                      Once risks are identified and assessed, organisations must decide how to respond. There are four primary risk treatment strategies:
                     </p>
                     
                     <div className="rar-treatment-strategy">
@@ -1447,7 +1450,7 @@ const RARIntro = ({
 
                     <div className="rar-treatment-strategy-note">
                       <p>
-                        <strong>Important:</strong> Organizations often use a combination of strategies for complex risks. The chosen strategy should align with the organization's risk appetite, available resources, and strategic objectives. Regular review and adjustment of treatment strategies is essential as business conditions change.
+                        <strong>Important:</strong> Organisations often use a combination of strategies for complex risks. The chosen strategy should align with the organisation's risk appetite, available resources, and strategic objectives. Regular review and adjustment of treatment strategies is essential as business conditions change.
                       </p>
                     </div>
                   </div>
@@ -1527,7 +1530,7 @@ const RARIntro = ({
                             Annual Loss Expectancy (ALE)
                           </h5>
                           <p className="rar-definition-text">
-                            <strong>Definition:</strong> The expected annual financial loss from a specific risk, used for risk prioritization and cost-benefit analysis.
+                            <strong>Definition:</strong> The expected annual financial loss from a specific risk, used for risk prioritisation and cost-benefit analysis.
                           </p>
                           <p className="rar-definition-calculation">
                             <strong>Usage:</strong> Compare against cost of controls to determine cost-effectiveness
@@ -1680,115 +1683,120 @@ const RARIntro = ({
               )}
             </div>
             
-            {/* Additional Recommended Fields Section */}
-            <details className="rar-additional-fields-details">
-              <summary className="rar-additional-fields-summary">
+            {/* Additional Recommended Fields Section (now styled as a div) */}
+            <div className="rar-guidance-toggle" onClick={() => setShowAdditionalCriteria(!showAdditionalCriteria)}>
+              <h3 className="rar-guidance-title">
                 💡 Recommended Additional Assessment Criteria for Enhanced Risk Assessment
-              </summary>
-              <div className="rar-additional-fields-content">
-                <p className="rar-additional-fields-intro">
-                  A Risk Assessment contains a mix of values that either assist in assessing the risk or drive process and decision-making. 
-                  There is a temptation to be as thorough as possible, including every detail. However, less is more and it is usually better to keep the assessment fast, simple and focused on the most critical aspects only.
-                </p>
-                <p className="rar-distribution-intro-text">
-                  The following fields could enhance your risk assessment process. Consider adding these based on your organization's specific needs and maturity level but avoid overcomplicating the assessment:
-                </p>
-                
-                <div className="rar-distribution-grid">
-                  <div>
-                    <h4 className="rar-distribution-section-header" style={{ color: SC3_PRIMARY }}>🎯 Risk Context & Environment</h4>
-                    <ul className="rar-distribution-list">
-                      <li><strong>Business Process/System Affected:</strong> Specific processes or systems impacted</li>
-                      <li><strong>Risk Location/Geography:</strong> Physical or logical location of risk</li>
-                      <li><strong>Data Classification:</strong> Sensitivity level of data involved (Public, Internal, Confidential, Restricted)</li>
-                      <li><strong>Application Criticality:</strong> Business importance of affected applications (Critical, High, Medium, Low)</li>
-                      <li><strong>Regulatory/Compliance Framework:</strong> Applicable regulations (GDPR, SOX, HIPAA, etc.)</li>
-                      <li><strong>Risk Interdependencies:</strong> Related risks or cascade effects</li>
-                    </ul>
+              </h3>
+              <span className="rar-guidance-toggle-icon">
+                {showAdditionalCriteria ? "−" : "+"}
+              </span>
+            </div>
+              {showAdditionalCriteria && (
+                <div className="rar-guidance-content">
+
+                  <div className="rar-assessment-overview">
+                    <p className="rar-additional-fields-intro">
+                      A Risk Assessment contains a mix of values that either assist in assessing the risk or drive process and decision-making. 
+                      There is a temptation to be as thorough as possible, including every detail. However, less is more and it is usually better to keep the assessment fast, simple and focused on the most critical aspects only.
+                    </p>
+                    <p className="rar-distribution-intro-text">
+                      The following fields could enhance your risk assessment process. Consider adding these based on your organisation's specific needs and maturity level but avoid overcomplicating the assessment:
+                    </p>
                   </div>
-                  
-                  <div>
-                    <h4 className="rar-distribution-section-header" style={{ color: SC3_PRIMARY }}>🔬 Risk Assessment Methodology</h4>
-                    <ul className="rar-distribution-list">
-                      <li><strong>Data Sources:</strong> Where risk information was gathered</li>
-                      <li><strong>Assumptions Made:</strong> Key assumptions underlying assessment</li>
-                      <li><strong>Confidence Level:</strong> Assessor's confidence in rating (High/Medium/Low)</li>
-                    </ul>
+
+                  <div className="rar-assessment-grid">
+                    <div>
+                      <h4 className="rar-distribution-section-header" style={{ color: SC3_PRIMARY }}>🎯 Risk Context & Environment</h4>
+                      <ul className="rar-distribution-list">
+                        <li><strong>Business Process/System Affected:</strong> Specific processes or systems impacted</li>
+                        <li><strong>Risk Location/Geography:</strong> Physical or logical location of risk</li>
+                        <li><strong>Data Classification:</strong> Sensitivity level of data involved (Public, Internal, Confidential, Restricted)</li>
+                        <li><strong>Application Criticality:</strong> Business importance of affected applications (Critical, High, Medium, Low)</li>
+                        <li><strong>Regulatory/Compliance Framework:</strong> Applicable regulations (GDPR, SOX, HIPAA, etc.)</li>
+                        <li><strong>Risk Interdependencies:</strong> Related risks or cascade effects</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="rar-distribution-section-header" style={{ color: SC3_PRIMARY }}>🔬 Risk Assessment Methodology</h4>
+                      <ul className="rar-distribution-list">
+                        <li><strong>Data Sources:</strong> Where risk information was gathered</li>
+                        <li><strong>Assumptions Made:</strong> Key assumptions underlying assessment</li>
+                        <li><strong>Confidence Level:</strong> Assessor's confidence in rating (High/Medium/Low)</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="rar-distribution-grid">
+                    <div>
+                      <h4 className="rar-distribution-section-header" style={{ color: SC3_GREEN }}>📊 Quantitative Enhancement</h4>
+                      <ul className="rar-distribution-list">
+                        <li><strong>Cost of Controls:</strong> Budget for implementing mitigating controls</li>
+                        <li><strong>Risk Appetite Threshold:</strong> Organisational tolerance level</li>
+                        <li><strong>Time to Impact:</strong> How quickly risk could materialise</li>
+                        <li><strong>Detection Probability:</strong> Likelihood of detecting before impact</li>
+                        <li><strong>Risk Reduction Value:</strong> Quantified benefit of implemented controls</li>
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h4 className="rar-distribution-section-header" style={{ color: SC3_GREEN }}>👥 Stakeholder & Communication</h4>
+                      <ul className="rar-distribution-list">
+                        <li><strong>Risk Committee/Board Approval:</strong> Governance oversight details</li>
+                        <li><strong>Stakeholder Notifications:</strong> Who needs to be informed</li>
+                        <li><strong>Escalation Triggers:</strong> Conditions requiring escalation</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="rar-distribution-grid-single">
+                    <div>
+                      <h4 className="rar-distribution-section-header" style={{ color: SC3_SECONDARY }}>📈 Monitoring & Metrics</h4>
+                      <ul className="rar-distribution-list">
+                        <li><strong>Key Risk Indicators (KRIs):</strong> Metrics to monitor risk levels</li>
+                        <li><strong>Monitoring Frequency:</strong> How often risk is reviewed</li>
+                        <li><strong>Last Incident Date:</strong> When this risk type last materialised</li>
+                        <li><strong>Trend Analysis:</strong> Risk direction (increasing/stable/decreasing)</li>
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h4 className="rar-distribution-section-header" style={{ color: SC3_SECONDARY }}>🛠️ Risk Treatment Details</h4>
+                      <ul className="rar-distribution-list">
+                        <li><strong>Cost-Benefit Analysis:</strong> Justification for chosen treatment</li>
+                        <li><strong>Alternative Options:</strong> Other strategies considered</li>
+                        <li><strong>Resource Requirements:</strong> Personnel, technology, budget needed</li>
+                        <li><strong>Implementation Timeline:</strong> Detailed schedule for treatment</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="rar-priority-recommendations-container">
+                    <h4 className="rar-distribution-section-header" style={{ color: SC3_PRIMARY }}>⭐ Priority Recommendations</h4>
+                    <p className="rar-priority-text">
+                      If you were to add any additional fields to the risk assessment, consider implementing these high-value fields first:
+                    </p>
+                    <ol className="rar-priority-recommendations-list">
+                      <li><strong>Business Process/System Affected</strong> - Critical for impact assessment</li>
+                      <li><strong>Confidence Level</strong> - Important for risk management decisions</li>
+                      <li><strong>Key Risk Indicators (KRIs)</strong> - Essential for ongoing monitoring</li>
+                      <li><strong>Cost of Controls</strong> - Needed for business case justification</li>
+                      <li><strong>Regulatory/Compliance Framework</strong> - Important for compliance requirements</li>
+                    </ol>
                   </div>
                 </div>
+              )}
 
-                <div className="rar-distribution-grid">
-                  <div>
-                    <h4 className="rar-distribution-section-header" style={{ color: SC3_GREEN }}>📊 Quantitative Enhancement</h4>
-                    <ul className="rar-distribution-list">
-                      <li><strong>Cost of Controls:</strong> Budget for implementing mitigating controls</li>
-                      <li><strong>Risk Appetite Threshold:</strong> Organizational tolerance level</li>
-                      <li><strong>Time to Impact:</strong> How quickly risk could materialize</li>
-                      <li><strong>Detection Probability:</strong> Likelihood of detecting before impact</li>
-                      <li><strong>Risk Reduction Value:</strong> Quantified benefit of implemented controls</li>
-                    </ul>
-                  </div>
-                  
-                  <div>
-                    <h4 className="rar-distribution-section-header" style={{ color: SC3_GREEN }}>👥 Stakeholder & Communication</h4>
-                    <ul className="rar-distribution-list">
-                      <li><strong>Risk Committee/Board Approval:</strong> Governance oversight details</li>
-                      <li><strong>Stakeholder Notifications:</strong> Who needs to be informed</li>
-                      <li><strong>Escalation Triggers:</strong> Conditions requiring escalation</li>
-                    </ul>
-                  </div>
-                </div>
+              <BackToTopButton />
 
-                <div className="rar-distribution-grid-single">
-                  <div>
-                    <h4 className="rar-distribution-section-header" style={{ color: SC3_SECONDARY }}>📈 Monitoring & Metrics</h4>
-                    <ul className="rar-distribution-list">
-                      <li><strong>Key Risk Indicators (KRIs):</strong> Metrics to monitor risk levels</li>
-                      <li><strong>Monitoring Frequency:</strong> How often risk is reviewed</li>
-                      <li><strong>Last Incident Date:</strong> When this risk type last materialized</li>
-                      <li><strong>Trend Analysis:</strong> Risk direction (increasing/stable/decreasing)</li>
-                    </ul>
-                  </div>
-                  
-                  <div>
-                    <h4 className="rar-distribution-section-header" style={{ color: SC3_SECONDARY }}>🛠️ Risk Treatment Details</h4>
-                    <ul className="rar-distribution-list">
-                      <li><strong>Cost-Benefit Analysis:</strong> Justification for chosen treatment</li>
-                      <li><strong>Alternative Options:</strong> Other strategies considered</li>
-                      <li><strong>Resource Requirements:</strong> Personnel, technology, budget needed</li>
-                      <li><strong>Implementation Timeline:</strong> Detailed schedule for treatment</li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="rar-priority-recommendations-container">
-                  <h4 className="rar-distribution-section-header" style={{ color: SC3_PRIMARY }}>⭐ Priority Recommendations</h4>
-                  <p className="rar-priority-text">
-                    If you were to add any additional fields to the risk assessment, consider implementing these high-value fields first:
-                  </p>
-                  <ol className="rar-priority-recommendations-list">
-                    <li><strong>Business Process/System Affected</strong> - Critical for impact assessment</li>
-                    <li><strong>Confidence Level</strong> - Important for risk management decisions</li>
-                    <li><strong>Key Risk Indicators (KRIs)</strong> - Essential for ongoing monitoring</li>
-                    <li><strong>Cost of Controls</strong> - Needed for business case justification</li>
-                    <li><strong>Regulatory/Compliance Framework</strong> - Important for compliance requirements</li>
-                  </ol>
-                </div>
-              </div>
-            </details>
-
-            <BackToTopButton />
-
-            <p>
-              <b>Disclaimer:</b> The information provided here is for general
-              informational purposes only and will require adaptation for
-              specific businesses and maturity capabilities and is not intended
-              as legal advice. Please consult with a qualified legal
-              professional for specific legal advice tailored to your situation.
-            </p>
-            <hr />
-
-          </div>
+              <p>
+                <b>Disclaimer:</b> The information provided here is for general
+                informational purposes only and will require adaptation for
+                specific businesses and maturity capabilities and is not intended
+                as legal advice. Please consult with a qualified legal
+                professional for specific legal advice tailored to your situation.
+              </p>
+              <hr />
         </details>
         );
     };
