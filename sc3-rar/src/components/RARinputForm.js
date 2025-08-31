@@ -947,29 +947,6 @@ const InputForm = ({
                       {/* Risk Tab Content */}
                       {activeQualitativeTab === 'risk' && (
                         <>
-                          <tr title="Likelihood rating of the risk occurring (1-5 scale)" className="rar-tab-specific-content">
-                            <td className="rar-form-label-cell">
-                              <label className="rar-form-label">
-                                Likelihood Rating:
-                              </label>
-                            </td>
-                            <td className="rar-form-input-cell">
-                              <select
-                                name="likelihood"
-                                value={form.likelihood}
-                                onChange={handleChange}
-                                className="rar-select"
-                              >
-                                <option value="">Select Likelihood</option>
-                                <option value="1">Very Unlikely (1)</option>
-                                <option value="2">Unlikely (2)</option>
-                                <option value="3">Possible (3)</option>
-                                <option value="4">Likely (4)</option>
-                                <option value="5">Very Likely (5)</option>
-                              </select>
-                            </td>
-                          </tr>
-
                           <tr title="Impact rating of the risk if it occurs (1-5 scale)" className="rar-tab-specific-content">
                             <td className="rar-form-label-cell">
                               <label className="rar-form-label">
@@ -989,6 +966,29 @@ const InputForm = ({
                                 <option value="3">Moderate (3)</option>
                                 <option value="4">Major (4)</option>
                                 <option value="5">Severe (5)</option>
+                              </select>
+                            </td>
+                          </tr>
+
+                          <tr title="Likelihood rating of the risk occurring (1-5 scale)" className="rar-tab-specific-content">
+                            <td className="rar-form-label-cell">
+                              <label className="rar-form-label">
+                                Likelihood Rating:
+                              </label>
+                            </td>
+                            <td className="rar-form-input-cell">
+                              <select
+                                name="likelihood"
+                                value={form.likelihood}
+                                onChange={handleChange}
+                                className="rar-select"
+                              >
+                                <option value="">Select Likelihood</option>
+                                <option value="1">Very Unlikely (1)</option>
+                                <option value="2">Unlikely (2)</option>
+                                <option value="3">Possible (3)</option>
+                                <option value="4">Likely (4)</option>
+                                <option value="5">Very Likely (5)</option>
                               </select>
                             </td>
                           </tr>
@@ -1149,29 +1149,6 @@ const InputForm = ({
                             </>
                           )}
 
-                          <tr title="Likelihood of the risk occurring after implementing controls" className="rar-tab-specific-content">
-                            <td className="rar-form-label-cell">
-                              <label className="rar-form-label">
-                                Residual Risk Likelihood:
-                              </label>
-                            </td>
-                            <td className="rar-form-action-input-cell">
-                              <select
-                                name="residualLikelihood"
-                                value={form.residualLikelihood}
-                                onChange={handleChange}
-                                className="rar-select-action"
-                              >
-                                <option value="">Select Residual Likelihood</option>
-                                <option value="1">Very Unlikely (1)</option>
-                                <option value="2">Unlikely (2)</option>
-                                <option value="3">Possible (3)</option>
-                                <option value="4">Likely (4)</option>
-                                <option value="5">Very Likely (5)</option>
-                              </select>
-                            </td>
-                          </tr>
-
                           <tr title="Risk impact after implementing controls" className="rar-tab-specific-content">
                             <td className="rar-form-label-cell">
                               <label className="rar-form-label">
@@ -1183,17 +1160,40 @@ const InputForm = ({
                                 name="residualImpact"
                                 value={form.residualImpact}
                                 onChange={handleChange}
-                                    className="rar-select-action"
-                                  >
-                                    <option value="">Select Residual Impact</option>
-                                    <option value="1">Negligible (1)</option>
-                                    <option value="2">Minor (2)</option>
-                                    <option value="3">Moderate (3)</option>
-                                    <option value="4">Major (4)</option>
-                                    <option value="5">Severe (5)</option>
-                                  </select>
-                                </td>
-                              </tr>
+                                  className="rar-select"
+                                >
+                                  <option value="">Select Residual Impact</option>
+                                  <option value="1">Negligible (1)</option>
+                                  <option value="2">Minor (2)</option>
+                                  <option value="3">Moderate (3)</option>
+                                  <option value="4">Major (4)</option>
+                                  <option value="5">Severe (5)</option>
+                              </select>
+                            </td>
+                          </tr>
+
+                          <tr title="Likelihood of the risk occurring after implementing controls" className="rar-tab-specific-content">
+                            <td className="rar-form-label-cell">
+                              <label className="rar-form-label">
+                                Residual Risk Likelihood:
+                              </label>
+                            </td>
+                            <td className="rar-form-action-input-cell">
+                              <select
+                                name="residualLikelihood"
+                                value={form.residualLikelihood}
+                                onChange={handleChange}
+                                className="rar-select"
+                              >
+                                  <option value="">Select Residual Likelihood</option>
+                                  <option value="1">Very Unlikely (1)</option>
+                                  <option value="2">Unlikely (2)</option>
+                                  <option value="3">Possible (3)</option>
+                                  <option value="4">Likely (4)</option>
+                                  <option value="5">Very Likely (5)</option>
+                              </select>
+                            </td>
+                          </tr>
 
                           <tr title="Residual risk level after implementing controls" className="rar-tab-specific-content">
                             <td className="rar-form-label-cell">
@@ -2447,7 +2447,7 @@ const InputForm = ({
 
                             <tr title="Alpha parameter for beta distribution skewness. A higher alpha skews the distribution towards larger loss values." className="rar-tab-specific-content">
                               <td className="rar-form-label-cell">
-                                <label className="rar-form-label">Alpha Parameter:</label>
+                                <label className="rar-form-label">Alpha Parameter (α):</label>
                               </td>
                               <td className="rar-form-input-cell">
                                 <input
@@ -2464,7 +2464,7 @@ const InputForm = ({
 
                             <tr title="Beta parameter for beta distribution skewness. A higher beta skews the distribution towards smaller loss values." className="rar-tab-specific-content">
                               <td className="rar-form-label-cell">
-                                <label className="rar-form-label">Beta Parameter:</label>
+                                <label className="rar-form-label">Beta Parameter (β):</label>
                               </td>
                               <td className="rar-form-input-cell">
                                 <input

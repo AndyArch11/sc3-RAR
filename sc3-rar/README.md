@@ -71,6 +71,7 @@ In the project folder
 ### `npm install xlsx --save`
 ### `npm install recharts`
 ### `npm install chart.js react-chartjs-2`
+### `npm install react-router-dom`
 
 ## Available Scripts
 

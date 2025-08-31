@@ -6,7 +6,7 @@ import RARReport from "./RARReport";
 import RARTable from "./RARTable";
 import "./RAR.css";
 
-const VERSION = "v0.4.1"; // Update as needed
+const VERSION = "v0.4.2"; // Update as needed
 
 
 // TODO: Add more unit tests for all components and functions
@@ -14,8 +14,6 @@ const VERSION = "v0.4.1"; // Update as needed
 // TODO: Add tooltips and help texts for form fields
 // TODO: Implement accessibility features (ARIA labels, keyboard navigation, etc.)
 // TODO: Add localization support for different languages
-// TODO: Implement responsive design for mobile and tablet views
-
 
 // SC3.com.au theme colours
 const SC3_PRIMARY = "#003366"; // Deep blue
