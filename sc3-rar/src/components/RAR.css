@@ -250,11 +250,14 @@ body {
 
 /* Table Styles */
 .rar-table-container {
-  width: 100%;
-  overflow-x: auto;
-  margin: 1rem 0;
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
   background: transparent;
-  -webkit-overflow-scrolling: touch;
+  overflow-x: auto;
+  box-sizing: border-box;
+  margin: 2rem 0;
 }
 
 .rar-table {
@@ -6449,4 +6452,42 @@ body.modal-open .rar-svg-modal-content {
 .rar-view-mode-label {
   color: #000;
   margin-bottom: 0.5rem;
+}
+
+.rar-back-to-top-floating {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1200;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  background-color: var(--sc3-secondary, #6b3fa0);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+/* hover / active */
+.rar-back-to-top-button.rar-back-to-top-floating:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+}
+
+/* small screens: shrink a bit */
+@media (max-width: 480px) {
+  .rar-back-to-top-floating {
+    bottom: 14px;
+    right: 14px;
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
 }

@@ -25,12 +25,7 @@ function Breadcrumbs() {
 
 function App() {
   return (
-    <Router>
-      {/* <Breadcrumbs /> */}
-      <Routes>
-        <Route path="/" element={<WrappedRARForm />} />
-      </Routes>
-    </Router>
+    <WrappedRARForm />
   );
 }
 
