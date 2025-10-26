@@ -6,7 +6,7 @@ import RARReport from "./RARReport";
 import RARTable from "./RARTable";
 import "./RAR.css";
 
-const VERSION = "v0.4.3"; // Update as needed
+const VERSION = "v0.4.4"; // Update as needed
 
 
 // TODO: Add more unit tests for all components and functions
