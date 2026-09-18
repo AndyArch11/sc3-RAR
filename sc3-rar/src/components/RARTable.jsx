@@ -1,5 +1,4 @@
 import React from 'react';
-import { exportRisksToExcel } from '../util/ExcelExport';
 import './RAR.css';
 
 
@@ -93,8 +92,14 @@ const RARTable = ({
     }
   };
 
-  const handleExport = () => {
-    exportRisksToExcel(risks);
+  const handleExport = async () => {
+    try {
+      const { exportRisksToExcel } = await import('../util/ExcelExport');
+      exportRisksToExcel(risks);
+    } catch (error) {
+      console.error('Failed to load export module:', error);
+      alert('Failed to load export module. Please try again.');
+    }
   };
 
   if (risks.length === 0) {

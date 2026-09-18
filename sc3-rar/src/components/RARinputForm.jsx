@@ -5778,10 +5778,6 @@ const QuantitativeValuesChart = ({ sle, aro, ale, formatCurrency }) => {
                         </tr>
                       </React.Fragment>
                     )}
-                    {form.assessmentType === 'advancedQuantitative' && (
-                      <BackToTopButton />
-                    )}
-
                     <tr><td colSpan="2"><hr /></td></tr>
                     {/* General assessment fields - shown below both tabs */}
                     {viewMode === 'Extended' && (
@@ -5904,6 +5900,10 @@ const QuantitativeValuesChart = ({ sle, aro, ale, formatCurrency }) => {
                     )}
                   </tbody>
                 </table>
+
+                {form.assessmentType === 'advancedQuantitative' && (
+                  <BackToTopButton />
+                )}
 
                 {/* Risk Matrix Visualization */}
                 {form.assessmentType === "qualitative" && (riskLevel ||

@@ -1,44 +1,102 @@
 
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 
 // Utility function to export risks to Excel
-export const exportRisksToExcel = (risks) => {
+export const exportRisksToExcel = async (risks) => {
   try {
     // Create a new workbook
-    const workbook = XLSX.utils.book_new();
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'SC3 Risk Assessment Report';
+    workbook.lastModifiedBy = 'SC3 Risk Assessment Report';
+    workbook.created = new Date();
+    workbook.modified = new Date();
 
-    // Add a worksheet with guidance content
+    // Create worksheet data
     const guidanceContent = createGuidanceContent();
     const additionalContent = createAdditionalConsiderationsContent();
     const riskTableData = createRiskTableData(risks);
-    
-    // Create worksheets
-    const guidanceWS = XLSX.utils.aoa_to_sheet(guidanceContent);
-    const additionalWS = XLSX.utils.aoa_to_sheet(additionalContent);
-    const riskTableWS = XLSX.utils.aoa_to_sheet(riskTableData);
 
-    // Set column widths for better readability
-    guidanceWS['!cols'] = [{ wch: 100 }];
-    additionalWS['!cols'] = [{ wch: 100 }];
+    // Create guidance worksheet
+    const guidanceWorksheet = workbook.addWorksheet('RAR Risk Assessment Guidance');
+    guidanceWorksheet.addRows(guidanceContent);
+    styleGuidanceWorksheet(guidanceWorksheet);
 
-    // Add worksheets to workbook
-    XLSX.utils.book_append_sheet(workbook, guidanceWS, "RAR Guidance");
-    XLSX.utils.book_append_sheet(workbook, additionalWS, "Additional Considerations");
-    XLSX.utils.book_append_sheet(workbook, riskTableWS, "Current Risk Assessment");
+    // Create additional considerations worksheet
+    const additionalWorksheet = workbook.addWorksheet('Additional Considerations');
+    additionalWorksheet.addRows(additionalContent);
+    styleGuidanceWorksheet(additionalWorksheet);
+
+    // Create entries worksheet
+    const entriesWorksheet = workbook.addWorksheet('RAR Entries');
+    entriesWorksheet.addRows(riskTableData);
+    autoSizeWorksheetColumns(entriesWorksheet, riskTableData);
+    styleEntriesWorksheetHeader(entriesWorksheet, riskTableData);
 
     // Generate timestamp for filename
     const now = new Date();
     const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, -5); // Format: YYYY-MM-DDTHH-MM-SS
     const filename = `SC3_Risk_Assessment_Report_Export_${timestamp}.xlsx`;
-    
-    // Export the workbook
-    XLSX.writeFile(workbook, filename);
-        
-    console.log(`Excel file "${filename}" has been generated and downloaded successfully.`);
+
+    // Generate and download the file
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 
   } catch (error) {
     console.error('Error creating Excel export:', error);
-        alert('An error occurred while creating the Excel file. Please try again.');
+    alert('An error occurred while creating the Excel file. Please try again.');
+  }
+};
+
+const styleGuidanceWorksheet = (worksheet) => {
+  if (worksheet.getRow(1).cellCount > 0) {
+    const headerCell = worksheet.getRow(1).getCell(1);
+    headerCell.font = { bold: true, size: 16, color: { rgb: 'FFFFFF' } };
+    headerCell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { rgb: '2F5233' }
+    };
+    headerCell.alignment = { horizontal: 'center' };
+  }
+
+  worksheet.getColumn(1).width = 100;
+};
+
+const autoSizeWorksheetColumns = (worksheet, worksheetData) => {
+  if (worksheetData.length > 0 && worksheetData[0]) {
+    const maxWidth = worksheetData[0].length;
+    for (let i = 1; i <= maxWidth; i++) {
+      let maxLength = 10;
+      worksheetData.forEach(row => {
+        if (row[i - 1] && row[i - 1].toString().length > maxLength) {
+          maxLength = row[i - 1].toString().length;
+        }
+      });
+      worksheet.getColumn(i).width = Math.min(Math.max(maxLength + 2, 10), 50);
+    }
+  }
+};
+
+const styleEntriesWorksheetHeader = (worksheet, worksheetData) => {
+  if (worksheetData.length > 0 && worksheetData[0]) {
+    const headerRow = worksheet.getRow(2);
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { rgb: 'FFFFFF' } };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { rgb: '2F5233' }
+      };
+      cell.alignment = { horizontal: 'center' };
+    });
   }
 };
 
