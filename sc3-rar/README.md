@@ -29,22 +29,23 @@ sc3-rar
 │   ├── index.css          # CSS styles for the React application
 │   ├── App.jsx            # Main App component, imports RARForm
 │   ├── App.css            # CSS styles for the application
+│   ├── App.test.jsx                # App-level rendering tests
+│   ├── setupTests.js               # Vitest and Testing Library test configuration
 │   └── util
-│   │   └── DistributionChart.jsx   # Logic for creating charts for the Monte Carlo algorithms
-│   │   └── distribution.js         # logic for the different Monte Carlo distribution algorithms
-│   │   └── montecarlo.js           # Monte Carlo simulations
-│   │   └── RiskHeatMap.jsx         # Creates the heatmaps used by this SPA
-│   │   └── TornadoGraphCustom.jsx  # Creates the Sensitivity Analysis Tornado Graph
+│   │   ├── DistributionChart.jsx   # Logic for creating charts for the Monte Carlo algorithms
+│   │   ├── distribution.js         # logic for the different Monte Carlo distribution algorithms
+│   │   ├── montecarlo.js           # Monte Carlo simulations
+│   │   ├── RiskHeatMap.jsx         # Creates the heatmaps used by this SPA
+│   │   ├── TornadoGraphCustom.jsx  # Creates the Sensitivity Analysis Tornado Graph
 │   │   └── ExcelExport.js          # ExcelJS workbook generator, lazy-loaded on export
 │   └── components
-│       └── RAR.css                 # CSS for the components
-│       └── RARForm.jsx             # RAR SPA form
-│       └── RARInputForm.jsx        # Captures the Risk details
-│       └── RARIntro.jsx            # Provides guidance on the use of the Risk Assessment Report
-│       └── RARReport.jsx           # Provides a summary of the Risk Assessments
+│       ├── RAR.css                 # CSS for the components
+│       ├── RARForm.jsx             # RAR SPA form
+│       ├── RARInputForm.jsx        # Captures the Risk details
+│       ├── RARIntro.jsx            # Provides guidance on the use of the Risk Assessment Report
+│       ├── RARReport.jsx           # Provides a summary of the Risk Assessments
 │       └── RARTable.jsx            # Lists the Risks, and their more relevant attributes
-│   ├── App.test.jsx                # App-level rendering tests
-│   └── setupTests.js               # Vitest and Testing Library test configuration
+|
 ├── index.html                      # Vite root entry HTML template
 ├── vite.config.mjs                 # Vite and Vitest configuration
 ├── eslint.config.mjs               # ESLint flat configuration
@@ -116,13 +117,13 @@ If launching as an embedded SPA, configure the following entry points in the hos
 
 ``` html
 <!-- 1. Include CSS -->
-<link rel="stylesheet" href="./assets/index-Dw_vEnho.css">
+<link rel="stylesheet" href="./assets/index-xxxx.css">
 
 <!-- 2. Target container -->
 <div id="root"></div>
 
 <!-- 3. Entrypoint script (loads all other modules automatically) -->
-<script type="module" src="./assets/index-tBs8NxRc.js"></script>
+<script type="module" src="./assets/index-xxxx.js"></script>
 ```
 
 Or embedded as an `<iframe>` for CSS/JS isolation

@@ -250,7 +250,7 @@ const RARReport = ({
                       <div className="rar-top5-risks-empty">
                         All {totalRisks} risk{totalRisks !== 1 ? 's are' : ' is'} closed.<br/>
                         <span className="rar-top5-risks-empty-hint">
-                          Check "Include closed risks in analytics" to see closed risks.
+                          Check &quot;Include closed risks in analytics&quot; to see closed risks.
                         </span>
                       </div>
                     );
