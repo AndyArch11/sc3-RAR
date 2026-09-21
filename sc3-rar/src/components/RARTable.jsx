@@ -1,5 +1,4 @@
 import React from 'react';
-import { exportRisksToExcel } from '../util/ExcelExport';
 import './RAR.css';
 
 
@@ -93,8 +92,14 @@ const RARTable = ({
     }
   };
 
-  const handleExport = () => {
-    exportRisksToExcel(risks);
+  const handleExport = async () => {
+    try {
+      const { exportRisksToExcel } = await import('../util/ExcelExport');
+      exportRisksToExcel(risks);
+    } catch (error) {
+      console.error('Failed to load export module:', error);
+      alert('Failed to load export module. Please try again.');
+    }
   };
 
   if (risks.length === 0) {
@@ -165,13 +170,13 @@ const RARTable = ({
                 <h4>Current Risk Assessment - No Risks Identified</h4>
                 <p>
                   No risks have been added to the current assessment yet. Use
-                  the "RAR Fields" section above to:
+                  the &quot;RAR Fields&quot; section above to:
                 </p>
                 <ul>
                   <li>• Fill in risk details (title, description, category, etc.)</li>
                   <li>• Assess likelihood and impact</li>
                   <li>• Define mitigation strategies</li>
-                  <li>• Click "Submit Risk Details" to add to this table</li>
+                  <li>• Click &quot;Submit Risk Details&quot; to add to this table</li>
                 </ul>
                 <button onClick={handleNewRisk} className="rar-btn primary">
                   + Add First Risk
@@ -575,7 +580,7 @@ const RARTable = ({
             </h4>
             <p className='rar-table-empty p'>
               No risks have been added to the current assessment yet. Use
-              the "RAR Fields" section above to:
+              the &quot;RAR Fields&quot; section above to:
             </p>
             <ul
               className='rar-table-empty ul'
@@ -591,7 +596,7 @@ const RARTable = ({
                 • Define mitigation strategies
               </li>
               <li className='rar-table-empty li'>
-                • Click "Submit Risk Details" to add to this table
+                • Click &quot;Submit Risk Details&quot; to add to this table
               </li>
             </ul>
             <button

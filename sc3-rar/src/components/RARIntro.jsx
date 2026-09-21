@@ -70,7 +70,7 @@ const RARIntro = ({
           📚 RAR Guidance and Preparation
         </summary>
 
-        <p>A <i>Risk Assessment Report (RAR)</i> is a comprehensive document that outlines the findings of a risk assessment process, evaluating the risks to an organisation's information assets and providing recommendations for mitigating those risks.</p>
+        <p>A <i>Risk Assessment Report (RAR)</i> is a comprehensive document that outlines the findings of a risk assessment process, evaluating the risks to an organisation&apos;s information assets and providing recommendations for mitigating those risks.</p>
         
         <div>
           <p>Also see:</p>
@@ -215,7 +215,7 @@ const RARIntro = ({
             <li>
               Establish what level of authorisation is required to sign off on
               the RAR outcomes. This may need to vary depending on the
-              organisation's governance structure, risk appetite, and
+              organisation&apos;s governance structure, risk appetite, and
               tolerance levels.
             </li>
             <li>Define risk treatment strategies and controls.</li>
@@ -395,7 +395,7 @@ const RARIntro = ({
           </div>
           <p>
             {" "}
-            Modify the Risk Assessment Matrix to reflect the organisation's
+            Modify the Risk Assessment Matrix to reflect the organisation&apos;s
             risk appetite.
           </p>
           
@@ -646,11 +646,11 @@ const RARIntro = ({
           </div>
           <p>
             The impact categories are industry-specific and may vary based on
-            the organisation's context and risk appetite. The Severity
+            the organisation&apos;s context and risk appetite. The Severity
             Guidance Table provides a starting point for assessing the
             potential impact of risks. Authorisation levels to accept
             risks of different severity levels should be defined based on the
-            organisation's governance structure and risk management policies.
+            organisation&apos;s governance structure and risk management policies.
           </p>
           
           {/* Severity Level Sign-off Table */}
@@ -878,12 +878,12 @@ const RARIntro = ({
             </div>
             <p className="rar-threshold-note">
               <strong>Note:</strong> Sign-off requirements may vary based on organisational structure and risk appetite. 
-              Adjust these roles to reflect your organisation's governance framework and delegation authorities.
+              Adjust these roles to reflect your organisation&apos;s governance framework and delegation authorities.
               <br /><br />
               <strong>Threshold Guidance:</strong>
               <br />• <strong>Quantitative ALE Threshold:</strong> Annual Loss Expectancy calculated as SLE × ARO
               <br />• <strong>Advanced Quantitative Expected Loss Threshold:</strong> Expected Loss from Monte Carlo simulation
-              <br />• These thresholds can be adjusted based on your organisation's risk appetite and financial capacity
+              <br />• These thresholds can be adjusted based on your organisation&apos;s risk appetite and financial capacity
               <br /><br />
               <strong>Monte Carlo Assessments:</strong> Monte Carlo based assessments will also often have action thresholds against 
               Value at Risk (VaR) and Single Loss Exposure values. These additional thresholds help organisations set decision 
@@ -1027,7 +1027,7 @@ const RARIntro = ({
                     Distribution Types for Advanced Quantitative Assessments
                   </h4>
                   <p className="rar-distribution-intro">
-                    When using Advanced Quantitative assessments, you'll need to select probability distributions 
+                    When using Advanced Quantitative assessments, you&apos;ll need to select probability distributions
                     for both loss severity and frequency. Each distribution type is suited for different scenarios:
                   </p>
                   
@@ -1278,7 +1278,7 @@ const RARIntro = ({
                       🔗 Practical Distribution Pairings
                     </h5>
                     <p className="rar-distribution-intro">
-                      Effective risk modelling often involves pairing severity and frequency distributions that complement each other's characteristics. Here are proven combinations for common risk scenarios:
+                      Effective risk modelling often involves pairing severity and frequency distributions that complement each other&apos;s characteristics. Here are proven combinations for common risk scenarios:
                     </p>
                     
                     <div className="rar-distribution-pairings-grid">
@@ -1349,7 +1349,7 @@ const RARIntro = ({
                     
                     <div className="rar-pairing-tips">
                       <p className="rar-pairing-guidance">
-                        <strong>💡 Selection Tip:</strong> Consider the underlying risk mechanics - are losses bounded or unbounded? Do events cluster or occur independently? Match distribution characteristics to your risk's behavioural patterns.
+                        <strong>💡 Selection Tip:</strong> Consider the underlying risk mechanics - are losses bounded or unbounded? Do events cluster or occur independently? Match distribution characteristics to your risk&apos;s behavioural patterns.
                       </p>
                     </div>
                   </div>
@@ -1459,7 +1459,7 @@ const RARIntro = ({
 
                   <div className="rar-treatment-strategy-note">
                     <p>
-                      <strong>Important:</strong> Organisations often use a combination of strategies for complex risks. The chosen strategy should align with the organisation's risk appetite, available resources, and strategic objectives. Regular review and adjustment of treatment strategies is essential as business conditions change.
+                      <strong>Important:</strong> Organisations often use a combination of strategies for complex risks. The chosen strategy should align with the organisation&apos;s risk appetite, available resources, and strategic objectives. Regular review and adjustment of treatment strategies is essential as business conditions change.
                     </p>
                   </div>
                 </div>
@@ -1710,7 +1710,7 @@ const RARIntro = ({
                     There is a temptation to be as thorough as possible, including every detail. However, less is more and it is usually better to keep the assessment fast, simple and focused on the most critical aspects only.
                   </p>
                   <p className="rar-distribution-intro-text">
-                    The following fields could enhance your risk assessment process. Consider adding these based on your organisation's specific needs and maturity level but avoid overcomplicating the assessment:
+                    The following fields could enhance your risk assessment process. Consider adding these based on your organisation&apos;s specific needs and maturity level but avoid overcomplicating the assessment:
                   </p>
                 </div>
 
@@ -1731,7 +1731,7 @@ const RARIntro = ({
                     <ul className="rar-distribution-list">
                       <li><strong>Data Sources:</strong> Where risk information was gathered</li>
                       <li><strong>Assumptions Made:</strong> Key assumptions underlying assessment</li>
-                      <li><strong>Confidence Level:</strong> Assessor's confidence in rating (High/Medium/Low)</li>
+                      <li><strong>Confidence Level:</strong> Assessor&apos;s confidence in rating (High/Medium/Low)</li>
                     </ul>
                   </div>
                 </div>

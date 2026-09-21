@@ -1777,7 +1777,7 @@ const QuantitativeValuesChart = ({ sle, aro, ale, formatCurrency }) => {
                                   {form.lossDistribution === "lognormal" && 
                                     <>Best for losses that are always positive and right-skewed (most losses are small, but occasional large losses occur). Uses natural logarithm (ln, base e). Parameters: μ (mu) = 1-6 and σ (sigma) = 0.3-1.2 for reasonable results. The fields below represent parameters of the underlying normal distribution, not the log-normal mean/std. <a href="https://en.wikipedia.org/wiki/Log-normal_distribution" target="_blank" rel="noopener noreferrer" style={{ color: '#0099cc', textDecoration: 'underline' }}>Learn more</a></>}
                                   {form.lossDistribution === "uniform" && 
-                                    <>Used when all loss values within a range are equally likely. Appropriate when there's complete uncertainty about loss magnitude within known bounds. <a href="https://en.wikipedia.org/wiki/Continuous_uniform_distribution" target="_blank" rel="noopener noreferrer" style={{ color: '#0099cc', textDecoration: 'underline' }}>Learn more</a></>}
+                                    <>Used when all loss values within a range are equally likely. Appropriate when there&apos;s complete uncertainty about loss magnitude within known bounds. <a href="https://en.wikipedia.org/wiki/Continuous_uniform_distribution" target="_blank" rel="noopener noreferrer" style={{ color: '#0099cc', textDecoration: 'underline' }}>Learn more</a></>}
                                   {form.lossDistribution === "beta" && 
                                     <>Flexible distribution for bounded losses (between min/max) with various shapes. Useful for modeling expert opinions with different confidence levels. <a href="https://en.wikipedia.org/wiki/Beta_distribution" target="_blank" rel="noopener noreferrer" style={{ color: '#0099cc', textDecoration: 'underline' }}>Learn more</a></>}
                                   {form.lossDistribution === "gamma" && 
@@ -2794,7 +2794,7 @@ const QuantitativeValuesChart = ({ sle, aro, ale, formatCurrency }) => {
                                   {form.frequencyDistribution === "normal" && 
                                     <>Suitable for frequencies that vary symmetrically around a mean value. Often used for well-established processes with stable historical patterns. <a href="https://en.wikipedia.org/wiki/Normal_distribution" target="_blank" rel="noopener noreferrer" style={{ color: '#0099cc', textDecoration: 'underline' }}>Learn more</a></>}
                                   {form.frequencyDistribution === "uniform" && 
-                                    <>Used when any frequency within a range is equally likely. Appropriate when there's complete uncertainty about event frequency within known bounds. <a href="https://en.wikipedia.org/wiki/Continuous_uniform_distribution" target="_blank" rel="noopener noreferrer" style={{ color: '#0099cc', textDecoration: 'underline' }}>Learn more</a></>}
+                                    <>Used when any frequency within a range is equally likely. Appropriate when there&apos;s complete uncertainty about event frequency within known bounds. <a href="https://en.wikipedia.org/wiki/Continuous_uniform_distribution" target="_blank" rel="noopener noreferrer" style={{ color: '#0099cc', textDecoration: 'underline' }}>Learn more</a></>}
                                   {form.frequencyDistribution === "exponential" && 
                                     <>Models time between events or frequency of rare events. Common for reliability analysis and modeling time to failure scenarios. <a href="https://en.wikipedia.org/wiki/Exponential_distribution" target="_blank" rel="noopener noreferrer" style={{ color: '#0099cc', textDecoration: 'underline' }}>Learn more</a></>}
                                   {form.frequencyDistribution === "negative-binomial" && 
@@ -2804,7 +2804,7 @@ const QuantitativeValuesChart = ({ sle, aro, ale, formatCurrency }) => {
                                   {form.frequencyDistribution === "geometric" && 
                                     <>Models the number of trials needed to achieve the first success. Ideal for time-to-first-event scenarios or modeling intervals between occurrences with constant probability. <a href="https://en.wikipedia.org/wiki/Geometric_distribution" target="_blank" rel="noopener noreferrer" style={{ color: '#0099cc', textDecoration: 'underline' }}>Learn more</a></>}
                                   {form.frequencyDistribution === "discrete-uniform" && 
-                                    <>All integer values within a range are equally likely. Used when frequency can only take specific discrete values and there's no preference for any particular value within the range. <a href="https://en.wikipedia.org/wiki/Discrete_uniform_distribution" target="_blank" rel="noopener noreferrer" style={{ color: '#0099cc', textDecoration: 'underline' }}>Learn more</a></>}
+                                    <>All integer values within a range are equally likely. Used when frequency can only take specific discrete values and there&apos;s no preference for any particular value within the range. <a href="https://en.wikipedia.org/wiki/Discrete_uniform_distribution" target="_blank" rel="noopener noreferrer" style={{ color: '#0099cc', textDecoration: 'underline' }}>Learn more</a></>}
                                 </small>
                               )}
                             </td>
@@ -4745,7 +4745,7 @@ const QuantitativeValuesChart = ({ sle, aro, ale, formatCurrency }) => {
                                   {(form.residualFrequencyDistribution || form.frequencyDistribution) === "normal" && 
                                     <>Suitable for residual frequencies that vary symmetrically around a mean value. Often used for well-established processes with stable historical patterns. <a href="https://en.wikipedia.org/wiki/Normal_distribution" target="_blank" rel="noopener noreferrer" style={{ color: '#0099cc', textDecoration: 'underline' }}>Learn more</a></>}
                                   {(form.residualFrequencyDistribution || form.frequencyDistribution) === "uniform" && 
-                                    <>Used when any residual frequency within a range is equally likely. Appropriate when there's complete uncertainty about event frequency within known bounds. <a href="https://en.wikipedia.org/wiki/Continuous_uniform_distribution" target="_blank" rel="noopener noreferrer" style={{ color: '#0099cc', textDecoration: 'underline' }}>Learn more</a></>}
+                                    <>Used when any residual frequency within a range is equally likely. Appropriate when there&apos;s complete uncertainty about event frequency within known bounds. <a href="https://en.wikipedia.org/wiki/Continuous_uniform_distribution" target="_blank" rel="noopener noreferrer" style={{ color: '#0099cc', textDecoration: 'underline' }}>Learn more</a></>}
                                   {(form.residualFrequencyDistribution || form.frequencyDistribution) === "exponential" && 
                                     <>Models time between residual events or frequency of rare events. Common for reliability analysis and modeling time to failure scenarios. <a href="https://en.wikipedia.org/wiki/Exponential_distribution" target="_blank" rel="noopener noreferrer" style={{ color: '#0099cc', textDecoration: 'underline' }}>Learn more</a></>}
                                   {(form.residualFrequencyDistribution || form.frequencyDistribution) === "negative-binomial" && 
@@ -5778,10 +5778,6 @@ const QuantitativeValuesChart = ({ sle, aro, ale, formatCurrency }) => {
                         </tr>
                       </React.Fragment>
                     )}
-                    {form.assessmentType === 'advancedQuantitative' && (
-                      <BackToTopButton />
-                    )}
-
                     <tr><td colSpan="2"><hr /></td></tr>
                     {/* General assessment fields - shown below both tabs */}
                     {viewMode === 'Extended' && (
@@ -5904,6 +5900,10 @@ const QuantitativeValuesChart = ({ sle, aro, ale, formatCurrency }) => {
                     )}
                   </tbody>
                 </table>
+
+                {form.assessmentType === 'advancedQuantitative' && (
+                  <BackToTopButton />
+                )}
 
                 {/* Risk Matrix Visualization */}
                 {form.assessmentType === "qualitative" && (riskLevel ||
